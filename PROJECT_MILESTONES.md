@@ -2407,3 +2407,54 @@ Next recommended module boundary:
   A research-only readiness scorecard/gate (criteria + verdict + reasons), NOT
   paper trading; the paper-trading simulation layer remains separate and
   unauthorized.
+
+## Milestone 89 - Readiness Criteria Definition
+
+Added the `spy_edge_research.paper` package with `readiness_criteria.py`: the
+pre-registered `ReadinessCriteria` dataclass (min OOS-positive splits, min OOS
+sample size, negative-control pass, multiple-testing pass, min temporal-stable
+periods, max pairwise overlap) and `default_readiness_criteria`. Research gates
+only; nothing authorizes a trade. Tests: `tests/paper/test_readiness_scoring.py`.
+
+## Milestone 90 - Readiness Scoring & Verdict
+
+Added `readiness_scoring.py`: `score_candidate_readiness` scores a candidate's
+research metrics against the criteria (one row per criterion, with a missing
+metric treated conservatively as `insufficient_evidence`), and
+`summarize_readiness_verdict` reduces it to a gated verdict
+(`eligible_for_paper_consideration` / `not_ready`) with failing reasons. A
+verdict is a research gate, never trade authorization.
+
+## Milestone 91 - Readiness Scorecard Reports
+
+Added `readiness_reports.py`: a readiness report bundle (scorecard, verdict,
+caveats) with metadata, structural summary, deterministic CSV/JSON export, and a
+forbidden-field guard (rejecting trade-action / order / sizing / allocation
+field names). Tests: `tests/paper/test_readiness_reports.py`.
+
+## Milestone 92 - Readiness Module Integration
+
+The `paper` package consumes diagnostics-style metrics (e.g. OOS stability,
+control survival, temporal stability, exposure overlap from earlier modules) and
+emits an auditable readiness gate. It performs no paper trading; the
+paper-trading simulation layer remains a separate, explicitly-unauthorized
+module.
+
+Full-suite command:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused MOD 10 tests passed: 10 passed (`tests/paper`).
+- Final full suite passed: 750 passed, 4 skipped. The skipped tests require
+  matplotlib.
+
+Roadmap status:
+
+- MOD 06-10 (Milestones 70-92) from `docs/NEXT_MODULES_ROADMAP.md` are complete.
+  All remain research-only. Any move toward an actual paper-trading simulation
+  layer, broker integration, options expression, or live execution requires a
+  separate, explicit authorization and a new module boundary.
