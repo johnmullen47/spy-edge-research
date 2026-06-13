@@ -129,7 +129,9 @@ def add_sector_dispersion_features(
     sector_returns = result[return_columns].apply(pd.to_numeric, errors="coerce")
     result["sector_dispersion_return_std"] = sector_returns.std(axis=1, ddof=0)
     result["sector_dispersion_return_range"] = sector_returns.max(axis=1) - sector_returns.min(axis=1)
-    trailing_threshold = result["sector_dispersion_return_std"].rolling(
+    # shift(1) so the current bar's dispersion is compared against strictly prior
+    # history and never contributes to its own threshold.
+    trailing_threshold = result["sector_dispersion_return_std"].shift(1).rolling(
         high_dispersion_quantile_window,
         min_periods=high_dispersion_min_periods,
     ).quantile(0.75)

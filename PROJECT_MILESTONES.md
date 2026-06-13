@@ -2477,3 +2477,45 @@ Documentation:
   runnable examples for the risk, factor, services, dashboard, and paper
   modules. `docs/ARCHITECTURE.md` was refreshed to the Milestone 92+ as-built
   state.
+
+## Milestone 94 - Architecture review hardening & DRY foundation
+
+A code-review-driven hardening pass (research-only). Verified findings only —
+several "critical" review claims were checked against source and rejected (the
+permutation `>=` convention is correct; the rolling realized-vol "leak" is
+causal; bootstrap NaN handling was already clean).
+
+Correctness / clarity:
+
+- `signal_engine/factor_context_features.py` and `sector_context_features.py`:
+  the high-dispersion trailing-quantile threshold now uses `.shift(1)` so the
+  current bar is compared against strictly prior history and never contributes
+  to its own threshold (consistency with the `events`/`regime` convention).
+- `backtesting/multiple_testing.py`: `apply_bonferroni_adjustment` gains an
+  optional `n_tests` to set the multiplicity family explicitly (default still
+  counts p-value-bearing rows); documented the warning thresholds.
+- `backtesting/statistical_tests.py`: documented tiny-sample CI unreliability
+  and finite-resample p-value flooring (no formula change).
+- `backtesting/directional_backtester.py`: documented the zero/NaN-return
+  exclusion convention and that it is a research proxy, not a tradable factor.
+
+Maintainability foundation:
+
+- Added `spy_edge_research/_internal/_common.py` with generic, behavior-
+  preserving helpers (require_columns, validate_positive_int, normalize_columns,
+  created_at_utc, json_safe_value/mapping, dataframe_to_records, raise_if_exists)
+  consolidating helpers copy-defined across 60+ modules. Migrated
+  `risk/risk_reports.py` to it as a verified proof-of-pattern.
+- Top-level `spy_edge_research/__init__.py` now re-exports all 12 subpackages
+  (was `market_data` only) for discoverability.
+- Added `tests/conftest.py` with shared event-frame/catalog fixtures.
+
+Full suite: 754 passed, 4 skipped.
+
+Staged follow-up (mechanical, to run in tested batches):
+
+- Migrate the remaining report modules and the ~50 modules that still define
+  local `_require_columns` / `_validate_positive_int` to `_internal/_common`.
+  Best done with an import-cleanup linter (e.g. ruff) to drop now-unused imports.
+- Optional: a spec-driven `report_bundle` base to collapse the duplicated
+  metadata/validate/summarize/export plumbing across report modules.

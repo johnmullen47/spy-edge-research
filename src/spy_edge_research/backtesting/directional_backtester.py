@@ -12,7 +12,14 @@ import pandas as pd
 
 
 def directional_profit_factor_equivalent(directional_returns: pd.Series) -> float:
-    """Compute a directional return proxy similar to profit factor."""
+    """Compute a directional return proxy similar to profit factor.
+
+    Gross positive return is divided by gross absolute negative return. NaN and
+    exactly-zero return bars are excluded from both sides (the standard
+    profit-factor convention). Returns ``inf`` when only gains are present,
+    ``0.0`` when only losses are present, and ``NaN`` when neither is present.
+    This is a research proxy, not a tradable profit factor (no costs/slippage).
+    """
     clean = directional_returns.dropna()
     positive_sum = clean.loc[clean > 0].sum()
     negative_sum = clean.loc[clean < 0].sum()

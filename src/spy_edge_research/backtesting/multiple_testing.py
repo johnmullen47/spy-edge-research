@@ -31,12 +31,23 @@ def apply_bonferroni_adjustment(
     *,
     p_value_col: str = "p_value",
     output_col: str = "p_value_bonferroni",
+    n_tests: int | None = None,
 ) -> pd.DataFrame:
-    """Add Bonferroni-adjusted p-values."""
+    """Add Bonferroni-adjusted p-values.
+
+    The multiplicity family size defaults to the number of rows with a valid
+    (non-NaN) p-value, so rows that carry no p-value (e.g. bootstrap confidence
+    intervals, which set ``p_value=NaN``) do not enlarge the correction family.
+    If the intended family is larger than the p-value-bearing rows present here,
+    pass ``n_tests`` explicitly to avoid under-correcting the family-wise error
+    rate.
+    """
     _require_columns(results, [p_value_col])
+    if n_tests is not None and (not isinstance(n_tests, int) or isinstance(n_tests, bool) or n_tests < 1):
+        raise ValueError("n_tests must be an integer greater than or equal to 1")
     result = results.copy()
     p_values = pd.to_numeric(result[p_value_col], errors="coerce")
-    test_count = int(p_values.notna().sum())
+    test_count = n_tests if n_tests is not None else int(p_values.notna().sum())
     result[output_col] = (p_values * test_count).clip(upper=1.0)
     return result
 
@@ -69,7 +80,12 @@ def summarize_multiple_testing_risk(
     p_value_col: str = "p_value",
     alpha: float = 0.05,
 ) -> pd.DataFrame:
-    """Summarize unadjusted and adjusted discovery counts."""
+    """Summarize unadjusted and adjusted discovery counts.
+
+    ``multiple_testing_warning`` is a coarse research heuristic on the number of
+    tested hypotheses: ``high`` at >= 100 (Bonferroni becomes very strict —
+    prefer FDR), ``moderate`` at >= 20, else ``low``. It is advisory only.
+    """
     _validate_probability(alpha, "alpha")
     adjusted = apply_false_discovery_rate_adjustment(
         apply_bonferroni_adjustment(results, p_value_col=p_value_col),

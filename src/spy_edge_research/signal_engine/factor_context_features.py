@@ -99,7 +99,9 @@ def add_factor_dispersion_features(
     factor_returns = result[return_columns].apply(pd.to_numeric, errors="coerce")
     result["factor_dispersion_return_std"] = factor_returns.std(axis=1, ddof=0)
     result["factor_dispersion_return_range"] = factor_returns.max(axis=1) - factor_returns.min(axis=1)
-    trailing_threshold = result["factor_dispersion_return_std"].rolling(
+    # shift(1) so the current bar's dispersion is compared against strictly prior
+    # history and never contributes to its own threshold.
+    trailing_threshold = result["factor_dispersion_return_std"].shift(1).rolling(
         high_dispersion_quantile_window,
         min_periods=high_dispersion_min_periods,
     ).quantile(0.75)

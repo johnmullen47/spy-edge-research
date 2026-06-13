@@ -10,12 +10,18 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
+
+from spy_edge_research._internal._common import (
+    created_at_utc as _created_at_utc,
+    dataframe_to_records as _dataframe_to_records,
+    json_safe_mapping as _json_safe_mapping,
+    json_safe_value as _json_safe_value,
+    raise_if_exists as _raise_if_exists,
+)
 
 
 RISK_EXPOSURE_REPORT_CAVEAT = "risk_exposure_report_is_descriptive_research_only"
@@ -213,45 +219,6 @@ def _copy_table(table: Any, table_name: str) -> pd.DataFrame:
     if not isinstance(table, pd.DataFrame):
         raise TypeError(f"{table_name} must be a pandas DataFrame")
     return table.copy(deep=True)
-
-
-def _raise_if_exists(paths: Any, *, overwrite: bool) -> None:
-    if overwrite:
-        return
-    existing = [path for path in paths if Path(path).exists()]
-    if existing:
-        raise FileExistsError(f"Refusing to overwrite existing files: {existing}")
-
-
-def _dataframe_to_records(table: pd.DataFrame) -> list[dict[str, Any]]:
-    records = table.replace({pd.NaT: None}).to_dict(orient="records")
-    return [{str(key): _json_safe_value(value) for key, value in row.items()} for row in records]
-
-
-def _json_safe_mapping(values: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key): _json_safe_value(value) for key, value in values.items()}
-
-
-def _json_safe_value(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, pd.Timestamp):
-        return None if pd.isna(value) else value.isoformat()
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, np.generic):
-        return _json_safe_value(value.item())
-    if isinstance(value, float) and np.isnan(value):
-        return None
-    if isinstance(value, Mapping):
-        return _json_safe_mapping(value)
-    if isinstance(value, (list, tuple)):
-        return [_json_safe_value(item) for item in value]
-    return value
-
-
-def _created_at_utc() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
 def _raise_forbidden_fields(values: Mapping[str, Any], *, name: str) -> None:

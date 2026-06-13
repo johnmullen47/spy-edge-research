@@ -33,7 +33,13 @@ def bootstrap_mean_difference(
     confidence_level: float = 0.95,
     seed: int | None = None,
 ) -> dict[str, Any]:
-    """Bootstrap the difference in means between event and baseline samples."""
+    """Bootstrap the difference in means between event and baseline samples.
+
+    Note: a sample of size 1 resamples to a constant, producing a degenerate
+    (zero-width) interval that understates uncertainty; treat CIs from tiny
+    samples (n < ~2, and cautiously n < ~30) as unreliable — see the
+    ``small_*_sample`` flags from ``summarize_statistical_test_result``.
+    """
     event = _clean_numeric_array(event_values)
     baseline = _clean_numeric_array(baseline_values)
     _validate_resample_inputs(event, baseline, n_bootstrap, confidence_level)
@@ -117,7 +123,13 @@ def permutation_test_event_vs_baseline(
     n_permutations: int = 1000,
     seed: int | None = None,
 ) -> dict[str, Any]:
-    """Permutation test for event-vs-baseline differences."""
+    """Permutation test for event-vs-baseline differences.
+
+    The two-sided p-value counts permutations whose absolute statistic is
+    ``>=`` the observed (the conservative convention, ties included). With a
+    finite number of permutations the p-value can be exactly 0.0; interpret that
+    as "below 1/n_permutations", not as true zero.
+    """
     event = _clean_numeric_array(event_values)
     baseline = _clean_numeric_array(baseline_values)
     _validate_positive_int(n_permutations, "n_permutations")
