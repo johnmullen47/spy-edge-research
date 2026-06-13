@@ -410,6 +410,23 @@ from spy_edge_research.backtesting.volatility_range_context import (
     summarize_event_by_range_context,
     summarize_event_by_volatility_context,
 )
+from spy_edge_research.backtesting.factor_event_study import (
+    build_factor_event_outcome_table,
+    build_factor_event_research_report,
+    compare_factor_context_event_outcomes,
+    summarize_event_by_factor_context,
+    summarize_factor_context_coverage,
+)
+from spy_edge_research.backtesting.factor_rotation_reports import (
+    build_factor_rotation_report_bundle,
+    build_factor_rotation_snapshot,
+    create_factor_rotation_report_metadata,
+    export_factor_rotation_report_bundle_to_csv,
+    export_factor_rotation_report_bundle_to_json,
+    summarize_factor_leadership_persistence,
+    summarize_factor_rotation_report_bundle,
+    validate_factor_rotation_report_bundle,
+)
 
 __all__ = [
     "add_always_long_baseline",
@@ -716,4 +733,17 @@ __all__ = [
     "write_research_package_manifest",
     "write_reproducibility_checklist",
     "write_run_registry",
+    "build_factor_event_outcome_table",
+    "build_factor_event_research_report",
+    "build_factor_rotation_report_bundle",
+    "build_factor_rotation_snapshot",
+    "compare_factor_context_event_outcomes",
+    "create_factor_rotation_report_metadata",
+    "export_factor_rotation_report_bundle_to_csv",
+    "export_factor_rotation_report_bundle_to_json",
+    "summarize_event_by_factor_context",
+    "summarize_factor_context_coverage",
+    "summarize_factor_leadership_persistence",
+    "summarize_factor_rotation_report_bundle",
+    "validate_factor_rotation_report_bundle",
 ]

@@ -38,6 +38,19 @@ from spy_edge_research.instruments.sector_universe import (
     validate_sector_universe,
     write_sector_universe,
 )
+from spy_edge_research.instruments.factor_universe import (
+    FactorDefinition,
+    FactorUniverse,
+    build_factor_universe,
+    create_factor_definition,
+    default_factor_etf_universe,
+    filter_factor_universe,
+    get_factor_definition,
+    list_factor_etfs,
+    read_factor_universe,
+    validate_factor_universe,
+    write_factor_universe,
+)
 
 __all__ = [
     "InstrumentDefinition",
@@ -72,4 +85,15 @@ __all__ = [
     "write_instrument_registry",
     "write_macro_instrument_universe",
     "write_sector_universe",
+    "FactorDefinition",
+    "FactorUniverse",
+    "build_factor_universe",
+    "create_factor_definition",
+    "default_factor_etf_universe",
+    "filter_factor_universe",
+    "get_factor_definition",
+    "list_factor_etfs",
+    "read_factor_universe",
+    "validate_factor_universe",
+    "write_factor_universe",
 ]

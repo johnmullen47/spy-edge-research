@@ -2251,9 +2251,61 @@ Result:
 - Final full suite passed: 699 passed, 4 skipped. The skipped tests require
   matplotlib.
 
+## Milestone 75 - Factor ETF Universe Foundation
+
+Added `instruments/factor_universe.py`: a deterministic single-factor ETF
+universe (`FactorDefinition`/`FactorUniverse`) covering momentum, value,
+quality, size, low-volatility, and yield styles, mirroring the sector-universe
+helpers (create/build/validate/get/list/filter/read/write +
+`default_factor_etf_universe`). Research metadata only; not a tradability,
+allocation, or execution registry. Tests: `tests/instruments/test_factor_universe.py`.
+
+## Milestone 76 - Factor Context Feature Layer
+
+Added `signal_engine/factor_context_features.py`: causal factor relative-return,
+leadership (top/bottom factor + factor-style), and dispersion features, plus a
+composing `add_factor_context_features`. Uses only current/prior rows; features
+are descriptive context, not allocation or execution instructions. Tests:
+`tests/signal_engine/test_factor_context_features.py`.
+
+## Milestone 77 - Factor-Conditioned Event Studies
+
+Added `backtesting/factor_event_study.py`: factor-context conditioned event
+outcome summaries, an outcome table built from a validated event catalog, a
+context comparison, and context-coverage diagnostics (reusing
+`summarize_event_forward_returns`). Descriptive research only. Tests:
+`tests/backtesting/test_factor_event_study.py`.
+
+## Milestone 78 - Factor Rotation Research Reports
+
+Added `backtesting/factor_rotation_reports.py`: a descriptive factor-leadership
+report bundle (rotation snapshot, leadership persistence, event outcomes,
+context coverage, caveats) with metadata, structural summary, deterministic
+CSV/JSON export, and a forbidden-field guard. Tests:
+`tests/backtesting/test_factor_rotation_reports.py`.
+
+## Milestone 79 - Factor Module Integration
+
+Wired the factor universe, features, event study, and rotation reports into the
+`instruments`, `signal_engine`, and `backtesting` package exports. The factor
+module mirrors the sector module so factor context can flow through the same
+research workflow.
+
+Full-suite command:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused MOD 07 tests passed: 20 passed (factor universe, features, event
+  study, rotation reports).
+- Final full suite passed: 719 passed, 4 skipped. The skipped tests require
+  matplotlib.
+
 Next recommended module boundary:
 
-- MOD 07 (Factor-ETF Allocation Research), per `docs/NEXT_MODULES_ROADMAP.md`.
-  Remains research-only: factor leadership/dispersion diagnostics and
-  factor-conditioned event studies, not allocation weights or factor-timing
-  signals.
+- MOD 08 (Research API / Service Layer), per `docs/NEXT_MODULES_ROADMAP.md`.
+  Read-only, offline programmatic access to existing report bundles, registries,
+  and manifests; no live data, write endpoints, or execution.

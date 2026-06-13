@@ -64,6 +64,12 @@ from spy_edge_research.signal_engine.named_events import (
     add_vwap_named_events,
     find_named_event_columns,
 )
+from spy_edge_research.signal_engine.factor_context_features import (
+    add_factor_context_features,
+    add_factor_dispersion_features,
+    add_factor_leadership_flags,
+    add_factor_relative_return_features,
+)
 
 __all__ = [
     "add_basic_event_primitives",
@@ -116,4 +122,8 @@ __all__ = [
     "infer_named_event_family",
     "summarize_event_sequence_counts",
     "validate_event_catalog",
+    "add_factor_context_features",
+    "add_factor_dispersion_features",
+    "add_factor_leadership_flags",
+    "add_factor_relative_return_features",
 ]
