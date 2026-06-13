@@ -10,11 +10,16 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+from spy_edge_research._internal._common import (
+    created_at_utc as _created_at_utc,
+    json_safe_mapping as _json_safe_mapping,
+    json_safe_value as _json_safe_value,
+)
 
 AUDIT_INDEX_TABLE_FILES: dict[str, str] = {
     "run_summary": "run_summary.csv",
@@ -334,26 +339,3 @@ def _validate_non_empty_string(value: Any, name: str) -> None:
     if not value:
         raise ValueError(f"{name} must be non-empty")
 
-
-def _created_at_utc() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
-
-
-def _json_safe_mapping(values: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key): _json_safe_value(value) for key, value in values.items()}
-
-
-def _json_safe_value(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, Mapping):
-        return _json_safe_mapping(value)
-    if isinstance(value, (list, tuple)):
-        return [_json_safe_value(item) for item in value]
-    return str(value)

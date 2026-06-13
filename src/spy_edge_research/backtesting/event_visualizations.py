@@ -12,6 +12,10 @@ from typing import Any
 
 import pandas as pd
 
+from spy_edge_research._internal._common import (
+    normalize_columns as _normalize_columns,
+)
+
 EVENT_COUNT_COLUMNS: list[str] = ["event_column", "label_column", "event_count", "event_rate"]
 LABEL_COVERAGE_COLUMNS: list[str] = [
     "label_column",
@@ -311,12 +315,3 @@ def _round_float_columns(table: pd.DataFrame, round_decimals: int | None) -> pd.
     table.loc[:, float_columns] = table.loc[:, float_columns].round(round_decimals)
     return table
 
-
-def _normalize_columns(columns: Iterable[str], name: str) -> list[str]:
-    if isinstance(columns, str):
-        normalized = [columns]
-    else:
-        normalized = list(columns)
-    if not normalized or not all(isinstance(column, str) and column for column in normalized):
-        raise ValueError(f"{name} must contain at least one column name")
-    return normalized

@@ -2534,3 +2534,65 @@ Full suite: 754 passed, 4 skipped.
 Remaining: the ~50 non-report modules that still define local `_require_columns`
 / `_validate_positive_int` / `_normalize_columns` can be migrated the same way
 (AST-remove + ruff F401) in further batches, watching for signature variants.
+
+## Milestone 96 - Helper migration batch 2 (non-report backtesting modules)
+
+Migrated 41 non-report `backtesting/*.py` modules to `_internal/_common`, using a
+hardened script with a **signature-match guard** that auto-skips call-incompatible
+variants (it correctly skipped `candidate_rule_objects._normalize_columns`).
+Unused imports stripped with ruff (F401). Net −457 LOC.
+
+One behavioral variant was caught by the full suite, not the signature guard:
+`event_run_registry` (and `event_artifacts`, `event_audit_index`,
+`event_reproducibility`) had a `_json_safe_value` that serialized `pathlib.Path`
+to ``str``. The shared helper didn't, so the fix made the canonical
+`_common.json_safe_value` a proper superset by adding `Path -> str` (benefits
+every module). `event_reports`'s 3-arg `_require_columns` remains local.
+
+Verified baseline: the full suite is **766 passed, 4 skipped** on both `main`
+and this branch (identical results → behavior-preserving). Note: earlier session
+entries (M93–M95) quoted "754 passed" from a stale local reading; the suite
+count grows as modules are added because `tests/backtesting/test_event_study.py`
+parametrizes over source files. 766/4 is the current verified number.
+
+## Milestone 96 - MOD 11: Unified CLI / pipeline runner
+
+Added a new `cli/` package (`spy_edge_research.cli`) that makes the previously
+import-only research backend runnable end-to-end from one command. This is the
+first module of the post-readiness-gate "functional app" build-out (remaining
+roadmap: MOD 11 runner -> MOD 14 paper-sim -> MOD 12 frontend -> MOD 13
+value/quality/momentum).
+
+New files:
+
+- `cli/pipeline.py` - `run_pipeline(input_csv, output_root, *, run_id, config,
+  overwrite)`: a pure, importable orchestration that threads one OHLCV frame
+  through existing stage functions only (no stage logic is reimplemented):
+  load -> indicators -> causal events -> forward labels -> event-study workflow
+  service -> report-bundle export -> candidate-edge registry -> risk
+  signal-overlap -> walk-forward OOS stability -> dashboard contract export ->
+  per-candidate paper-trading readiness scorecard. A small glue adapter maps
+  event-study result rows into validated `create_candidate_edge` records.
+- `cli/run_artifacts.py` - deterministic timestamped run layout
+  (`reports/run_<UTC>/...`) and a `run_manifest.json` writer that records
+  per-stage status, provenance, metrics, and research caveats (reuses
+  `create_research_run_metadata`).
+- `cli/main.py` + `cli/__init__.py` - argparse entry point (no new
+  dependencies) with subcommands `run-pipeline`, `export-dashboard`,
+  `score-readiness`, `list-runs`. Registered as the `spy-edge` console script
+  via `[project.scripts]` in `pyproject.toml`.
+
+Scope note (deliberate): the basic pipeline wires OOS stability and risk overlap
+into the readiness gate but does NOT run the negative-control, multiple-testing,
+or temporal-stability batteries. Those readiness metrics are left unprovided, so
+the gate honestly reports them as insufficient evidence and verdicts remain
+`not_ready` until the full battery is run. The run manifest discloses this with
+the `control_batteries_not_run_in_basic_pipeline` caveat. Everything remains
+research-only and descriptive: no trade signals, orders, sizing, or execution;
+the readiness verdict is a research gate, not a trade authorization. The causal
+invariant is unchanged (`forward_*` columns are evaluation labels only).
+
+Tests: `tests/cli/` (`test_pipeline.py`, `test_cli_main.py`, `test_list_runs.py`
++ a `conftest.py` synthetic-OHLCV fixture) - 12 passed. End-to-end verified via
+the installed `spy-edge` console script. Full suite: 766 passed, 4 skipped (the
+4 skips require matplotlib).

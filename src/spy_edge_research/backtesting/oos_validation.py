@@ -24,6 +24,11 @@ from spy_edge_research.backtesting.event_forward_outcomes import (
 )
 from spy_edge_research.backtesting.time_splits import validate_time_series_split
 
+from spy_edge_research._internal._common import (
+    require_columns as _require_columns,
+    validate_positive_int as _validate_positive_int,
+)
+
 
 OOS_EDGE_VALIDATION_COLUMNS: list[str] = [
     "candidate_id",
@@ -496,17 +501,6 @@ def _validate_indices_within_frame(df: pd.DataFrame, indices: list[int]) -> None
     invalid = [index for index in indices if index < 0 or index >= len(df)]
     if invalid:
         raise IndexError(f"split indices outside DataFrame bounds: {invalid}")
-
-
-def _require_columns(df: pd.DataFrame, columns: Iterable[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
-
-
-def _validate_positive_int(value: int, name: str) -> None:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-        raise ValueError(f"{name} must be an integer greater than or equal to 1")
 
 
 def _validate_number(value: float, name: str) -> None:

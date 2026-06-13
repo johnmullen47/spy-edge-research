@@ -7,6 +7,10 @@ from typing import Any
 
 import pandas as pd
 
+from spy_edge_research._internal._common import (
+    require_columns as _require_columns,
+)
+
 
 def add_candidate_family_columns(
     table: pd.DataFrame,
@@ -133,8 +137,3 @@ def _mapping_value(row: Mapping[str, Any], column: str) -> dict[str, Any]:
     value = row.get(column, {})
     return dict(value) if isinstance(value, Mapping) else {}
 
-
-def _require_columns(df: pd.DataFrame, columns: Iterable[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")

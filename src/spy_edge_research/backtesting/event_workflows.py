@@ -34,6 +34,10 @@ from spy_edge_research.signal_engine.event_catalog import (
     validate_event_catalog,
 )
 
+from spy_edge_research._internal._common import (
+    normalize_columns as _normalize_columns,
+)
+
 WORKFLOW_REQUIRED_KEYS: tuple[str, ...] = (
     "catalog",
     "event_study_results",
@@ -231,12 +235,3 @@ def _require_dataframe(value: Any, name: str) -> None:
     if not isinstance(value, pd.DataFrame):
         raise TypeError(f"{name} must be a pandas DataFrame")
 
-
-def _normalize_columns(columns: Iterable[str], name: str) -> list[str]:
-    if isinstance(columns, str):
-        normalized = [columns]
-    else:
-        normalized = list(columns)
-    if not normalized or not all(isinstance(column, str) and column for column in normalized):
-        raise ValueError(f"{name} must contain at least one column name")
-    return normalized

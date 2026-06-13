@@ -5,6 +5,10 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from spy_edge_research._internal._common import (
+    require_columns as _require_columns,
+)
+
 
 RULE_OOS_COMPARISON_COLUMNS: list[str] = [
     "rule_object_id",
@@ -120,12 +124,6 @@ def summarize_rule_oos_comparison(comparison: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
         .assign(summary_caveat="oos_comparison_is_reproducibility_diagnostic_only")
     )
-
-
-def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
 
 
 def _validate_non_negative_number(value: float, name: str) -> None:

@@ -54,6 +54,8 @@ def json_safe_value(value: Any) -> Any:
         return None if pd.isna(value) else value.isoformat()
     if isinstance(value, datetime):
         return value.isoformat()
+    if isinstance(value, Path):
+        return str(value)
     if isinstance(value, np.generic):
         return json_safe_value(value.item())
     if isinstance(value, float) and np.isnan(value):

@@ -11,6 +11,10 @@ from spy_edge_research.backtesting.research_package_manifest import (
     validate_research_package_manifest,
 )
 
+from spy_edge_research._internal._common import (
+    require_columns as _require_columns,
+)
+
 TRACEABILITY_COLUMNS: list[str] = [
     "candidate_id",
     "rule_object_id",
@@ -200,8 +204,3 @@ def _require_dataframe(table: Any, name: str) -> None:
     if not isinstance(table, pd.DataFrame):
         raise TypeError(f"{name} must be a pandas DataFrame")
 
-
-def _require_columns(table: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in table.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")

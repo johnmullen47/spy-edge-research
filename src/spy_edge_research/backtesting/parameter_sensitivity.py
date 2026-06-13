@@ -11,10 +11,15 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 import itertools
-import json
 
 import numpy as np
 import pandas as pd
+
+from spy_edge_research._internal._common import (
+    json_safe_mapping as _json_safe_mapping,
+    normalize_columns as _normalize_columns,
+    require_columns as _require_columns,
+)
 
 
 PARAMETER_GRID_ID_COLUMN = "parameter_set_id"
@@ -246,42 +251,7 @@ def _coerce_parameter_mapping(value: Any) -> dict[str, Any]:
     return dict(value)
 
 
-def _normalize_columns(columns: Iterable[str], name: str) -> list[str]:
-    if isinstance(columns, str):
-        normalized = [columns]
-    else:
-        normalized = list(columns)
-    if not normalized or not all(isinstance(column, str) and column for column in normalized):
-        raise ValueError(f"{name} must contain at least one column name")
-    return normalized
-
-
-def _require_columns(df: pd.DataFrame, columns: Iterable[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
-
-
 def _validate_non_negative_number(value: float, name: str) -> None:
     if not isinstance(value, (int, float)) or isinstance(value, bool) or value < 0:
         raise ValueError(f"{name} must be a non-negative number")
 
-
-def _json_safe_mapping(mapping: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key): _json_safe_value(value) for key, value in mapping.items()}
-
-
-def _json_safe_value(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return _json_safe_mapping(value)
-    if isinstance(value, tuple):
-        return [_json_safe_value(item) for item in value]
-    if isinstance(value, list):
-        return [_json_safe_value(item) for item in value]
-    if isinstance(value, pd.Timestamp):
-        return value.isoformat()
-    try:
-        json.dumps(value)
-    except TypeError:
-        return str(value)
-    return value

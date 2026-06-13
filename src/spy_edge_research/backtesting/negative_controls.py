@@ -12,6 +12,11 @@ from spy_edge_research.backtesting.event_forward_outcomes import (
     calculate_event_hit_rate,
 )
 
+from spy_edge_research._internal._common import (
+    normalize_columns as _normalize_columns,
+    require_columns as _require_columns,
+)
+
 
 def build_shifted_condition_control(
     df: pd.DataFrame,
@@ -148,18 +153,3 @@ def _condition_summary(
         "control_caveat": "negative_control_result_is_not_edge_evidence",
     }
 
-
-def _normalize_columns(columns: Iterable[str], name: str) -> list[str]:
-    if isinstance(columns, str):
-        normalized = [columns]
-    else:
-        normalized = list(columns)
-    if not normalized or not all(isinstance(column, str) and column for column in normalized):
-        raise ValueError(f"{name} must contain at least one column name")
-    return normalized
-
-
-def _require_columns(df: pd.DataFrame, columns: Iterable[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")

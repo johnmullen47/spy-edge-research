@@ -12,6 +12,10 @@ from spy_edge_research.backtesting.candidate_rule_objects import (
     validate_candidate_rule_object,
 )
 
+from spy_edge_research._internal._common import (
+    require_columns as _require_columns,
+)
+
 RULE_REPLAY_COLUMNS: list[str] = [
     "rule_object_id",
     "candidate_id",
@@ -151,12 +155,6 @@ def _condition_mask(df: pd.DataFrame, condition_spec: Mapping[str, Any]) -> tupl
     if event_column is None and sequence_column is None and not context_filters:
         caveats.append("empty_condition_spec_matches_all_rows")
     return mask, caveats
-
-
-def _require_columns(df: pd.DataFrame, columns: Iterable[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
 
 
 def _dedupe_strings(values: Iterable[str]) -> list[str]:

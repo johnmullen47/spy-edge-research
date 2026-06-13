@@ -11,7 +11,6 @@ import json
 import re
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +19,12 @@ import pandas as pd
 from spy_edge_research.backtesting.event_artifacts import (
     read_artifact_manifest,
     validate_artifact_manifest,
+)
+
+from spy_edge_research._internal._common import (
+    created_at_utc as _created_at_utc,
+    json_safe_mapping as _json_safe_mapping,
+    normalize_columns as _normalize_columns,
 )
 
 RUN_SUMMARY_COLUMNS: tuple[str, ...] = (
@@ -395,42 +400,9 @@ def _format_manifest_path(path: str | Path, *, base_dir: str | Path | None) -> s
         return str(path_obj)
 
 
-def _normalize_columns(columns: Iterable[str], name: str) -> list[str]:
-    if isinstance(columns, str):
-        normalized = [columns]
-    else:
-        normalized = list(columns)
-    if not normalized or not all(isinstance(column, str) and column for column in normalized):
-        raise ValueError(f"{name} must contain at least one column name")
-    return sorted(normalized)
-
-
 def _validate_non_empty_string(value: Any, name: str) -> None:
     if not isinstance(value, str):
         raise TypeError(f"{name} must be a string")
     if not value:
         raise ValueError(f"{name} must be non-empty")
 
-
-def _created_at_utc() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
-
-
-def _json_safe_mapping(values: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key): _json_safe_value(value) for key, value in values.items()}
-
-
-def _json_safe_value(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, Mapping):
-        return _json_safe_mapping(value)
-    if isinstance(value, (list, tuple)):
-        return [_json_safe_value(item) for item in value]
-    return str(value)

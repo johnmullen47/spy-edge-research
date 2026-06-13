@@ -13,6 +13,10 @@ from spy_edge_research.backtesting.negative_controls import (
     evaluate_negative_control_outcomes,
 )
 
+from spy_edge_research._internal._common import (
+    require_columns as _require_columns,
+)
+
 
 def build_shifted_control_grid(
     df: pd.DataFrame,
@@ -139,8 +143,3 @@ def _exceedance_rate(values: pd.Series, observed: float) -> float:
         return np.nan
     return float(values.ge(observed).mean())
 
-
-def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")

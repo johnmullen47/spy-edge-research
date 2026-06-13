@@ -10,6 +10,10 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from spy_edge_research._internal._common import (
+    require_columns as _require_columns,
+)
+
 
 def directional_profit_factor_equivalent(directional_returns: pd.Series) -> float:
     """Compute a directional return proxy similar to profit factor.
@@ -147,12 +151,6 @@ def evaluate_baselines(
         baseline_columns,
         horizons_minutes=horizons_minutes,
     )
-
-
-def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
 
 
 def _validate_horizons(horizons_minutes: tuple[int, ...]) -> None:

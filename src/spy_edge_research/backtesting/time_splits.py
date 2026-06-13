@@ -7,6 +7,10 @@ from typing import Any
 
 import pandas as pd
 
+from spy_edge_research._internal._common import (
+    validate_positive_int as _validate_positive_int,
+)
+
 
 def create_time_series_splits(
     df: pd.DataFrame,
@@ -154,7 +158,3 @@ def _make_split_record(
     validate_time_series_split(split)
     return split
 
-
-def _validate_positive_int(value: int, name: str) -> None:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-        raise ValueError(f"{name} must be an integer greater than or equal to 1")

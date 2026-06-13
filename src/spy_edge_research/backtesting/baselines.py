@@ -11,6 +11,11 @@ from numbers import Real
 import numpy as np
 import pandas as pd
 
+from spy_edge_research._internal._common import (
+    require_columns as _require_columns,
+    validate_positive_int as _validate_positive_int,
+)
+
 
 def add_always_long_baseline(
     df: pd.DataFrame,
@@ -139,12 +144,6 @@ def add_basic_baselines(
     return result
 
 
-def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
-
-
 def _has_columns(df: pd.DataFrame, columns: list[str]) -> bool:
     return all(column in df.columns for column in columns)
 
@@ -152,11 +151,6 @@ def _has_columns(df: pd.DataFrame, columns: list[str]) -> bool:
 def _validate_probability(value: float, name: str) -> None:
     if not isinstance(value, Real) or isinstance(value, bool) or not 0 <= value < 1:
         raise ValueError(f"{name} must satisfy 0 <= {name} < 1")
-
-
-def _validate_positive_int(value: int, name: str) -> None:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-        raise ValueError(f"{name} must be an integer greater than or equal to 1")
 
 
 def _side_from_relation(left: pd.Series, right: pd.Series) -> pd.Series:

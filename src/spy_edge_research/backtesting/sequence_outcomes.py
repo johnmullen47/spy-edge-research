@@ -13,6 +13,12 @@ from spy_edge_research.backtesting.event_forward_outcomes import (
     summarize_event_forward_returns,
 )
 
+from spy_edge_research._internal._common import (
+    normalize_columns as _normalize_columns,
+    require_columns as _require_columns,
+    validate_positive_int as _validate_positive_int,
+)
+
 SEQUENCE_OUTCOME_COLUMNS: list[str] = [
     "event_sequence",
     "outcome_column",
@@ -237,23 +243,3 @@ def _sample_size_flag(sequence_count: int, min_occurrences: int) -> str:
         return "small_sample"
     return "ok"
 
-
-def _normalize_columns(columns: Iterable[str], name: str) -> list[str]:
-    if isinstance(columns, str):
-        normalized = [columns]
-    else:
-        normalized = list(columns)
-    if not normalized or not all(isinstance(column, str) and column for column in normalized):
-        raise ValueError(f"{name} must contain at least one column name")
-    return normalized
-
-
-def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
-
-
-def _validate_positive_int(value: int, name: str) -> None:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-        raise ValueError(f"{name} must be an integer greater than or equal to 1")

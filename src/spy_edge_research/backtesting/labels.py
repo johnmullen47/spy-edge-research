@@ -12,6 +12,11 @@ from numbers import Real
 import numpy as np
 import pandas as pd
 
+from spy_edge_research._internal._common import (
+    require_columns as _require_columns,
+    validate_positive_int as _validate_positive_int,
+)
+
 
 def horizon_to_bars(horizon_minutes: int, bar_interval_minutes: int = 1) -> int:
     """Convert a forward horizon in minutes to a whole number of bars."""
@@ -280,12 +285,6 @@ def _local_trading_dates(timestamps: pd.Series, timezone: str) -> pd.Series:
     return pd.Series(parsed.dt.date, index=timestamps.index)
 
 
-def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
-
-
 def _validate_horizons(
     horizons_minutes: tuple[int, ...],
     bar_interval_minutes: int = 1,
@@ -294,11 +293,6 @@ def _validate_horizons(
         raise ValueError("horizons_minutes must be a non-empty tuple of integers")
     for horizon in horizons_minutes:
         horizon_to_bars(horizon, bar_interval_minutes)
-
-
-def _validate_positive_int(value: int, name: str) -> None:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-        raise ValueError(f"{name} must be an integer greater than or equal to 1")
 
 
 def _validate_non_negative_number(value: float, name: str) -> None:

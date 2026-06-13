@@ -13,6 +13,11 @@ from typing import Any
 
 import pandas as pd
 
+from spy_edge_research._internal._common import (
+    json_safe_mapping as _json_safe_mapping,
+    require_columns as _require_columns,
+)
+
 CANDIDATE_EDGE_COLUMNS: list[str] = [
     "candidate_id",
     "candidate_type",
@@ -201,12 +206,6 @@ def read_candidate_edge_registry(path: str | Path) -> pd.DataFrame:
     return build_candidate_edge_registry(payload["candidate_edges"])
 
 
-def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
-
-
 def _validate_non_empty_string(value: Any, name: str) -> None:
     if not isinstance(value, str) or not value:
         raise ValueError(f"{name} must be a non-empty string")
@@ -227,18 +226,3 @@ def _validate_number(value: Any, name: str) -> float:
         raise TypeError(f"{name} must be numeric")
     return float(value)
 
-
-def _json_safe_mapping(mapping: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key): _json_safe_value(value) for key, value in mapping.items()}
-
-
-def _json_safe_value(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return _json_safe_mapping(value)
-    if isinstance(value, list):
-        return [_json_safe_value(item) for item in value]
-    if isinstance(value, tuple):
-        return [_json_safe_value(item) for item in value]
-    if isinstance(value, pd.Timestamp):
-        return value.isoformat()
-    return value

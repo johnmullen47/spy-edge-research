@@ -15,6 +15,11 @@ import pandas as pd
 
 from spy_edge_research.signal_engine.event_catalog import validate_event_catalog
 
+from spy_edge_research._internal._common import (
+    normalize_columns as _normalize_columns,
+    require_columns as _require_columns,
+)
+
 EVENT_FORWARD_OUTCOME_COLUMNS: list[str] = [
     "event_column",
     "event_family",
@@ -198,22 +203,6 @@ def _sample_size_flag(event_count: int, min_events: int) -> str:
     if event_count < min_events:
         return "small_sample"
     return "ok"
-
-
-def _normalize_columns(columns: Iterable[str], name: str) -> list[str]:
-    if isinstance(columns, str):
-        normalized = [columns]
-    else:
-        normalized = list(columns)
-    if not normalized or not all(isinstance(column, str) and column for column in normalized):
-        raise ValueError(f"{name} must contain at least one column name")
-    return normalized
-
-
-def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
 
 
 def _validate_min_events(min_events: int) -> None:

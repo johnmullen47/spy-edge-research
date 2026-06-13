@@ -8,6 +8,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from spy_edge_research._internal._common import (
+    validate_positive_int as _validate_positive_int,
+)
+
 
 def calculate_confidence_interval(
     values: Iterable[float],
@@ -257,11 +261,6 @@ def _validate_non_empty_samples(event: np.ndarray, baseline: np.ndarray) -> None
 def _validate_probability(value: float, name: str) -> None:
     if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0 or value >= 1:
         raise ValueError(f"{name} must be in the interval (0, 1)")
-
-
-def _validate_positive_int(value: int, name: str) -> None:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-        raise ValueError(f"{name} must be an integer greater than or equal to 1")
 
 
 def _validate_number(value: float, name: str) -> None:
