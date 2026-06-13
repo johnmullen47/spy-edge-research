@@ -2815,3 +2815,34 @@ rejection, injected-client paper submit). Full suite: 830 passed, 4 skipped.
 
 Still gated: live execution is a separate module; nothing here can place a real
 order. Real runs additionally require Hard Gate A (an eligible edge on real data).
+
+## Milestone 104 - live execution adapter (Phase 14, INERT unless explicitly enabled)
+
+Stage 4 (final code stage) of the staged Trader build-out. `broker/live_adapter.py`
+adds the only code path that can place a real-money order - designed to be
+impossible to trigger by accident behind three independent gates:
+
+1. **Env flag** - the constructor raises `BrokerLiveDisabledError` unless
+   `SPY_EDGE_ALLOW_LIVE=1` is set in the process env (fail closed).
+2. **Per-order human approval** - every `submit_intent` requires a
+   `human_approval_token` that equals that specific intent's id. There is no
+   batch path and no autonomous path; a human confirms each order by id.
+3. **Limits + kill-switch** - the same `TradingLimits` / `KillSwitch` checks as
+   the sandbox, applied before any submit.
+
+There is deliberately no dry-run/live mode (a live submit needs a configured
+client) and credentials are env-only. `AlpacaLiveAdapter` is hard-pinned to the
+live endpoint and refuses any other; the sandbox adapter remains hard-pinned to
+paper. Tests (`tests/broker/test_broker_live.py`) inject a fake client and pass
+the env flag as an explicit dict - **no test places a real order**: they verify
+the adapter is disabled without the flag, rejects a non-matching approval token
+(placing no order), enforces limits and the kill-switch, refuses to run without a
+client, and only submits + audits when every gate holds. Full suite: 837 passed,
+4 skipped.
+
+**This completes the staged Trader build-out code (M101-M104).** What remains is
+NOT code: **Hard Gate A** - run the pipeline on real multi-month SPY 1-minute data
+and confirm >=1 candidate reaches `eligible_for_paper_consideration` - and, only
+after a clean Alpaca paper-sandbox run on that real edge, an explicit
+per-deployment decision to set `SPY_EDGE_ALLOW_LIVE=1`. Until then the live path
+is inert by construction.

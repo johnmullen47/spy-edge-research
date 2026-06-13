@@ -29,6 +29,13 @@ from spy_edge_research.broker.alpaca_adapter import (
     AlpacaSandboxAdapter,
     BrokerConfig,
 )
+from spy_edge_research.broker.live_adapter import (
+    LIVE_ENABLE_ENV_VAR,
+    LIVE_MODE,
+    AlpacaLiveAdapter,
+    BrokerLiveDisabledError,
+    LiveBrokerConfig,
+)
 
 __all__ = [
     "ORDER_INTENT_CAVEAT",
@@ -46,4 +53,9 @@ __all__ = [
     "SANDBOX_MODE",
     "AlpacaSandboxAdapter",
     "BrokerConfig",
+    "LIVE_ENABLE_ENV_VAR",
+    "LIVE_MODE",
+    "AlpacaLiveAdapter",
+    "BrokerLiveDisabledError",
+    "LiveBrokerConfig",
 ]
