@@ -9,10 +9,8 @@ simulate P/L, or claim edge.
 from __future__ import annotations
 
 import json
-import math
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +21,14 @@ from spy_edge_research.backtesting.event_run_registry import (
     summarize_run_registry,
     validate_run_metadata_consistency,
     validate_run_registry,
+)
+
+from spy_edge_research._internal._common import (
+    created_at_utc as _created_at_utc,
+    dataframe_to_records as _dataframe_to_records,
+    json_safe_mapping as _json_safe_mapping,
+    json_safe_value as _json_safe_value,
+    raise_if_exists as _raise_if_exists,
 )
 
 REGISTRY_AUDIT_TABLE_FILES: dict[str, str] = {
@@ -245,48 +251,3 @@ def build_and_export_registry_audit(
         "audit_summary": audit_summary,
     }
 
-
-def _dataframe_to_records(table: pd.DataFrame) -> list[dict[str, Any]]:
-    records = table.replace({pd.NaT: None}).to_dict(orient="records")
-    return [
-        {str(key): _json_safe_value(value) for key, value in row.items()}
-        for row in records
-    ]
-
-
-def _json_safe_mapping(values: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key): _json_safe_value(value) for key, value in values.items()}
-
-
-def _json_safe_value(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, pd.Timestamp):
-        return None if pd.isna(value) else value.isoformat()
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, float) and math.isnan(value):
-        return None
-    if isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, Mapping):
-        return _json_safe_mapping(value)
-    if isinstance(value, (list, tuple)):
-        return [_json_safe_value(item) for item in value]
-    if pd.isna(value):
-        return None
-    return str(value)
-
-
-def _created_at_utc() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
-
-
-def _raise_if_exists(paths: Iterable[Path], *, overwrite: bool) -> None:
-    if overwrite:
-        return
-    existing = [path for path in paths if path.exists()]
-    if existing:
-        raise FileExistsError(f"Refusing to overwrite existing files: {existing}")

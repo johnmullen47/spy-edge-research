@@ -9,12 +9,20 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
+
+from spy_edge_research._internal._common import (
+    created_at_utc as _created_at_utc,
+    dataframe_to_records as _dataframe_to_records,
+    json_safe_mapping as _json_safe_mapping,
+    json_safe_value as _json_safe_value,
+    raise_if_exists as _raise_if_exists,
+    require_columns as _require_columns,
+    validate_positive_int as _validate_positive_int,
+)
 
 
 SECTOR_ROTATION_REPORT_CAVEAT = "sector_rotation_report_is_descriptive_leadership_research_only"
@@ -367,47 +375,6 @@ def _copy_table(table: Any, table_name: str) -> pd.DataFrame:
     return table.copy(deep=True)
 
 
-def _raise_if_exists(paths: Any, *, overwrite: bool) -> None:
-    if overwrite:
-        return
-    existing = [path for path in paths if Path(path).exists()]
-    if existing:
-        raise FileExistsError(f"Refusing to overwrite existing files: {existing}")
-
-
-def _dataframe_to_records(table: pd.DataFrame) -> list[dict[str, Any]]:
-    records = table.replace({pd.NaT: None}).to_dict(orient="records")
-    return [{str(key): _json_safe_value(value) for key, value in row.items()} for row in records]
-
-
-def _json_safe_mapping(values: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key): _json_safe_value(value) for key, value in values.items()}
-
-
-def _json_safe_value(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, pd.Timestamp):
-        return None if pd.isna(value) else value.isoformat()
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, np.generic):
-        return _json_safe_value(value.item())
-    if isinstance(value, float) and np.isnan(value):
-        return None
-    if isinstance(value, Mapping):
-        return _json_safe_mapping(value)
-    if isinstance(value, list):
-        return [_json_safe_value(item) for item in value]
-    if isinstance(value, tuple):
-        return [_json_safe_value(item) for item in value]
-    return value
-
-
-def _created_at_utc() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
-
-
 def _symbol_column(symbol: str, suffix: str) -> str:
     return f"{_normalize_symbol(symbol)}_{suffix.strip('_')}"
 
@@ -425,17 +392,6 @@ def _normalize_symbols(symbols: Sequence[str], name: str) -> list[str]:
     if not normalized:
         raise ValueError(f"{name} must contain at least one symbol")
     return normalized
-
-
-def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
-    missing = [column for column in columns if column not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
-
-
-def _validate_positive_int(value: int, name: str) -> None:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-        raise ValueError(f"{name} must be an integer greater than or equal to 1")
 
 
 def _raise_forbidden_fields(values: Mapping[str, Any], *, name: str) -> None:

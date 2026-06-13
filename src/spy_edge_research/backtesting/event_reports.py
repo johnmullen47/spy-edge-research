@@ -13,8 +13,21 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
+
+from spy_edge_research._internal._common import (
+    dataframe_to_records as _dataframe_to_records,
+    json_safe_mapping as _json_safe_mapping,
+    json_safe_value as _json_safe_value,
+    normalize_columns as _normalize_columns,
+    raise_if_exists as _raise_if_exists,
+)
+
+
+def _require_columns(table: pd.DataFrame, columns: list[str], table_name: str) -> None:
+    missing = [column for column in columns if column not in table.columns]
+    if missing:
+        raise KeyError(f"{table_name} is missing required columns: {missing}")
 
 REPORT_TABLE_NAMES: tuple[str, ...] = (
     "event_study_results",
@@ -234,58 +247,3 @@ def _get_bundle_metadata(bundle: Mapping[str, Any]) -> dict[str, Any]:
         raise TypeError("bundle metadata must be a mapping")
     return _json_safe_mapping(metadata)
 
-
-def _dataframe_to_records(table: pd.DataFrame) -> list[dict[str, Any]]:
-    records = table.replace({pd.NaT: None}).to_dict(orient="records")
-    return [
-        {str(key): _json_safe_value(value) for key, value in row.items()}
-        for row in records
-    ]
-
-
-def _json_safe_mapping(values: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key): _json_safe_value(value) for key, value in values.items()}
-
-
-def _json_safe_value(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, pd.Timestamp):
-        return None if pd.isna(value) else value.isoformat()
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, np.generic):
-        return _json_safe_value(value.item())
-    if isinstance(value, float) and np.isnan(value):
-        return None
-    if isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, Mapping):
-        return _json_safe_mapping(value)
-    if isinstance(value, (list, tuple)):
-        return [_json_safe_value(item) for item in value]
-    return str(value)
-
-
-def _normalize_columns(columns: Iterable[str], name: str) -> list[str]:
-    if isinstance(columns, str):
-        normalized = [columns]
-    else:
-        normalized = list(columns)
-    if not normalized or not all(isinstance(column, str) and column for column in normalized):
-        raise ValueError(f"{name} must contain at least one column name")
-    return normalized
-
-
-def _require_columns(table: pd.DataFrame, columns: list[str], table_name: str) -> None:
-    missing = [column for column in columns if column not in table.columns]
-    if missing:
-        raise KeyError(f"{table_name} is missing required columns: {missing}")
-
-
-def _raise_if_exists(paths: Iterable[Path], *, overwrite: bool) -> None:
-    if overwrite:
-        return
-    existing = [path for path in paths if path.exists()]
-    if existing:
-        raise FileExistsError(f"Refusing to overwrite existing files: {existing}")

@@ -2519,3 +2519,18 @@ Staged follow-up (mechanical, to run in tested batches):
   Best done with an import-cleanup linter (e.g. ruff) to drop now-unused imports.
 - Optional: a spec-driven `report_bundle` base to collapse the duplicated
   metadata/validate/summarize/export plumbing across report modules.
+
+## Milestone 95 - Helper migration batch 1 (report modules)
+
+Migrated all 11 `backtesting/*_reports.py` modules to source their generic
+helpers (`json_safe_value`/`mapping`, `dataframe_to_records`, `raise_if_exists`,
+`normalize_columns`, `created_at_utc`, `require_columns`, `validate_positive_int`)
+from `spy_edge_research/_internal/_common.py`, then stripped the now-unused
+imports with ruff (F401). Net −424 LOC, behavior unchanged. `event_reports.py`
+keeps its own 3-arg `_require_columns` (a `KeyError`-raising signature variant
+that differs from the shared 2-arg helper — surfaced by tests during migration).
+Full suite: 754 passed, 4 skipped.
+
+Remaining: the ~50 non-report modules that still define local `_require_columns`
+/ `_validate_positive_int` / `_normalize_columns` can be migrated the same way
+(AST-remove + ruff F401) in further batches, watching for signature variants.

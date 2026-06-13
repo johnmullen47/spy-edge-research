@@ -8,12 +8,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from spy_edge_research.backtesting.candidate_rule_objects import (
     build_candidate_rule_catalog,
     summarize_candidate_rule_catalog,
+)
+
+from spy_edge_research._internal._common import (
+    dataframe_to_records as _dataframe_to_records,
+    json_safe_mapping as _json_safe_mapping,
+    raise_if_exists as _raise_if_exists,
 )
 
 RULE_CATALOG_REPORT_TABLE_FILES: dict[str, str] = {
@@ -224,37 +229,3 @@ def export_candidate_rule_report_bundle_to_json(
 def _records_from_frame(catalog: pd.DataFrame) -> list[dict[str, Any]]:
     return catalog.to_dict("records")
 
-
-def _raise_if_exists(paths: Any, *, overwrite: bool) -> None:
-    if overwrite:
-        return
-    existing = [path for path in paths if Path(path).exists()]
-    if existing:
-        raise FileExistsError(f"Refusing to overwrite existing files: {existing}")
-
-
-def _dataframe_to_records(table: pd.DataFrame) -> list[dict[str, Any]]:
-    return [
-        {str(key): _json_safe_value(value) for key, value in row.items()}
-        for row in table.replace({pd.NaT: None}).to_dict("records")
-    ]
-
-
-def _json_safe_mapping(values: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key): _json_safe_value(value) for key, value in values.items()}
-
-
-def _json_safe_value(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return _json_safe_mapping(value)
-    if isinstance(value, list):
-        return [_json_safe_value(item) for item in value]
-    if isinstance(value, tuple):
-        return [_json_safe_value(item) for item in value]
-    if isinstance(value, pd.Timestamp):
-        return value.isoformat()
-    if isinstance(value, np.generic):
-        return _json_safe_value(value.item())
-    if isinstance(value, float) and np.isnan(value):
-        return None
-    return value
