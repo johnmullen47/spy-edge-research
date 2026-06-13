@@ -2304,8 +2304,58 @@ Result:
 - Final full suite passed: 719 passed, 4 skipped. The skipped tests require
   matplotlib.
 
+## Milestone 80 - Research Artifact Access
+
+Added the `spy_edge_research.services` package with `artifact_access.py`:
+read-only loading of committed report bundles into a typed `LoadedReportBundle`
+(records-oriented JSON via `load_report_bundle_json`, CSV directory via
+`load_report_bundle_csv_dir`) plus `discover_report_bundles` to enumerate
+bundles under a root. Offline and read-only; no live data or mutation. Tests:
+`tests/services/test_artifact_access.py`.
+
+## Milestone 81 - Research Query Helpers
+
+Added `services/research_queries.py`: `list_bundle_tables`, `get_bundle_table`,
+`filter_bundle_table`, and `summarize_bundles` answer structural questions over
+loaded bundles. Read-only. Tests: `tests/services/test_research_queries.py`.
+
+## Milestone 82 - Workflow Service Facade
+
+Added `services/workflow_service.py`: `run_event_research_workflow_service`
+wraps `build_event_research_workflow_outputs` and returns a structured
+`WorkflowServiceResponse` (outputs, table names, report summary);
+`export_workflow_service_response` writes the report bundle to CSV. Research
+orchestration only; reads an in-memory DataFrame, no live data or execution.
+Tests: `tests/services/test_workflow_service.py`.
+
+## Milestone 83 - Optional HTTP Layer (deferred)
+
+The optional thin HTTP layer is intentionally deferred: no web framework is in
+the project environment, and adding one is out of scope for a research-only,
+offline service layer. The function-based service surface (M80-82) is the
+supported interface. Revisit only if a local app backend is explicitly approved.
+
+## Milestone 84 - Service Layer Integration
+
+Verified the read-only service surface end to end: a workflow response exports
+to a CSV bundle that `load_report_bundle_csv_dir` reloads and the query helpers
+inspect. The `services` package is importable as `spy_edge_research.services`.
+
+Full-suite command:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused MOD 08 tests passed: 11 passed (`tests/services`).
+- Final full suite passed: 730 passed, 4 skipped. The skipped tests require
+  matplotlib.
+
 Next recommended module boundary:
 
-- MOD 08 (Research API / Service Layer), per `docs/NEXT_MODULES_ROADMAP.md`.
-  Read-only, offline programmatic access to existing report bundles, registries,
-  and manifests; no live data, write endpoints, or execution.
+- MOD 09 (Dashboard Data Export), per `docs/NEXT_MODULES_ROADMAP.md`.
+  Stable, versioned, frontend-ready JSON contracts built from research
+  artifacts; a data-contract layer only, descriptive, no UI, no live data, no
+  trade-readiness fields.
