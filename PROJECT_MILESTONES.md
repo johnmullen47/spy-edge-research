@@ -2458,3 +2458,22 @@ Roadmap status:
   All remain research-only. Any move toward an actual paper-trading simulation
   layer, broker integration, options expression, or live execution requires a
   separate, explicit authorization and a new module boundary.
+
+## Milestone 93 - Readiness Input Assembler (MOD 06 -> MOD 10 bridge)
+
+Added `paper/readiness_inputs.py`: `build_readiness_metrics` assembles the
+readiness metrics mapping consumed by `score_candidate_readiness` directly from
+upstream research summaries — an OOS stability row (`summarize_oos_edge_stability`),
+the MOD 06 risk signal-overlap summary or exposure-limit checks (for
+`max_pairwise_jaccard`), and control-pass flags. Read-only reshaping only; it
+makes no trade decision. This wires the risk module's overlap output into the
+readiness gate instead of relying on a hand-built metrics dict. Tests:
+`tests/paper/test_readiness_inputs.py` (4 passed). Full suite: 754 passed,
+4 skipped.
+
+Documentation:
+
+- `README.md` now has a "Research Modules (MOD 06-10) — Usage" section with
+  runnable examples for the risk, factor, services, dashboard, and paper
+  modules. `docs/ARCHITECTURE.md` was refreshed to the Milestone 92+ as-built
+  state.

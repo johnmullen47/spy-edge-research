@@ -11,6 +11,7 @@ from spy_edge_research.paper.readiness_criteria import (
     ReadinessCriteria,
     default_readiness_criteria,
 )
+from spy_edge_research.paper.readiness_inputs import build_readiness_metrics
 from spy_edge_research.paper.readiness_reports import (
     READINESS_REPORT_CAVEAT,
     build_readiness_report_bundle,
@@ -33,6 +34,7 @@ __all__ = [
     "READINESS_VERDICT_ELIGIBLE",
     "READINESS_VERDICT_NOT_READY",
     "ReadinessCriteria",
+    "build_readiness_metrics",
     "build_readiness_report_bundle",
     "create_readiness_report_metadata",
     "default_readiness_criteria",

@@ -641,3 +641,114 @@ regular = filter_regular_session(df)
 five_minute = resample_ohlcv(regular, rule="5min")
 with_sessions = add_session_column(df)
 ```
+
+## Research Modules (MOD 06–10) — Usage
+
+All of the following are **research-only**: descriptive diagnostics, advisory
+flags, read-only access, data contracts, and a readiness *gate*. None size
+positions, allocate capital, place orders, or authorize trades.
+
+### Portfolio / risk exposure (MOD 06)
+
+```python
+import pandas as pd
+from spy_edge_research.risk import (
+    ExposureLimits,
+    add_exposure_columns,
+    compute_event_mask_overlap,
+    compute_group_concentration,
+    evaluate_exposure_limits,
+    summarize_concentration,
+    summarize_exposure,
+    summarize_signal_overlap,
+)
+
+candidates = pd.DataFrame(
+    {"instrument": ["SPY", "SPY", "QQQ"], "direction": ["long", "short", "long"]}
+)
+exposure = summarize_exposure(candidates)
+concentration = summarize_concentration(
+    compute_group_concentration(add_exposure_columns(candidates), group_column="instrument")
+)
+overlap = summarize_signal_overlap(
+    compute_event_mask_overlap(
+        pd.DataFrame({"sig_a": [1, 0, 1], "sig_b": [1, 0, 1]}), ["sig_a", "sig_b"]
+    )
+)
+limit_checks = evaluate_exposure_limits(
+    limits=ExposureLimits(max_gross_exposure=2.0, max_group_share=0.7, max_pairwise_jaccard=0.8),
+    exposure_summary=exposure,
+    concentration_summary=concentration,
+    overlap_summary=overlap,
+)  # advisory flags only, e.g. risk_overlap_too_high
+```
+
+### Factor context (MOD 07)
+
+```python
+from spy_edge_research.instruments import build_factor_universe, list_factor_etfs
+from spy_edge_research.signal_engine import add_factor_context_features
+
+universe = build_factor_universe()
+symbols = list_factor_etfs(universe)  # ['HDV', 'MTUM', 'QUAL', 'SIZE', 'USMV', 'VLUE']
+factor_features = add_factor_context_features(
+    panel_df,  # timestamp-aligned multi-symbol close panel incl. SPY + factor ETFs
+    primary_symbol="SPY",
+    factor_symbols=symbols,
+    factor_styles={"MTUM": "momentum", "VLUE": "value", "USMV": "low_volatility"},
+)
+```
+
+### Read-only research service layer (MOD 08)
+
+```python
+from spy_edge_research.services import (
+    export_workflow_service_response,
+    list_bundle_tables,
+    load_report_bundle_csv_dir,
+    run_event_research_workflow_service,
+)
+
+response = run_event_research_workflow_service(
+    df, label_columns=["forward_return_5m"], catalog=catalog, min_events=10
+)
+export_workflow_service_response(response, "reports/run_001")
+bundle = load_report_bundle_csv_dir("reports/run_001")
+tables = list_bundle_tables(bundle)
+```
+
+### Dashboard data export (MOD 09)
+
+```python
+from spy_edge_research.dashboard import (
+    build_dashboard_payload_from_bundle,
+    export_dashboard_payload_to_json,
+)
+
+payload = build_dashboard_payload_from_bundle(bundle, payload_type="event_study")
+export_dashboard_payload_to_json(payload, "reports/run_001/dashboard.json")
+```
+
+### Paper-trading readiness gate (MOD 10)
+
+```python
+from spy_edge_research.paper import (
+    build_readiness_metrics,
+    score_candidate_readiness,
+    summarize_readiness_verdict,
+)
+
+# Assemble the gate's inputs from upstream research summaries (OOS stability,
+# MOD 06 signal overlap, control-pass flags).
+metrics = build_readiness_metrics(
+    oos_stability_row=oos_stability_summary.iloc[0],
+    signal_overlap_summary=overlap,
+    negative_control_passed=True,
+    multiple_testing_passed=True,
+    temporal_stable_period_count=3,
+)
+scorecard = score_candidate_readiness(metrics)
+verdict = summarize_readiness_verdict(scorecard)
+# verdict -> "eligible_for_paper_consideration" or "not_ready" (+ reasons).
+# Eligible means the evidence bar is met, NOT that anything is cleared to trade.
+```
