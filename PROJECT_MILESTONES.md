@@ -2646,3 +2646,34 @@ Tests: `tests/simulation/` (`test_position_sim.py`, `test_pnl.py`,
 `test_sim_contracts.py`, `test_sim_reports_and_eligibility.py` + a `conftest.py`
 rising-market fixture) - 25 passed. P&L cross-checked against the forward-return
 labels by hand. Full suite: 791 passed, 4 skipped.
+
+## Milestone 99 - MOD 12: Dashboard frontend (zero-build static viewer)
+
+A research-only frontend that consumes the MOD 09 versioned dashboard JSON
+contracts (schema 1.0) emitted by `dashboard/export.py` and written by the MOD 11
+runner. Lives **outside** the Python package in `frontend/` so packaging/pytest
+are unaffected.
+
+- `frontend/index.html` - a single self-contained file (HTML + CSS + vanilla JS,
+  no dependencies, no build step, fully offline). Loads a dashboard contract via
+  a local file picker, drag-and-drop, or `?src=URL` / URL box (fetch when
+  served). Validates `schema_version == "1.0"`, renders the `dashboard_caveat`
+  banner prominently and the provenance header, and renders each `tables` entry
+  as a scrollable HTML table. Surfaces (as warnings) any forbidden research-
+  dashboard field and any unknown schema version. It is a pure consumer of
+  committed JSON — no live data, descriptive research only, no trade
+  instructions.
+- `frontend/README.md` - usage (file pick / drag-drop / `python -m http.server`
+  + `?src=`).
+
+Deviation (recorded): the roadmap named a Vite/React SPA, but this environment
+has no Node toolchain and a single static file is the more robust, offline-pure
+fit for the contract-as-boundary design; the integration contract is identical
+and a richer SPA could read the same JSON later.
+
+Tests: `tests/frontend/test_dashboard_contract_compatibility.py` pins the exact
+contract envelope keys, schema version, table shape, caveat, and forbidden-field
+absence the UI depends on, so backend schema drift fails in CI (4 passed).
+Verified live by serving `frontend/` and rendering a real `spy-edge` run's
+`event_study.json` through the page's own `render()` (4 tables, 72 rows, caveat
+shown, no false warnings). Full suite: 796 passed, 4 skipped.

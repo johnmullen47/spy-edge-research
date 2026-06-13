@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SPY Edge Research — Dashboard</title>
+<!--
+  MOD 12 — research dashboard frontend.
+
+  A zero-build, dependency-free, OFFLINE viewer for the MOD 09 versioned dashboard
+  JSON contracts (schema 1.0) produced by spy_edge_research.dashboard.export and
+  written by the MOD 11 `spy-edge run-pipeline` runner.
+
+  It is a pure consumer of committed JSON files: it never fetches live data and
+  shows DESCRIPTIVE research data only — never trade instructions. The mandatory
+  dashboard caveat is rendered prominently and an unknown schema version is
+  flagged. (No React/Vite build step: this environment has no node toolchain, and
+  a single static file is the most robust, offline-pure fit for the contracts.)
+-->
+<style>
+  :root {
+    --bg: #0f1419; --panel: #1a2029; --line: #2a3340; --ink: #e6edf3;
+    --muted: #8b97a6; --accent: #4a9eff; --warn-bg: #3a2e12; --warn-ink: #ffce6b;
+    --ok: #3fb950;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header { padding: 20px 24px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 0 4px; font-size: 18px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .loader {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    padding: 16px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; margin-bottom: 20px;
+  }
+  .loader input[type=text] {
+    flex: 1; min-width: 220px; padding: 8px 10px; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; color: var(--ink);
+  }
+  button, label.file {
+    padding: 8px 14px; background: var(--accent); color: #04101f; border: 0;
+    border-radius: 6px; font-weight: 600; cursor: pointer;
+  }
+  label.file { display: inline-block; }
+  label.file input { display: none; }
+  .caveat {
+    background: var(--warn-bg); color: var(--warn-ink); border: 1px solid #5a4718;
+    border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-weight: 600;
+  }
+  .meta {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px; margin-bottom: 24px;
+  }
+  .meta .cell {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .meta .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .meta .v { font-size: 14px; word-break: break-all; }
+  .table-wrap { margin-bottom: 28px; }
+  .table-wrap h2 { font-size: 15px; margin: 0 0 8px; }
+  .table-wrap .count { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { background: var(--panel); position: sticky; top: 0; color: var(--muted); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .status { padding: 10px 14px; border-radius: 8px; margin-bottom: 20px; }
+  .status.err { background: #3a1518; color: #ff9aa2; border: 1px solid #5a1e22; }
+  .status.warn { background: var(--warn-bg); color: var(--warn-ink); border: 1px solid #5a4718; }
+  .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+  code { background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SPY Directional Edge Research — Dashboard</h1>
+  <div class="sub">Read-only viewer for MOD 09 dashboard contracts (schema 1.0). Descriptive research data, not trade instructions.</div>
+</header>
+<main>
+  <div class="loader">
+    <input type="text" id="url" placeholder="Path/URL to a dashboard JSON (e.g. ./event_study.json) — then Load" />
+    <button id="loadBtn">Load from URL</button>
+    <label class="file">Open file…<input type="file" id="file" accept="application/json,.json" /></label>
+  </div>
+  <div id="status"></div>
+  <div id="content">
+    <div class="empty">Load a dashboard JSON contract to begin. Drag a <code>.json</code> file anywhere, pick one with “Open file…”, or pass <code>?src=URL</code>.</div>
+  </div>
+</main>
+
+<script>
+"use strict";
+const SCHEMA_EXPECTED = "1.0";
+const FORBIDDEN = ["buy","sell","entry","exit","approved","live","trade_signal",
+  "allocation","portfolio","order","position_size","readiness","optimal","best","p_l","pnl"];
+
+const $ = (id) => document.getElementById(id);
+const statusEl = $("status");
+const contentEl = $("content");
+
+function setStatus(msg, kind) {
+  statusEl.innerHTML = msg ? `<div class="status ${kind||""}">${msg}</div>` : "";
+}
+
+function esc(v) {
+  return String(v).replace(/[&<>"]/g, (c) =>
+    ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+}
+
+function isNum(v) { return typeof v === "number" && isFinite(v); }
+
+function fmt(v) {
+  if (v === null || v === undefined) return "—";
+  if (isNum(v)) return Number.isInteger(v) ? String(v) : v.toFixed(6).replace(/\.?0+$/, "");
+  return esc(v);
+}
+
+function renderTable(name, records) {
+  if (!Array.isArray(records) || records.length === 0) {
+    return `<div class="table-wrap"><h2>${esc(name)} <span class="count">(0 rows)</span></h2><div class="empty">No rows.</div></div>`;
+  }
+  const cols = Array.from(records.reduce((s, r) => {
+    Object.keys(r).forEach((k) => s.add(k));
+    return s;
+  }, new Set()));
+  const head = cols.map((c) => `<th>${esc(c)}</th>`).join("");
+  const body = records.map((r) =>
+    "<tr>" + cols.map((c) => {
+      const v = r[c];
+      return `<td class="${isNum(v) ? "num" : ""}">${fmt(v)}</td>`;
+    }).join("") + "</tr>"
+  ).join("");
+  return `<div class="table-wrap">
+    <h2>${esc(name)} <span class="count">(${records.length} row${records.length === 1 ? "" : "s"})</span></h2>
+    <div class="scroll"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
+  </div>`;
+}
+
+function forbiddenHits(payload) {
+  const names = new Set();
+  const tables = payload.tables || {};
+  Object.values(tables).forEach((recs) => {
+    if (Array.isArray(recs)) recs.forEach((r) => Object.keys(r).forEach((k) => names.add(k.toLowerCase())));
+  });
+  return FORBIDDEN.filter((f) => Array.from(names).some((n) => n.includes(f)));
+}
+
+function render(payload) {
+  if (!payload || typeof payload !== "object" || !payload.tables) {
+    setStatus("Not a dashboard contract: missing a <code>tables</code> object.", "err");
+    return;
+  }
+  const warnings = [];
+  if (payload.schema_version !== SCHEMA_EXPECTED) {
+    warnings.push(`Unknown schema_version <code>${esc(payload.schema_version)}</code> (this viewer targets ${SCHEMA_EXPECTED}).`);
+  }
+  const hits = forbiddenHits(payload);
+  if (hits.length) {
+    warnings.push(`Contract contains fields that should not appear in a research dashboard: <code>${hits.map(esc).join(", ")}</code>.`);
+  }
+  setStatus(warnings.length ? warnings.join("<br>") : "", "warn");
+
+  const source = payload.source || {};
+  const meta = [
+    ["Payload type", payload.payload_type],
+    ["Schema", payload.schema_version],
+    ["Generated (UTC)", payload.generated_at_utc],
+    ["Source", source.source_path],
+    ["Milestone", source.milestone],
+  ].filter(([, v]) => v !== undefined && v !== null);
+
+  const caveat = payload.dashboard_caveat
+    ? `<div class="caveat">⚠ ${esc(payload.dashboard_caveat)}</div>` : "";
+  const metaHtml = `<div class="meta">${meta.map(([k, v]) =>
+    `<div class="cell"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("")}</div>`;
+  const tablesHtml = Object.entries(payload.tables)
+    .map(([name, recs]) => renderTable(name, recs)).join("");
+
+  contentEl.innerHTML = caveat + metaHtml + (tablesHtml || `<div class="empty">No tables in this contract.</div>`);
+}
+
+function loadFromText(text, label) {
+  try {
+    render(JSON.parse(text));
+  } catch (e) {
+    setStatus(`Could not parse JSON${label ? " from " + esc(label) : ""}: ${esc(e.message)}`, "err");
+  }
+}
+
+async function loadFromUrl(url) {
+  setStatus(`Loading ${esc(url)}…`);
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    loadFromText(await res.text(), url);
+  } catch (e) {
+    setStatus(`Could not load <code>${esc(url)}</code>: ${esc(e.message)}. If you opened this file directly, use “Open file…” instead (browsers block fetch of local files).`, "err");
+  }
+}
+
+$("loadBtn").addEventListener("click", () => {
+  const url = $("url").value.trim();
+  if (url) loadFromUrl(url);
+});
+$("url").addEventListener("keydown", (e) => { if (e.key === "Enter") $("loadBtn").click(); });
+$("file").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => loadFromText(reader.result, f.name);
+  reader.readAsText(f);
+});
+["dragover", "drop"].forEach((evt) =>
+  document.addEventListener(evt, (e) => { e.preventDefault(); }));
+document.addEventListener("drop", (e) => {
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => loadFromText(reader.result, f.name);
+  reader.readAsText(f);
+});
+
+// Auto-load via ?src=URL when served.
+const src = new URLSearchParams(location.search).get("src");
+if (src) { $("url").value = src; loadFromUrl(src); }
+</script>
+</body>
+</html>

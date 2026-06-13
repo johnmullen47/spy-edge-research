@@ -263,7 +263,10 @@ paper-trading *simulation* layer as a new, clearly-bounded module:
    model and forbidden-field validator (never round-trips through the research
    `candidate_rule_objects` / `dashboard.contracts` validators). Entries causal;
    fixed-horizon exits reuse the `labels.py` forward-price math.
-3. **MOD 12 — frontend** consuming the MOD 09 JSON contracts (static SPA).
+3. **MOD 12 — frontend** *(done, M99)*: a zero-build static viewer
+   (`frontend/index.html`) over the MOD 09 dashboard JSON contracts — offline,
+   dependency-free, descriptive research only. Contract shape pinned by
+   `tests/frontend/`.
 4. **MOD 13 — value/quality/momentum research** (mirrors the factor module).
 
 Still forbidden until a further explicit authorization: real broker
