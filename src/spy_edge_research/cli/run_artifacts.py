@@ -29,6 +29,9 @@ class RunPaths:
     candidates_path: Path
     dashboard_path: Path
     dashboard_manifest_path: Path
+    negative_control_path: Path
+    temporal_stability_path: Path
+    multiple_testing_path: Path
     readiness_scorecard_path: Path
     readiness_verdict_path: Path
     run_manifest_path: Path
@@ -45,6 +48,9 @@ def build_run_paths(output_root: str | Path, run_id: str) -> RunPaths:
         candidates_path=run_dir / "candidates" / "candidate_edges.json",
         dashboard_path=run_dir / "dashboard" / "event_study.json",
         dashboard_manifest_path=run_dir / "dashboard" / "manifest.json",
+        negative_control_path=run_dir / "controls" / "negative_control.csv",
+        temporal_stability_path=run_dir / "controls" / "temporal_stability.csv",
+        multiple_testing_path=run_dir / "controls" / "multiple_testing.csv",
         readiness_scorecard_path=run_dir / "readiness" / "scorecard.csv",
         readiness_verdict_path=run_dir / "readiness" / "verdict.csv",
         run_manifest_path=run_dir / "run_manifest.json",

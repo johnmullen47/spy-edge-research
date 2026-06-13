@@ -2710,3 +2710,47 @@ CSV round-trip, overwrite guard) - 12 passed. Full suite: 808 passed, 4 skipped.
 
 This completes the user-approved functional-app build-out: MOD 11 runner (M97),
 MOD 14 paper-sim (M98), MOD 12 frontend (M99), MOD 13 VQM research (M100).
+
+## Milestone 101 - Control batteries wired into the pipeline runner
+
+First step of the user-approved staged "Trader module" build-out (destination:
+human-approved live execution, reached only through hard validation gates). This
+step needs no new authorization and is the empirical go/no-go gate for the rest.
+
+The MOD 11 runner previously skipped the negative-control / multiple-testing /
+temporal-stability batteries, so every candidate was permanently stamped
+`not_ready` (`control_batteries_not_run_in_basic_pipeline`) and nothing could
+ever reach `eligible_for_paper_consideration`. M101 wires the batteries in:
+
+- `cli/control_batteries.py` - `run_control_batteries(df, registry)` reduces the
+  three batteries to the scalars the readiness gate consumes. **Negative control**
+  (per candidate): builds shifted + random controls on the event column, compares
+  the candidate's forward-return expectancy difference, passes iff the observed
+  edge is finite and no control matches/exceeds it. **Multiple testing**
+  (portfolio): no per-candidate p-values exist in the basic pipeline, so it
+  applies the module's own family-size heuristic - pass iff `< 100` tested
+  hypotheses (warning != "high"); caveated as a heuristic. **Temporal stability**
+  (per candidate): counts distinct calendar periods (months) in which the event
+  produced an outcome -> `temporal_stable_period_count`. Reuses the committed
+  `backtesting/` battery functions; reimplements no statistics.
+- `cli/pipeline.py` - new Stage 9.5 runs the batteries (new `PipelineConfig.
+  run_control_batteries`, default **on**), writes `run_<id>/controls/*.csv`, and
+  threads per-candidate negative-control + temporal counts and the portfolio
+  multiple-testing pass into `_score_readiness`. When batteries run the not-run
+  caveat is dropped and the (advisory) battery caveats are disclosed; batteries-off
+  restores the prior disclosure.
+- `cli/run_artifacts.py` - three new `RunPaths` artifact paths under `controls/`.
+
+Tests: `tests/cli/test_control_batteries.py` (batteries fire on a real edge vs a
+wrong-direction null; multiple-testing high-family flag; and the readiness verdict
+**flips to `eligible` only when every criterion passes**) plus updated
+`tests/cli/test_pipeline.py`. Full suite: 816 passed, 4 skipped.
+
+Causal / no-lookahead invariant unchanged: forward-return columns are read as
+outcome labels only. Outputs remain descriptive research diagnostics - never a
+trade signal, order, or authorization.
+
+**Hard Gate A (pending real data):** run the pipeline on a real multi-month SPY
+1-minute CSV and inspect `run_<id>/readiness/verdict.csv`. If no candidate reaches
+`eligible_for_paper_consideration`, there is no validated edge and Stages 2-4
+(decision_support, broker-prep, live execution) do not proceed - a valid result.

@@ -13,9 +13,13 @@ from spy_edge_research.services.artifact_access import load_report_bundle_csv_di
 from spy_edge_research.backtesting.candidate_edges import read_candidate_edge_registry
 
 
-def _run(csv: Path, out: Path, **kw):
+def _run(csv: Path, out: Path, *, config: PipelineConfig | None = None, **kw):
     return run_pipeline(
-        csv, out, run_id="TESTRUN", config=PipelineConfig(horizons_minutes=(5, 15)), **kw
+        csv,
+        out,
+        run_id="TESTRUN",
+        config=config or PipelineConfig(horizons_minutes=(5, 15)),
+        **kw,
     )
 
 
@@ -29,6 +33,9 @@ def test_pipeline_writes_all_expected_artifacts(synth_ohlcv_csv, tmp_path):
         paths.candidates_path,
         paths.dashboard_path,
         paths.dashboard_manifest_path,
+        paths.negative_control_path,
+        paths.temporal_stability_path,
+        paths.multiple_testing_path,
         paths.readiness_scorecard_path,
         paths.readiness_verdict_path,
         paths.run_manifest_path,
@@ -49,16 +56,45 @@ def test_pipeline_run_manifest_parses_and_records_stages(synth_ohlcv_csv, tmp_pa
 
     assert manifest["run_id"] == "TESTRUN"
     stage_names = {stage["stage"] for stage in manifest["stages"]}
-    assert {"load", "indicators", "events", "labels", "event_study", "readiness"} <= stage_names
-    # The basic pipeline does not run the control batteries; that must be disclosed.
+    assert {
+        "load",
+        "indicators",
+        "events",
+        "labels",
+        "event_study",
+        "control_batteries",
+        "readiness",
+    } <= stage_names
+    # Batteries run by default, so the not-run caveat must be ABSENT and the
+    # battery diagnostic caveat present.
+    assert "control_batteries_not_run_in_basic_pipeline" not in manifest["caveats"]
+    assert (
+        "control_battery_results_are_research_diagnostics_not_trade_authorization"
+        in manifest["caveats"]
+    )
+
+
+def test_pipeline_control_batteries_can_be_disabled(synth_ohlcv_csv, tmp_path):
+    config = PipelineConfig(horizons_minutes=(5, 15), run_control_batteries=False)
+    result = _run(synth_ohlcv_csv, tmp_path / "reports", config=config)
+    manifest = json.loads(result.paths.run_manifest_path.read_text(encoding="utf-8"))
+    # When disabled, the run must disclose that the batteries were not run.
     assert "control_batteries_not_run_in_basic_pipeline" in manifest["caveats"]
+    skipped = [
+        stage
+        for stage in manifest["stages"]
+        if stage["stage"] == "control_batteries"
+    ]
+    assert skipped and skipped[0]["status"] == "skipped"
 
 
 def test_pipeline_readiness_is_research_gate_not_authorization(synth_ohlcv_csv, tmp_path):
     result = _run(synth_ohlcv_csv, tmp_path / "reports")
     verdicts = result.readiness_verdicts
     assert verdicts is not None and not verdicts.empty
-    # Without the control batteries, no candidate can be eligible — the honest result.
+    # The fixture spans two days within a single calendar month, so temporal
+    # stability cannot reach the >=2-period bar — no candidate is eligible. A
+    # gate that stays closed on this data is the honest, desirable result.
     assert (verdicts["verdict"] == "not_ready").all()
     assert (
         verdicts["verdict_caveat"]

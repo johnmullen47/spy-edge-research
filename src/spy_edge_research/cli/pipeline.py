@@ -72,6 +72,10 @@ from spy_edge_research.cli.run_artifacts import (
     prepare_run_dir,
     write_run_manifest,
 )
+from spy_edge_research.cli.control_batteries import (
+    ControlBatteryResults,
+    run_control_batteries,
+)
 
 _DIRECTION_MAP = {
     "long": "long",
@@ -100,6 +104,12 @@ class PipelineConfig:
     oos_step_size: int | None = 40
     dashboard_payload_type: str = "event_study"
     timezone: str = "America/New_York"
+    # When True (default) the pipeline runs the negative-control,
+    # multiple-testing, and temporal-stability batteries and feeds their
+    # outcomes into the readiness gate, so a candidate can reach
+    # ``eligible_for_paper_consideration``. When False the batteries are skipped
+    # and the run discloses ``control_batteries_not_run_in_basic_pipeline``.
+    run_control_batteries: bool = True
 
 
 @dataclass
@@ -194,6 +204,24 @@ def run_pipeline(
     else:
         record("oos_stability", "skipped", reason="insufficient_bars_for_walk_forward")
 
+    # Stage 9.5: control batteries (negative controls, multiple-testing family
+    # size, temporal stability). Reduced to the scalars the readiness gate
+    # consumes so a validated candidate can reach eligibility. Descriptive
+    # research diagnostics only — never trade authorization.
+    control_results: ControlBatteryResults | None = None
+    if cfg.run_control_batteries and not registry.empty:
+        control_results = run_control_batteries(df, registry)
+        _write_control_artifacts(paths, control_results, overwrite=overwrite)
+        record(
+            "control_batteries",
+            "ok",
+            tested_hypotheses=control_results.tested_hypotheses,
+            multiple_testing_warning=control_results.multiple_testing_warning,
+        )
+    else:
+        reason = "disabled" if not cfg.run_control_batteries else "empty_registry"
+        record("control_batteries", "skipped", reason=reason)
+
     # Stage 10: dashboard contract export
     loaded = load_report_bundle_csv_dir(paths.report_bundle_dir)
     payload = build_dashboard_payload_from_bundle(
@@ -207,7 +235,7 @@ def run_pipeline(
     record("dashboard", "ok", path=str(paths.dashboard_path))
 
     # Stage 11: paper-trading readiness scorecard (research gate, not authorization)
-    scorecard, verdicts = _score_readiness(oos_stability, result.metrics)
+    scorecard, verdicts = _score_readiness(oos_stability, result.metrics, control_results)
     paths.readiness_scorecard_path.parent.mkdir(parents=True, exist_ok=True)
     scorecard.to_csv(paths.readiness_scorecard_path, index=False)
     verdicts.to_csv(paths.readiness_verdict_path, index=False)
@@ -215,14 +243,19 @@ def run_pipeline(
     eligible = int((verdicts["verdict"] == "eligible_for_paper_consideration").sum())
     record("readiness", "ok", verdict_rows=int(len(verdicts)), eligible_count=eligible)
 
-    # Run manifest
+    # Run manifest. When the control batteries ran, disclose their (advisory)
+    # caveats; otherwise disclose that they were not run.
+    if control_results is not None:
+        extra_caveats = list(control_results.caveats)
+    else:
+        extra_caveats = [_CONTROLS_NOT_RUN_CAVEAT]
     write_run_manifest(
         paths,
         run_id=run_id,
         input_path=input_csv,
         stages=result.stages,
         metrics=result.metrics,
-        extra_caveats=[_CONTROLS_NOT_RUN_CAVEAT],
+        extra_caveats=extra_caveats,
         overwrite=overwrite,
     )
     return result
@@ -313,15 +346,22 @@ def _safe_oos_stability(
 
 
 def _score_readiness(
-    oos_stability: pd.DataFrame | None, shared_metrics: Mapping[str, Any]
+    oos_stability: pd.DataFrame | None,
+    shared_metrics: Mapping[str, Any],
+    control_results: ControlBatteryResults | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Score each candidate's readiness; return (scorecard, verdicts) tables.
 
     Each candidate's OOS-stability row is combined with the shared portfolio
-    overlap metric. Missing metrics (e.g. the unrun control batteries) are
-    treated conservatively by the gate as insufficient evidence.
+    overlap metric and (when available) the control-battery outcomes: per-candidate
+    negative-control and temporal-stability results plus the portfolio-level
+    multiple-testing pass. Missing metrics are treated conservatively by the gate
+    as insufficient evidence.
     """
     overlap = shared_metrics.get("max_pairwise_jaccard")
+    multiple_testing_passed = (
+        control_results.multiple_testing_passed if control_results is not None else None
+    )
     scorecards: list[pd.DataFrame] = []
     verdicts: list[pd.DataFrame] = []
 
@@ -330,6 +370,7 @@ def _score_readiness(
             signal_overlap_summary=(
                 pd.Series({"max_jaccard": overlap}) if overlap is not None else None
             ),
+            multiple_testing_passed=multiple_testing_passed,
         )
         scorecard = score_candidate_readiness(metrics)
         verdict = summarize_readiness_verdict(scorecard)
@@ -339,11 +380,20 @@ def _score_readiness(
 
     for row in oos_stability.itertuples(index=False):
         candidate_id = str(getattr(row, "candidate_id", "candidate"))
+        negative_control_passed = None
+        temporal_stable_period_count = None
+        if control_results is not None:
+            per = control_results.per_candidate.get(candidate_id, {})
+            negative_control_passed = per.get("negative_control_passed")
+            temporal_stable_period_count = per.get("temporal_stable_period_count")
         metrics = build_readiness_metrics(
             oos_stability_row=pd.Series(row._asdict()),
             signal_overlap_summary=(
                 pd.Series({"max_jaccard": overlap}) if overlap is not None else None
             ),
+            negative_control_passed=negative_control_passed,
+            multiple_testing_passed=multiple_testing_passed,
+            temporal_stable_period_count=temporal_stable_period_count,
         )
         scorecard = score_candidate_readiness(metrics)
         verdict = summarize_readiness_verdict(scorecard)
@@ -356,6 +406,22 @@ def _score_readiness(
         pd.concat(scorecards, ignore_index=True),
         pd.concat(verdicts, ignore_index=True),
     )
+
+
+def _write_control_artifacts(
+    paths: RunPaths, results: ControlBatteryResults, *, overwrite: bool
+) -> None:
+    """Write the three control-battery summary CSVs under ``run_<id>/controls/``."""
+    targets = [
+        (paths.negative_control_path, results.negative_control_table),
+        (paths.temporal_stability_path, results.temporal_stability_table),
+        (paths.multiple_testing_path, results.multiple_testing_table),
+    ]
+    for path, table in targets:
+        if path.exists() and not overwrite:
+            raise FileExistsError(f"{path} already exists")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        table.to_csv(path, index=False)
 
 
 def _horizon_from_label(label_col: str) -> str:
