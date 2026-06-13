@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual envs (main + legacy scaffold)
+.venv/
+legacy_auto_trader_spy_scaffold/.venv_python39_flat_scaffold/
+legacy_auto_trader_spy_scaffold/.pytest_cache_flat_scaffold/
+
+# Build / packaging metadata
+src/*.egg-info/
+build/
+dist/
+
+# Generated research artifacts (keep dirs, ignore contents)
+data/*
+!data/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store

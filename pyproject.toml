@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spy-directional-edge-research"
+version = "0.1.0"
+description = "Research scaffold for studying intraday SPY directional continuation events."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Research Team" }
+]
+dependencies = [
+    "pandas",
+    "numpy",
+    "pydantic",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+pythonpath = ["src"]

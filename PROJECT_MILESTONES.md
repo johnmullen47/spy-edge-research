@@ -1,0 +1,2192 @@
+# Project Milestones
+
+## Verified Project Status
+
+Repository audited at:
+
+```text
+/Users/johnmullen/Documents/Codex/Auto-Trader SPY
+```
+
+This directory is now the unified authoritative project folder. The recovered
+`src/spy_edge_research` repository was copied into this root, and the former
+flat `Auto-Trader SPY` scaffold was archived under:
+
+```text
+legacy_auto_trader_spy_scaffold/
+```
+
+Future work should use this root folder, its `src/spy_edge_research` package,
+its `tests/` suite, and this `PROJECT_MILESTONES.md` ledger as authoritative.
+
+This unified project folder is not currently a Git repository in this
+filesystem snapshot, so status and diffs cannot be verified with Git.
+
+## Completed Milestones Inferred From Repo
+
+- Milestone 1: local data loading, OHLCV validation, sessions, causal resampling.
+- Milestone 2: causal price-action event primitives.
+- Milestone 3: causal indicator foundations.
+- Milestone 4: forward close-to-close labels.
+- Milestone 5: benchmark baselines and minimal directional evaluation.
+- Milestone 6: causal market-structure primitives.
+- Milestone 7: support/resistance level and zone features.
+- Milestone 8: market-regime context features and diagnostics.
+- Milestone 9: retest and false-break event features.
+- Milestone 10: named causal event definitions.
+- Milestone 11: named event catalog and event-study utilities.
+- Milestone 12: event-study diagnostics and quality controls.
+- Milestone 13: event-study reporting and export utilities.
+- Milestone 14: visualization helpers.
+- Milestone 15: event-study workflow helper.
+- Milestone 16: artifact manifest and index helpers.
+- Milestone 17: run registry and manifest-consumption helpers.
+- Milestone 18: registry audit/export helpers.
+- Milestone 19: audit index helpers.
+- Milestone 20: audit-index report/export and structural comparison helpers.
+- Milestone 21: reproducibility checklist helpers.
+- Milestone 22: reproducibility report/export helpers.
+- Milestone 23: forward path outcome labels.
+- Milestone 24: event forward outcome study helpers.
+- Milestone 25: conditional event study helpers.
+- Milestone 26: causal event sequence foundation.
+- Milestone 27: event sequence outcome study helpers.
+- Milestone 28: time-of-day research helpers.
+- Milestone 29: volatility/range context study helpers.
+- Milestone 30: research candidate edge registry.
+- Milestone 31: statistical testing foundation.
+- Milestone 32: multiple hypothesis risk helpers.
+- Milestone 58: deterministic research instrument registry foundation.
+- Milestone 59: in-memory multi-symbol dataframe alignment helpers.
+- Milestone 60: causal cross-instrument confirmation/divergence features.
+- Milestone 61: multi-instrument event outcome study helpers.
+- Milestone 62: deterministic sector ETF universe foundation.
+- Milestone 63: causal sector context feature layer.
+- Milestone 64: sector-confirmed event study helpers.
+- Milestone 65: descriptive sector rotation research reports.
+- Milestone 66: deterministic macro instrument universe foundation.
+- Milestone 67: causal macro regime feature layer.
+- Milestone 68: macro-conditioned event study helpers.
+- Milestone 69: descriptive macro regime research reports.
+
+## Milestone 23 - Forward Path Outcome Labels
+
+Goal:
+Add evaluation-only forward path outcomes for studying what happened after
+events beyond close-to-close returns.
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/labels.py`
+- `src/spy_edge_research/backtesting/__init__.py`
+- `tests/backtesting/test_labels.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `add_forward_path_outcome_labels`
+- `add_directional_forward_outcome_labels`
+
+Tests added:
+
+- Current bar is excluded from forward high/low path windows.
+- Original input frames are not mutated.
+- Forward path labels can be prevented from crossing local trading dates.
+- Direction-normalized outcomes support long and short event hypotheses.
+- Required input columns, horizons, and direction values are validated.
+
+Causal-safety notes:
+
+- These helpers intentionally look forward and therefore produce outcome
+  labels only.
+- Forward path windows use bars after the current row; the current row is not
+  included in MFE/MAE windows.
+- Direction-normalized outputs are still labels and must not be used by causal
+  feature, event, indicator, or signal generation.
+
+Commands run:
+
+```bash
+python3 -m pytest tests/backtesting/test_labels.py -q
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -m pytest tests/backtesting/test_labels.py -q
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...direct labels smoke test...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest with datetime.UTC shim...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- `python3` could not run tests because `pytest` is not installed.
+- The available `.venv` uses Python 3.9 and cannot import this Python 3.11+
+  project directly because package imports use `datetime.UTC` and
+  `enum.StrEnum`.
+- Direct label-module smoke test passed.
+- Focused `tests/backtesting/test_labels.py` passed under a temporary
+  `datetime.UTC` compatibility shim: 15 passed.
+- Full test suite passed under temporary `datetime.UTC` and `enum.StrEnum`
+  compatibility shims: 446 passed, 4 skipped. The skipped tests require
+  matplotlib.
+- Pytest emitted a cache warning because the recovered repo snapshot was
+  outside the writable workspace root before unification.
+
+## Test Command
+
+Use a Python 3.11+ environment with dev dependencies installed:
+
+```bash
+python -m pytest -q
+```
+
+Local Python 3.11 environment now installed:
+
+```bash
+/usr/local/bin/python3.11 --version
+.venv/bin/python --version
+.venv/bin/python -m pytest -q
+```
+
+Verified result after installing the repo-local Python 3.11 venv:
+
+```text
+Python 3.11.15
+511 passed, 4 skipped
+```
+
+Focused Milestone 23 tests:
+
+```bash
+python -m pytest tests/backtesting/test_labels.py -q
+```
+
+## Milestone 24 - Event Forward Outcome Study
+
+Goal:
+Evaluate already-created causal event columns against existing forward
+return/path outcome labels with baseline comparison and visible sample-size
+warnings.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/event_forward_outcomes.py`
+- `tests/backtesting/test_event_forward_outcomes.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `calculate_event_sample_size`
+- `calculate_event_hit_rate`
+- `calculate_event_expectancy`
+- `summarize_event_forward_returns`
+- `build_event_forward_return_table`
+- `compare_event_vs_baseline_forward_returns`
+
+Tests added:
+
+- Event sample size counts event rows with optional valid-outcome filtering.
+- Hit rate and expectancy handle missing and empty outcome samples.
+- Event outcome summaries include event count, baseline count, event rate,
+  expectancy, baseline expectancy, differences, hit rates, and sample flags.
+- Small samples and zero-event cases produce explicit `small_sample` or
+  `no_events` flags and suppress event-derived summary claims.
+- Catalog-driven tables preserve event family and direction metadata.
+- Helpers validate missing columns, invalid `min_events`, and invalid hit-rate
+  thresholds.
+- Output columns do not create trading signal/confidence language.
+
+Causal-safety notes:
+
+- Helpers only read existing event columns and existing outcome columns.
+- Outcome columns may be forward-looking because this module is evaluation
+  only.
+- No event generation, threshold optimization, ranking, significance testing,
+  strategy signal creation, P/L simulation, or edge claim is performed.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_event_forward_outcomes.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_event_study.py tests/backtesting/test_event_forward_outcomes.py with shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Focused Milestone 24 tests passed under temporary Python 3.11 stdlib
+  compatibility shims: 8 passed.
+- Related event-study tests passed under the same shims: 18 passed.
+- Full suite passed under the same shims: 454 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 25 - Conditional Event Study
+
+Goal:
+Evaluate event/outcome summaries inside existing causal context buckets, using
+context-local baselines so context effects and event effects are easier to
+separate during research review.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/conditional_event_study.py`
+- `tests/backtesting/test_conditional_event_study.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `group_event_outcomes_by_context`
+- `summarize_conditional_event_edge`
+- `filter_event_contexts_by_sample_size`
+- `rank_conditional_event_edges`
+
+Tests added:
+
+- Single-context event outcome grouping uses context-local baselines.
+- Multi-context summaries preserve context key/value columns plus catalog
+  event family and direction metadata.
+- Sample-size filtering keeps only supported context rows.
+- Research-review ranking sorts stably and can apply sample-size filters.
+- Missing event, outcome, and context columns are validated.
+- Outputs avoid trading signal/confidence column language.
+
+Causal-safety notes:
+
+- Context columns must already exist and should be causal context features.
+- Helpers only read existing event, context, and outcome columns.
+- Forward outcomes remain evaluation-only.
+- Ranking is deterministic sorting for review, not significance testing,
+  optimization, signal generation, or an edge claim.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_conditional_event_study.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_event_forward_outcomes.py tests/backtesting/test_conditional_event_study.py with shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Initial focused run found a test expectation mistake: two events times two
+  outcomes times four context buckets produces 16 rows, not 8.
+- After correcting the test, focused Milestone 25 tests passed under temporary
+  Python 3.11 stdlib compatibility shims: 6 passed.
+- Related event-forward-outcome plus conditional tests passed under the same
+  shims: 14 passed.
+- Full suite passed under the same shims: 460 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 26 - Causal Event Sequence Foundation
+
+Goal:
+Represent sequences of already-created named/causal events over ordered rows
+and trailing windows without lookahead.
+
+Files added:
+
+- `src/spy_edge_research/signal_engine/event_sequences.py`
+- `tests/signal_engine/test_event_sequences.py`
+
+Files modified:
+
+- `src/spy_edge_research/signal_engine/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `build_event_sequence`
+- `find_event_sequences`
+- `encode_recent_event_sequence`
+- `add_recent_event_sequence_features`
+- `summarize_event_sequence_counts`
+
+Tests added:
+
+- Event tapes preserve row order and configured event-column order.
+- Consecutive event-tape pattern matching returns deterministic spans.
+- `max_span_rows=0` is supported for same-row pattern matches.
+- Recent sequence encoding uses only past/current rows.
+- Changing a future row does not alter prior sequence encodings.
+- Missing event values are treated as false.
+- Recent sequence/count features do not mutate inputs.
+- Sequence-count summaries produce counts and rates.
+- Helpers validate missing columns and invalid parameters.
+- Outputs avoid trading signal/confidence column language.
+
+Causal-safety notes:
+
+- Sequence features are built from existing event columns only.
+- A row-level recent sequence at row `t` includes rows from
+  `t - lookback_bars + 1` through `t`, never rows after `t`.
+- No forward outcomes, labels, P/L, optimization, or edge claims are read or
+  produced by the sequence feature helpers.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/signal_engine/test_event_sequences.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/signal_engine with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Initial focused run showed `max_span_rows=0` should be valid for same-row
+  pattern matches; implementation was adjusted to allow non-negative span
+  limits.
+- Focused Milestone 26 tests passed under temporary Python 3.11 stdlib
+  compatibility shims: 7 passed.
+- Related signal-engine tests passed under the same shims: 41 passed.
+- Full suite passed under the same shims: 467 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 27 - Event Sequence Outcome Study
+
+Goal:
+Evaluate encoded event sequences against existing forward outcomes and compare
+sequence summaries against their component event summaries.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/sequence_outcomes.py`
+- `tests/backtesting/test_sequence_outcomes.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `summarize_sequence_forward_returns`
+- `compare_sequence_vs_component_events`
+- `filter_sequences_by_support`
+- `rank_event_sequences_by_expectancy`
+
+Tests added:
+
+- Sequence outcome summaries include sequence counts, baseline counts, rates,
+  expectancy, hit rate, differences, and sample-size flags.
+- Small and zero-occurrence sequences are explicitly flagged and suppress
+  sequence-derived summary claims.
+- Sequence-vs-component comparison returns one sequence row plus component
+  event rows.
+- Support filtering keeps only sufficiently observed sequences.
+- Research-review ranking sorts deterministically.
+- Helpers validate missing columns, empty sequence values, and invalid
+  `min_occurrences`.
+- Outputs avoid trading signal/confidence column language.
+
+Causal-safety notes:
+
+- These helpers evaluate already-encoded sequence features against existing
+  outcome columns.
+- Outcome columns may be forward-looking because this module is evaluation
+  only.
+- No sequence feature generation, parameter optimization, statistical testing,
+  signal creation, P/L simulation, or edge claim is performed.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_sequence_outcomes.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/signal_engine/test_event_sequences.py tests/backtesting/test_sequence_outcomes.py with shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Focused Milestone 27 tests passed under temporary Python 3.11 stdlib
+  compatibility shims: 6 passed.
+- Related sequence feature and sequence outcome tests passed under the same
+  shims: 13 passed.
+- Full suite passed under the same shims: 473 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 28 - Time-of-Day Research Helpers
+
+Goal:
+Add deterministic intraday session bucket assignment and research-only helpers
+for reviewing event/outcome behavior by time of day.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/time_of_day.py`
+- `tests/backtesting/test_time_of_day.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `assign_intraday_session_bucket`
+- `summarize_event_by_session_bucket`
+- `compare_session_bucket_outcomes`
+- `detect_time_of_day_edge_concentration`
+
+Tests added:
+
+- Exact bar-close bucket boundaries are pinned for open, post-open,
+  mid-morning, lunch, afternoon, power hour, and outside-regular timestamps.
+- Event summaries by session bucket use context-local baselines and do not
+  mutate input data.
+- Bucket outcome comparisons use overall valid-outcome baselines.
+- Time-of-day concentration helper adds event-count share and concentration
+  flags.
+- Helpers validate missing columns, invalid `min_events`, and invalid
+  concentration thresholds.
+- Outputs avoid trading signal/confidence column language.
+
+Causal-safety notes:
+
+- Session bucket assignment uses timestamp metadata only.
+- Event-by-bucket summaries delegate to conditional event study helpers, so
+  each bucket uses its own local baseline.
+- Forward outcomes remain evaluation-only.
+- Concentration flags are descriptive review aids, not significance tests,
+  strategy signals, or edge claims.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_time_of_day.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_conditional_event_study.py tests/backtesting/test_time_of_day.py with shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Focused Milestone 28 tests passed under temporary Python 3.11 stdlib
+  compatibility shims: 6 passed.
+- Related conditional event and time-of-day tests passed under the same shims:
+  12 passed.
+- Full suite passed under the same shims: 479 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 29 - Volatility/Range Context Study Helpers
+
+Goal:
+Add causal volatility and range context features plus event outcome summaries
+by those contexts.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/volatility_range_context.py`
+- `tests/backtesting/test_volatility_range_context.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `calculate_intraday_realized_volatility`
+- `calculate_range_expansion_features`
+- `summarize_event_by_volatility_context`
+- `summarize_event_by_range_context`
+
+Tests added:
+
+- Realized volatility features are causal under future price changes and do
+  not mutate inputs.
+- Range expansion features use a prior-range baseline shifted by one row.
+- Volatility context summaries use existing context columns when provided or
+  generate causal context features when needed.
+- Range context summaries generate context features and summarize events.
+- Helpers validate missing columns and invalid windows.
+- Outputs avoid trading signal/confidence column language.
+
+Causal-safety notes:
+
+- Realized volatility uses close-to-close returns through the current row only.
+- Volatility baselines use prior realized-volatility values.
+- Range expansion ratios compare the current range to a prior rolling range
+  mean, excluding the current bar from the baseline.
+- Event summaries remain evaluation-only because they read forward outcomes.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_volatility_range_context.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_conditional_event_study.py tests/backtesting/test_volatility_range_context.py with shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Focused Milestone 29 tests passed under temporary Python 3.11 stdlib
+  compatibility shims: 6 passed.
+- Related conditional event plus volatility/range tests passed under the same
+  shims: 12 passed.
+- Full suite passed under the same shims: 485 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 30 - Research Candidate Edge Registry
+
+Goal:
+Create a reproducible registry for caveated candidate edge hypotheses discovered
+from event, sequence, conditional, or context studies.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/candidate_edges.py`
+- `tests/backtesting/test_candidate_edges.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `create_candidate_edge`
+- `validate_candidate_edge`
+- `build_candidate_edge_registry`
+- `rank_candidate_edges`
+- `write_candidate_edge_registry`
+- `read_candidate_edge_registry`
+
+Tests added:
+
+- Candidate creation records type, name, direction, horizon, context, sample
+  size, baseline comparison, expectancy, hit rate, caveats, data range, and
+  reproducibility metadata.
+- Validation rejects missing required fields, invalid candidate types,
+  invalid directions, and malformed caveats.
+- Registry builder sorts deterministically and rejects duplicate candidate IDs.
+- Ranking filters by sample size and sorts for research review.
+- JSON write/read round trips records and metadata.
+- Persistence respects `overwrite=False`.
+- Registry columns avoid live/trading approval language.
+
+Causal-safety notes:
+
+- Candidate records are post-study research artifacts, not causal features.
+- Registry sorting is research review only, not statistical validation.
+- Records must carry caveats and reproducibility metadata so weak or
+  unvalidated candidates remain visibly unproven.
+- No strategy rules, signals, broker integration, execution, or live-trading
+  readiness status is created.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_candidate_edges.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Focused Milestone 30 tests passed under temporary Python 3.11 stdlib
+  compatibility shims: 7 passed.
+- Backtesting test suite passed under the same shims: 344 passed, 4 skipped.
+- Full suite passed under the same shims: 492 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 31 - Statistical Testing Foundation
+
+Goal:
+Add deterministic statistical-test helpers for event/candidate validation while
+making uncertainty and sample-size limits explicit.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/statistical_tests.py`
+- `tests/backtesting/test_statistical_tests.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `bootstrap_mean_difference`
+- `bootstrap_hit_rate_difference`
+- `permutation_test_event_vs_baseline`
+- `calculate_confidence_interval`
+- `summarize_statistical_test_result`
+
+Tests added:
+
+- Confidence intervals use percentile bounds and handle empty samples.
+- Bootstrap mean-difference results are deterministic with a seed.
+- Bootstrap hit-rate difference results are deterministic with a seed.
+- Permutation tests support mean and hit-rate statistics.
+- Statistical summaries include sample sizes and small-sample/no-p-value
+  warnings.
+- Helpers validate invalid confidence levels, empty samples, invalid resample
+  counts, unsupported statistics, and incomplete result records.
+- Summary columns avoid overclaiming edge/profitability/trading language.
+
+Causal-safety notes:
+
+- Statistical helpers consume already-separated outcome samples only.
+- They do not generate causal features, signals, candidates, strategy rules, or
+  execution instructions.
+- Bootstrap intervals and permutation p-values are research diagnostics, not
+  standalone proof of tradability.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_statistical_tests.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Focused Milestone 31 tests passed under temporary Python 3.11 stdlib
+  compatibility shims: 7 passed.
+- Backtesting test suite passed under the same shims: 351 passed, 4 skipped.
+- Full suite passed under the same shims: 499 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 32 - Multiple Hypothesis Risk Helpers
+
+Goal:
+Make data-mining risk visible when many event, sequence, horizon, and context
+hypotheses are tested.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/multiple_testing.py`
+- `tests/backtesting/test_multiple_testing.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `count_tested_hypotheses`
+- `apply_bonferroni_adjustment`
+- `apply_false_discovery_rate_adjustment`
+- `summarize_multiple_testing_risk`
+
+Tests added:
+
+- Hypotheses can be counted overall or by grouping columns.
+- Bonferroni adjustment multiplies by the number of non-missing p-values and
+  caps adjusted p-values at 1.
+- Benjamini-Hochberg FDR adjustment is monotonic and preserves missing
+  p-values.
+- Multiple-testing summaries count unadjusted, Bonferroni-adjusted, and FDR
+  discoveries below alpha.
+- Helpers validate missing p-value columns, invalid groups, and invalid alpha.
+- Outputs avoid overclaiming edge/profitability/trading language.
+
+Causal-safety notes:
+
+- These helpers consume statistical test result tables only.
+- They do not generate features, events, labels, signals, candidates, strategy
+  rules, or execution instructions.
+- Adjusted p-values and warnings are research risk controls, not edge claims.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_multiple_testing.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_statistical_tests.py tests/backtesting/test_multiple_testing.py with shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Focused Milestone 32 tests passed under temporary Python 3.11 stdlib
+  compatibility shims: 6 passed.
+- Related statistical and multiple-testing tests passed under the same shims:
+  13 passed.
+- Full suite passed under the same shims: 505 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 33 - Walk-Forward Split Foundation
+
+Goal:
+Create chronological train/test split helpers for out-of-sample validation
+without random shuffle or leakage across split boundaries.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/time_splits.py`
+- `tests/backtesting/test_time_splits.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `create_time_series_splits`
+- `create_walk_forward_splits`
+- `validate_time_series_split`
+- `summarize_walk_forward_splits`
+
+Tests added:
+
+- Fixed-width time-series splits use chronological row-position windows.
+- Walk-forward splits support expanding and rolling train windows.
+- `max_train_size` limits expanding windows to the most recent training rows.
+- Split validation rejects overlaps, non-chronological splits, and missing
+  required fields.
+- Split summaries report train/test bounds and sizes.
+- Helpers validate invalid split-size parameters.
+
+Causal-safety notes:
+
+- Split records are row-position based and preserve chronological order.
+- Training indices must end before test indices begin.
+- No random shuffle or label/outcome inspection is performed by split builders.
+
+Commands run:
+
+```bash
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_time_splits.py with datetime.UTC and enum.StrEnum shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...pytest tests/backtesting/test_time_splits.py tests/backtesting/test_statistical_tests.py with shims...'
+'/Users/johnmullen/Documents/Codex/Auto-Trader SPY/.venv/bin/python' -c '...full pytest suite with datetime.UTC and enum.StrEnum shims...'
+```
+
+Result:
+
+- Initial focused run found a test expectation mistake for the final
+  `max_train_size` split; the implementation correctly used the last five
+  training rows before the final test window.
+- After correcting the test, focused Milestone 33 tests passed under temporary
+  Python 3.11 stdlib compatibility shims: 6 passed.
+- Related split and statistical tests passed under the same shims: 13 passed.
+- Full suite passed under the same shims: 511 passed, 4 skipped. The skipped
+  tests require matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Known Constraints
+
+- Research, validation, and backtesting only.
+- No broker integrations.
+- No live execution.
+- No order routing.
+- No options trading.
+- No profitability assumptions.
+- Forward-looking columns are labels/outcomes only, never causal inputs.
+- This filesystem snapshot is not a Git repository.
+
+## Known Open Questions
+
+- Resolved: the recovered milestone repo has been copied into the active
+  `Auto-Trader SPY` workspace, making this folder authoritative.
+- Resolved: the former flat scaffold has been archived under
+  `legacy_auto_trader_spy_scaffold/`.
+- Resolved: this workspace now has a local Python 3.11 `.venv` for ongoing
+  test execution.
+
+## Milestone 34 - Out-of-Sample Event Validation
+
+Goal:
+Evaluate candidate edge hypotheses on unseen chronological periods using the
+candidate registry and walk-forward split foundation.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/oos_validation.py`
+- `tests/backtesting/test_oos_validation.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `evaluate_candidate_edge_in_split`
+- `evaluate_candidate_registry_oos`
+- `summarize_oos_edge_stability`
+- `compare_in_sample_vs_oos_results`
+
+Tests added:
+
+- One candidate hypothesis is evaluated with separate chronological train and
+  OOS windows.
+- Registry evaluation supports event, sequence, and conditional-event
+  candidate types.
+- In-sample versus OOS comparisons add descriptive diagnostic differences and
+  sign-consistency flags.
+- OOS stability summaries aggregate split-level OOS diagnostics by candidate.
+- Helpers reject missing outcome mappings and invalid split records.
+- Output columns avoid live-trading/readiness language.
+
+Causal-safety notes:
+
+- Candidate records remain hypotheses, not strategy rules.
+- Split validation requires non-overlap and train rows before test rows.
+- Forward-looking values are read only from explicitly configured outcome
+  columns for evaluation.
+- OOS results are caveated as descriptive diagnostics and not proof of edge or
+  tradability.
+- No broker integration, live execution, order routing, options logic, or
+  trading approval state was added.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/backtesting/test_oos_validation.py -q
+.venv/bin/python -m pytest tests/backtesting/test_oos_validation.py tests/backtesting/test_candidate_edges.py tests/backtesting/test_time_splits.py -q
+.venv/bin/python -m pytest tests/backtesting -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Initial focused Milestone 34 test run found a registry DataFrame round-trip
+  issue where optional `None` fields could become `NaN`; OOS registry
+  evaluation now normalizes those optional fields before validation.
+- Focused Milestone 34 tests passed: 6 passed.
+- Related OOS, candidate-registry, and time-split tests passed: 19 passed.
+- Backtesting suite passed: 369 passed, 4 skipped.
+- Full suite passed: 517 passed, 4 skipped. The skipped tests require
+  matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 35 - Parameter Sensitivity Study
+
+Goal:
+Make parameter-dependence visible for research candidates without optimizing,
+selecting deployment settings, or implying tradability.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/parameter_sensitivity.py`
+- `tests/backtesting/test_parameter_sensitivity.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `build_parameter_grid`
+- `evaluate_parameter_grid`
+- `summarize_parameter_sensitivity`
+- `compare_parameter_sensitivity_to_reference`
+
+Tests added:
+
+- Parameter grids produce deterministic cartesian products and parameter-set
+  IDs.
+- Caller-supplied research evaluators run once per parameter-set row.
+- Sensitivity summaries report metric range, mean, standard deviation,
+  relative range, and descriptive variation flags.
+- Reference comparisons add metric differences from a designated parameter set.
+- Helpers validate empty grids, invalid evaluators, missing metrics, missing
+  reference rows, and invalid sensitivity thresholds.
+- Output columns avoid optimization, live-trading, and trading-readiness
+  language.
+
+Causal-safety notes:
+
+- Parameter helpers do not inspect data unless a caller-supplied evaluator does
+  so explicitly.
+- The module does not generate events, labels, signals, strategy rules,
+  rankings, execution instructions, or deployment approvals.
+- Sensitivity flags describe metric variation only and are not evidence of a
+  repeatable edge.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/backtesting/test_parameter_sensitivity.py -q
+.venv/bin/python -m pytest tests/backtesting/test_parameter_sensitivity.py tests/backtesting/test_oos_validation.py tests/backtesting/test_candidate_edges.py tests/backtesting/test_time_splits.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused Milestone 35 tests passed: 6 passed.
+- Related parameter-sensitivity, OOS, candidate-registry, and time-split tests
+  passed: 25 passed.
+- Full suite passed: 523 passed, 4 skipped. The skipped tests require
+  matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 36 - Robustness Report Builder
+
+Goal:
+Package out-of-sample validation and parameter-sensitivity diagnostics into
+deterministic research review artifacts without creating strategy rules or
+deployment approvals.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/robustness_reports.py`
+- `tests/backtesting/test_robustness_reports.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `validate_robustness_report_bundle`
+- `create_robustness_report_metadata`
+- `build_robustness_report_bundle`
+- `summarize_robustness_report_bundle`
+- `export_robustness_report_bundle_to_csv`
+- `export_robustness_report_bundle_to_json`
+- `build_and_export_robustness_report`
+
+Tests added:
+
+- Metadata includes a timestamp, milestone, package name, and descriptive
+  report caveat.
+- Report bundles copy inputs, include provided OOS and parameter-sensitivity
+  tables, automatically build OOS stability when needed, and aggregate caveats.
+- Bundle summaries report deterministic table names, row counts, column counts,
+  and column lists.
+- CSV and JSON exports write deterministic table and metadata artifacts.
+- Combined build/export returns the report bundle, written paths, and summary.
+- Helpers validate malformed bundles, non-DataFrame tables, forbidden metadata
+  fields, and overwrite policy.
+- Output columns avoid optimization, live-trading, and trading-readiness
+  language.
+
+Causal-safety notes:
+
+- Robustness reports package existing diagnostics only.
+- Reports do not generate events, labels, signals, strategy rules, rankings,
+  parameter selections, execution instructions, or deployment approvals.
+- Caveat tables explicitly state that positive diagnostics are not proof of a
+  repeatable edge.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/backtesting/test_robustness_reports.py -q
+.venv/bin/python -m pytest tests/backtesting/test_robustness_reports.py tests/backtesting/test_oos_validation.py tests/backtesting/test_parameter_sensitivity.py tests/backtesting/test_event_reports.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Initial focused Milestone 36 test run found a caveat-table row-count
+  expectation mismatch; the implementation correctly aggregates caveats from
+  multiple diagnostic tables.
+- Focused Milestone 36 tests passed: 7 passed.
+- Related robustness, OOS, parameter-sensitivity, and event-report tests
+  passed: 39 passed.
+- Full suite passed: 530 passed, 4 skipped. The skipped tests require
+  matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 37 - Candidate Rule Object Research Boundary
+
+Goal:
+Represent validated candidate hypotheses as auditable research-only rule
+objects without creating executable strategy rules, recommendations, execution
+instructions, or deployment approvals.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/candidate_rule_objects.py`
+- `tests/backtesting/test_candidate_rule_objects.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `create_candidate_rule_object`
+- `validate_candidate_rule_object`
+- `build_candidate_rule_catalog`
+- `summarize_candidate_rule_catalog`
+- `write_candidate_rule_catalog`
+- `read_candidate_rule_catalog`
+
+Tests added:
+
+- Rule objects preserve candidate identity, condition specs, evaluation specs,
+  required columns, caveats, validation summaries, robustness summaries, and
+  reproducibility metadata.
+- Validation rejects incomplete records, invalid research states, non-mapping
+  specs, invalid required columns, and forbidden execution/deployment fields.
+- Catalog construction sorts deterministically and rejects duplicate rule IDs.
+- Catalog summaries report inventory counts and required-column counts without
+  rankings or approvals.
+- JSON write/read helpers round-trip validated rule catalogs.
+- Output columns avoid broker, order-routing, execution, live-trading, and
+  trading-readiness language.
+
+Causal-safety notes:
+
+- Rule objects are structured research artifacts only.
+- The module does not inspect live data, generate events, generate labels,
+  produce signals, optimize settings, simulate P/L, route orders, or approve
+  deployment.
+- Candidate rule objects carry explicit caveats including
+  `research_only_rule_object`, `not_a_trading_signal`, and
+  `not_deployment_approval`.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/backtesting/test_candidate_rule_objects.py -q
+.venv/bin/python -m pytest tests/backtesting/test_candidate_rule_objects.py tests/backtesting/test_candidate_edges.py tests/backtesting/test_oos_validation.py tests/backtesting/test_robustness_reports.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused Milestone 37 tests passed: 7 passed.
+- Related candidate-rule, candidate-registry, OOS, and robustness-report tests
+  passed: 27 passed.
+- Full suite passed: 537 passed, 4 skipped. The skipped tests require
+  matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 38 - Candidate Rule Catalog Reporting
+
+Goal:
+Package candidate rule catalogs into deterministic research reports without
+ranking, optimization, deployment status, or trading-readiness language.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/candidate_rule_reports.py`
+- `tests/backtesting/test_candidate_rule_reports.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `create_candidate_rule_report_metadata`
+- `summarize_candidate_rule_research_states`
+- `build_candidate_rule_required_column_inventory`
+- `summarize_candidate_rule_caveats`
+- `build_candidate_rule_report_bundle`
+- `validate_candidate_rule_report_bundle`
+- `summarize_candidate_rule_report_bundle`
+- `export_candidate_rule_report_bundle_to_csv`
+- `export_candidate_rule_report_bundle_to_json`
+
+Tests added:
+
+- Research-state, required-column, and caveat summaries.
+- Report bundle construction and structural summaries.
+- Deterministic CSV and JSON exports with overwrite protection.
+- Bundle validation for malformed inputs.
+
+Causal-safety notes:
+
+- Reports summarize existing candidate rule artifacts only.
+- No replay, signal generation, optimization, execution, or approval state is
+  created.
+
+## Milestone 39 - Rule Object Evaluation Replay
+
+Goal:
+Replay stored rule-object condition specs against historical DataFrames for
+reproducibility checks only.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/candidate_rule_replay.py`
+- `tests/backtesting/test_candidate_rule_replay.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `replay_candidate_rule_object`
+- `replay_candidate_rule_catalog`
+- `summarize_candidate_rule_replay`
+
+Tests added:
+
+- Replay applies event-column, sequence, and context-filter conditions.
+- Catalog replay and replay summary aggregation.
+- Missing required columns are reported without evaluation.
+- Invalid sequence specs are rejected.
+
+Causal-safety notes:
+
+- Replay reconstructs historical condition masks for audit only.
+- Replay outputs sample counts and caveats, not predictions, actions, signals,
+  orders, or performance claims.
+
+## Milestone 40 - Rule Object OOS Replay Comparison
+
+Goal:
+Compare replay sample sizes with OOS validation samples to detect
+reproducibility drift or missing OOS references.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/candidate_rule_oos_comparison.py`
+- `tests/backtesting/test_candidate_rule_oos_comparison.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `compare_rule_replay_to_oos_results`
+- `summarize_rule_oos_comparison`
+
+Tests added:
+
+- Comparison flags ok, sample-size mismatch, and missing OOS reference states.
+- Comparison summaries count rule objects by diagnostic status.
+- Helpers validate threshold and required-column inputs.
+
+Causal-safety notes:
+
+- Comparison is a reproducibility diagnostic only.
+- It does not evaluate profitability, select candidates, create signals, or
+  approve deployment.
+
+## Milestone 41 - Rule Object Robustness Audit
+
+Goal:
+Bundle catalog reports, replay diagnostics, OOS comparisons, and caveats into
+deterministic research audit artifacts.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/candidate_rule_audits.py`
+- `tests/backtesting/test_candidate_rule_audits.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `create_candidate_rule_audit_metadata`
+- `build_candidate_rule_audit_bundle`
+- `validate_candidate_rule_audit_bundle`
+- `summarize_candidate_rule_audit_bundle`
+- `export_candidate_rule_audit_bundle_to_csv`
+- `export_candidate_rule_audit_bundle_to_json`
+
+Tests added:
+
+- Audit metadata creation.
+- Audit bundle table copying and default caveat table creation.
+- Structural audit bundle summaries.
+- Deterministic CSV and JSON exports with overwrite protection.
+- Bundle validation for malformed inputs.
+
+Causal-safety notes:
+
+- Audit bundles package existing research diagnostics only.
+- Audit findings do not imply deployment approval, execution readiness, or
+  tradability.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/backtesting/test_candidate_rule_reports.py tests/backtesting/test_candidate_rule_replay.py tests/backtesting/test_candidate_rule_oos_comparison.py tests/backtesting/test_candidate_rule_audits.py -q
+.venv/bin/python -m pytest tests/backtesting/test_candidate_rule_objects.py tests/backtesting/test_candidate_rule_reports.py tests/backtesting/test_candidate_rule_replay.py tests/backtesting/test_candidate_rule_oos_comparison.py tests/backtesting/test_candidate_rule_audits.py tests/backtesting/test_candidate_edges.py tests/backtesting/test_oos_validation.py tests/backtesting/test_robustness_reports.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused Milestone 38-41 tests passed: 17 passed.
+- Related candidate-rule, candidate-registry, OOS, and robustness-report tests
+  passed: 44 passed.
+- Full suite passed: 554 passed, 4 skipped. The skipped tests require
+  matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 42 - Research Decision Journal
+
+Goal:
+Track research dispositions for candidates and rule objects without approval,
+deployment, or trading-readiness language.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/research_decision_journal.py`
+- `tests/backtesting/test_research_decision_journal.py`
+
+Public functions added:
+
+- `create_research_decision_record`
+- `validate_research_decision_record`
+- `build_research_decision_journal`
+- `summarize_research_decision_journal`
+- `write_research_decision_journal`
+- `read_research_decision_journal`
+
+Causal-safety notes:
+
+- Decision records are research dispositions only.
+- Valid decisions are limited to continue study, needs more data, merge with
+  related hypothesis, or retire from review.
+
+## Milestone 43 - Candidate Family Aggregation
+
+Goal:
+Group related candidates and rule objects by descriptive family attributes to
+surface clustering without ranking or claiming edge.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/candidate_family_aggregation.py`
+- `tests/backtesting/test_candidate_family_aggregation.py`
+
+Public functions added:
+
+- `add_candidate_family_columns`
+- `aggregate_candidate_families`
+- `summarize_candidate_family_concentration`
+
+Causal-safety notes:
+
+- Family aggregation summarizes existing metadata and condition specs only.
+- Concentration summaries are descriptive and not edge evidence.
+
+## Milestone 44 - Regime-Conditioned Rule Review
+
+Goal:
+Review rule-object replay sample distribution across context buckets such as
+session, regime, volatility, or range context.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/rule_context_review.py`
+- `tests/backtesting/test_rule_context_review.py`
+
+Public functions added:
+
+- `review_rule_replay_by_context`
+- `review_rule_catalog_by_context`
+- `summarize_rule_context_review`
+
+Causal-safety notes:
+
+- Context review reuses historical replay masks for descriptive concentration
+  checks only.
+- It does not create predictions, actions, strategy instructions, or
+  deployment decisions.
+
+## Milestone 45 - Negative Control And Placebo Tests
+
+Goal:
+Make data-mining risk more visible with shifted and randomized control
+conditions.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/negative_controls.py`
+- `tests/backtesting/test_negative_controls.py`
+
+Public functions added:
+
+- `build_shifted_condition_control`
+- `build_random_condition_control`
+- `evaluate_negative_control_outcomes`
+- `summarize_negative_control_risk`
+
+Causal-safety notes:
+
+- Negative controls are placebo diagnostics only.
+- They do not validate an edge, optimize parameters, create signals, or approve
+  deployment.
+
+Files modified for Milestones 42-45:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/backtesting/test_research_decision_journal.py tests/backtesting/test_candidate_family_aggregation.py tests/backtesting/test_rule_context_review.py tests/backtesting/test_negative_controls.py -q
+.venv/bin/python -m pytest tests/backtesting/test_research_decision_journal.py tests/backtesting/test_candidate_family_aggregation.py tests/backtesting/test_rule_context_review.py tests/backtesting/test_negative_controls.py tests/backtesting/test_candidate_rule_objects.py tests/backtesting/test_candidate_rule_replay.py tests/backtesting/test_candidate_rule_oos_comparison.py tests/backtesting/test_candidate_rule_audits.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Initial focused run found a test setup issue in the negative-control
+  validation test; the test now supplies required metric columns before
+  checking the missing-observed-condition path.
+- Focused Milestone 42-45 tests passed: 15 passed.
+- Related decision-journal, family, context-review, negative-control, and
+  candidate-rule tests passed: 35 passed.
+- Full suite passed: 569 passed, 4 skipped. The skipped tests require
+  matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 46 - Expanded Statistical Placebo Suite
+
+Goal:
+Extend placebo diagnostics with shifted-control grids, repeated random
+controls, percentile ranks, and control exceedance rates.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/placebo_statistics.py`
+- `tests/backtesting/test_placebo_statistics.py`
+
+Public functions added:
+
+- `build_shifted_control_grid`
+- `build_repeated_random_controls`
+- `evaluate_placebo_control_suite`
+- `summarize_placebo_percentile_ranks`
+
+## Milestone 47 - Temporal Stability Diagnostics
+
+Goal:
+Review whether diagnostics are stable across calendar periods or concentrated
+in a few windows.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/temporal_stability.py`
+- `tests/backtesting/test_temporal_stability.py`
+
+Public functions added:
+
+- `assign_temporal_period`
+- `summarize_metric_by_period`
+- `summarize_temporal_stability`
+- `flag_temporal_concentration`
+
+## Milestone 48 - Data Quality And Coverage Impact Review
+
+Goal:
+Quantify missingness, context completeness, session coverage, and quality-mask
+impact on research diagnostics.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/data_quality_impact.py`
+- `tests/backtesting/test_data_quality_impact.py`
+
+Public functions added:
+
+- `summarize_column_coverage`
+- `summarize_session_coverage`
+- `evaluate_quality_filter_impact`
+- `summarize_required_context_coverage`
+
+## Milestone 49 - Research Risk Dashboard Bundle
+
+Goal:
+Package multiple-testing, placebo, temporal, data-quality, and decision
+summary tables into deterministic research-risk report artifacts.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/research_risk_reports.py`
+- `tests/backtesting/test_research_risk_reports.py`
+
+Public functions added:
+
+- `create_research_risk_report_metadata`
+- `build_research_risk_report_bundle`
+- `validate_research_risk_report_bundle`
+- `summarize_research_risk_report_bundle`
+- `export_research_risk_report_bundle_to_csv`
+- `export_research_risk_report_bundle_to_json`
+
+Files modified for Milestones 46-49:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Causal-safety notes:
+
+- Milestones 46-49 package and summarize skepticism diagnostics only.
+- They do not create causal features, trading signals, strategy instructions,
+  deployment approvals, broker integrations, or live execution behavior.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/backtesting/test_placebo_statistics.py tests/backtesting/test_temporal_stability.py tests/backtesting/test_data_quality_impact.py tests/backtesting/test_research_risk_reports.py -q
+.venv/bin/python -m pytest tests/backtesting/test_placebo_statistics.py tests/backtesting/test_temporal_stability.py tests/backtesting/test_data_quality_impact.py tests/backtesting/test_research_risk_reports.py tests/backtesting/test_negative_controls.py tests/backtesting/test_research_decision_journal.py tests/backtesting/test_multiple_testing.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused Milestone 46-49 tests passed: 16 passed.
+- Related placebo, temporal, data-quality, risk-report, negative-control,
+  decision-journal, and multiple-testing tests passed: 30 passed.
+- Full suite passed: 585 passed, 4 skipped. The skipped tests require
+  matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 50 - Research Package Maturity Scoring
+
+Goal:
+Score research packages by evidence completeness, OOS coverage, placebo risk,
+temporal stability, data quality, caveat control, and decision status without
+implying trade readiness.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/research_maturity.py`
+- `tests/backtesting/test_research_maturity.py`
+
+Public functions added:
+
+- `create_research_maturity_record`
+- `build_research_maturity_table`
+- `summarize_research_maturity`
+- `score_research_package_from_diagnostics`
+
+## Milestone 51 - Candidate Retirement And Merge Workflow
+
+Goal:
+Preserve candidate retirement and merge lineage without deleting research
+history.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/candidate_lineage.py`
+- `tests/backtesting/test_candidate_lineage.py`
+
+Public functions added:
+
+- `create_candidate_lineage_record`
+- `validate_candidate_lineage_record`
+- `build_candidate_lineage_table`
+- `summarize_candidate_lineage`
+- `write_candidate_lineage_table`
+- `read_candidate_lineage_table`
+
+## Milestone 52 - Research Package Export Manifest
+
+Goal:
+Index research package artifacts such as catalogs, OOS results, journals, risk
+reports, and audit outputs in a deterministic manifest.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/research_package_manifest.py`
+- `tests/backtesting/test_research_package_manifest.py`
+
+Public functions added:
+
+- `create_research_package_manifest_record`
+- `build_research_package_manifest`
+- `validate_research_package_manifest`
+- `summarize_research_package_manifest`
+- `write_research_package_manifest`
+- `read_research_package_manifest`
+
+## Milestone 53 - End-to-End Research Review Workflow
+
+Goal:
+Compose research review tables and package manifests into deterministic
+workflow outputs and exports.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/research_review_workflow.py`
+- `tests/backtesting/test_research_review_workflow.py`
+
+Public functions added:
+
+- `create_research_review_metadata`
+- `build_research_review_workflow_outputs`
+- `summarize_research_review_workflow_outputs`
+- `export_research_review_workflow_outputs`
+
+Files modified for Milestones 50-53:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Causal-safety notes:
+
+- Milestones 50-53 organize existing research evidence only.
+- Maturity scores, lineage records, manifests, and workflow outputs do not
+  imply trade readiness, deployment approval, signals, execution, broker
+  integration, or real-money use.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/backtesting/test_research_maturity.py tests/backtesting/test_candidate_lineage.py tests/backtesting/test_research_package_manifest.py tests/backtesting/test_research_review_workflow.py -q
+.venv/bin/python -m pytest tests/backtesting/test_research_maturity.py tests/backtesting/test_candidate_lineage.py tests/backtesting/test_research_package_manifest.py tests/backtesting/test_research_review_workflow.py tests/backtesting/test_research_risk_reports.py tests/backtesting/test_research_decision_journal.py tests/backtesting/test_candidate_rule_audits.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused Milestone 50-53 tests passed: 13 passed.
+- Related maturity, lineage, manifest, workflow, risk-report,
+  decision-journal, and candidate-rule audit tests passed: 26 passed.
+- Full suite passed: 598 passed, 4 skipped. The skipped tests require
+  matplotlib.
+- Pytest emitted a cache warning because this recovered repo snapshot is
+  outside the writable workspace root.
+
+## Milestone 54 - Research Review Artifact Integrity Checks
+
+Goal:
+Validate research package manifests for artifact path presence, required
+metadata keys, expected artifact names, and deterministic integrity summaries.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/research_artifact_integrity.py`
+- `tests/backtesting/test_research_artifact_integrity.py`
+
+Public functions added:
+
+- `check_manifest_artifact_paths`
+- `check_manifest_required_metadata`
+- `check_expected_artifacts`
+- `build_artifact_integrity_report`
+- `summarize_artifact_integrity`
+
+## Milestone 55 - Research Package Comparison Reports
+
+Goal:
+Compare research package artifact coverage, maturity distributions, risk
+summary structure, decision distributions, lineage counts, and caveat inventory
+without selecting a best package.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/research_package_comparison.py`
+- `tests/backtesting/test_research_package_comparison.py`
+
+Public functions added:
+
+- `compare_research_package_artifacts`
+- `compare_research_package_maturity`
+- `compare_research_package_risks`
+- `compare_research_package_decisions`
+- `compare_research_package_lineage`
+- `build_research_package_comparison_bundle`
+- `validate_research_package_comparison_bundle`
+- `summarize_research_package_comparison_bundle`
+- `export_research_package_comparison_bundle_to_csv`
+- `export_research_package_comparison_bundle_to_json`
+
+## Milestone 56 - Research Evidence Traceability Matrix
+
+Goal:
+Link research candidates and rule objects to available candidate records, OOS
+results, robustness reports, risk reports, decision records, lineage records,
+and package manifest artifacts while surfacing missing evidence as caveats.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/research_traceability.py`
+- `tests/backtesting/test_research_traceability.py`
+
+Public functions added:
+
+- `build_research_traceability_matrix`
+- `summarize_research_traceability`
+
+## Milestone 57 - Research Governance Summary Bundle
+
+Goal:
+Package artifact integrity summaries, package comparison summaries,
+traceability summaries, and governance caveats into deterministic CSV/JSON
+research review bundles.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/research_governance_reports.py`
+- `tests/backtesting/test_research_governance_reports.py`
+
+Public functions added:
+
+- `create_research_governance_metadata`
+- `build_research_governance_bundle`
+- `validate_research_governance_bundle`
+- `summarize_research_governance_bundle`
+- `export_research_governance_bundle_to_csv`
+- `export_research_governance_bundle_to_json`
+
+Files modified for Milestones 54-57:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Causal-safety notes:
+
+- Milestones 54-57 validate and summarize research-review artifacts only.
+- Integrity checks inspect file existence and metadata structure; they do not
+  read research outcome contents or evaluate tradability.
+- Package comparisons are descriptive coverage/distribution reports only and do
+  not rank packages, choose a best package, optimize thresholds, or create
+  recommendations.
+- Traceability matrices surface missing evidence as caveats only; they are not
+  approval states, deployment gates, or trade-readiness scores.
+- Governance bundles package existing review summaries and caveats only. They
+  do not create broker integrations, live execution, order routing, trading
+  approval states, recommendations, or real-money use claims.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/backtesting/test_research_artifact_integrity.py -q
+.venv/bin/python -m pytest tests/backtesting/test_research_package_comparison.py -q
+.venv/bin/python -m pytest tests/backtesting/test_research_traceability.py -q
+.venv/bin/python -m pytest tests/backtesting/test_research_governance_reports.py -q
+.venv/bin/python -m pytest tests/backtesting/test_research_artifact_integrity.py tests/backtesting/test_research_package_comparison.py tests/backtesting/test_research_traceability.py tests/backtesting/test_research_governance_reports.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused Milestone 54 tests passed after tightening summary recursion:
+  2 passed.
+- Focused Milestone 55 tests passed: 2 passed.
+- Focused Milestone 56 tests passed: 2 passed.
+- Focused Milestone 57 tests passed: 3 passed.
+- Combined focused Milestone 54-57 tests passed: 9 passed.
+- Full suite passed: 607 passed, 4 skipped. The skipped tests require
+  matplotlib.
+
+## Milestone 58 - Instrument Registry Foundation
+
+Goal:
+Define a typed, deterministic, JSON-serializable registry for research
+instruments without implying tradability, broker support, or execution support.
+
+Files added:
+
+- `src/spy_edge_research/instruments/instrument_registry.py`
+- `src/spy_edge_research/instruments/__init__.py`
+- `tests/instruments/test_instrument_registry.py`
+
+Public classes and functions added:
+
+- `InstrumentDefinition`
+- `InstrumentRegistry`
+- `create_instrument_definition`
+- `build_instrument_registry`
+- `validate_instrument_registry`
+- `get_instrument_definition`
+- `list_instruments`
+- `filter_instruments_by_role`
+- `write_instrument_registry`
+- `read_instrument_registry`
+
+## Milestone 59 - Multi-Symbol Data Alignment
+
+Goal:
+Align already-loaded in-memory symbol DataFrames on timestamp/session keys,
+prefix non-key columns by symbol, and surface timestamp coverage diagnostics.
+
+Files added:
+
+- `src/spy_edge_research/market_data/multi_symbol_alignment.py`
+- `tests/market_data/test_multi_symbol_alignment.py`
+
+Files modified:
+
+- `src/spy_edge_research/market_data/__init__.py`
+
+Public functions added:
+
+- `validate_symbol_frame_map`
+- `prefix_symbol_columns`
+- `align_symbol_frames`
+- `build_multi_symbol_panel`
+- `summarize_symbol_alignment`
+- `filter_aligned_symbol_universe`
+
+## Milestone 60 - Cross-Instrument Confirmation Features
+
+Goal:
+Create causal cross-instrument confirmation, divergence, relative-return,
+VWAP-side, and trailing-volume context features from aligned multi-symbol data.
+
+Files added:
+
+- `src/spy_edge_research/signal_engine/cross_instrument_features.py`
+- `tests/signal_engine/test_cross_instrument_features.py`
+
+Files modified:
+
+- `src/spy_edge_research/signal_engine/__init__.py`
+
+Public functions added:
+
+- `add_relative_return_features`
+- `add_cross_symbol_trend_confirmation`
+- `add_cross_symbol_vwap_confirmation`
+- `add_cross_symbol_volume_confirmation`
+- `add_cross_symbol_divergence_flags`
+- `add_cross_instrument_confirmation_features`
+
+## Milestone 61 - Multi-Instrument Event Outcome Studies
+
+Goal:
+Evaluate existing events and forward outcome columns conditioned on
+cross-instrument context features with sample-size and coverage caveats.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/multi_instrument_event_study.py`
+- `tests/backtesting/test_multi_instrument_event_study.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `summarize_event_by_instrument_context`
+- `compare_confirmed_vs_divergent_event_outcomes`
+- `build_multi_instrument_event_outcome_table`
+- `summarize_multi_instrument_context_coverage`
+- `build_multi_instrument_research_report`
+
+Causal-safety notes:
+
+- Milestone 58 records research instrument metadata only and does not imply
+  market-data availability, tradability, routing, broker support, or execution.
+- Milestone 59 accepts caller-supplied in-memory DataFrames only. It performs
+  deterministic joins and diagnostics without downloads or paid data
+  dependencies. Forward fill is disabled by default and explicitly caveated
+  when requested.
+- Milestone 60 creates features from current and prior rows only. Return
+  features use current-vs-prior prices, volume baselines are shifted trailing
+  baselines, and outputs avoid buy/sell/entry/exit/approval language.
+- Milestone 61 reads forward outcomes only as evaluation targets. It produces
+  descriptive context comparisons, sample-size flags, and coverage diagnostics
+  without ranking strategies, optimizing thresholds, simulating P/L, claiming
+  edge, or approving deployment.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest -q
+.venv/bin/python -m pytest tests/instruments/test_instrument_registry.py -q
+.venv/bin/python -m pytest tests/market_data/test_multi_symbol_alignment.py -q
+.venv/bin/python -m pytest tests/signal_engine/test_cross_instrument_features.py -q
+.venv/bin/python -m pytest tests/backtesting/test_multi_instrument_event_study.py -q
+.venv/bin/python -m pytest tests/instruments/test_instrument_registry.py tests/market_data/test_multi_symbol_alignment.py tests/signal_engine/test_cross_instrument_features.py tests/backtesting/test_multi_instrument_event_study.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Pre-change full suite baseline passed: 607 passed, 4 skipped.
+- Focused Milestone 58 tests passed: 5 passed.
+- Focused Milestone 59 tests passed: 5 passed.
+- Focused Milestone 60 tests passed: 5 passed.
+- Focused Milestone 61 tests passed after correcting a synthetic test
+  expectation: 6 passed.
+- Combined focused Milestone 58-61 tests passed: 21 passed.
+- Final full suite passed: 628 passed, 4 skipped. The skipped tests require
+  matplotlib.
+
+Next recommended module boundary:
+
+- Stop after Milestone 61 as planned. The next natural module should remain
+  research-only, likely sector ETF context expansion or data-quality hardening
+  for multi-instrument panels, and should not begin sector rotation, macro
+  regimes, factor allocation, dashboards, paper trading, broker integration,
+  options, alerts, execution, or trade-readiness work without a new approved
+  module brief.
+
+## Milestone 62 - Sector ETF Universe Foundation
+
+Goal:
+Define a deterministic, JSON-serializable sector ETF universe for research
+metadata and grouping without implying tradability, allocation, broker support,
+or execution support.
+
+Files added:
+
+- `src/spy_edge_research/instruments/sector_universe.py`
+- `tests/instruments/test_sector_universe.py`
+
+Files modified:
+
+- `src/spy_edge_research/instruments/__init__.py`
+
+Public classes and functions added:
+
+- `SectorDefinition`
+- `SectorUniverse`
+- `create_sector_definition`
+- `build_sector_universe`
+- `default_spdr_sector_universe`
+- `validate_sector_universe`
+- `get_sector_definition`
+- `list_sector_etfs`
+- `filter_sector_universe`
+- `write_sector_universe`
+- `read_sector_universe`
+
+## Milestone 63 - Sector Context Feature Layer
+
+Goal:
+Create causal sector breadth, leadership, dispersion, relative-return, and
+primary-sector confirmation features from already-aligned sector ETF data.
+
+Files added:
+
+- `src/spy_edge_research/signal_engine/sector_context_features.py`
+- `tests/signal_engine/test_sector_context_features.py`
+
+Files modified:
+
+- `src/spy_edge_research/signal_engine/__init__.py`
+
+Public functions added:
+
+- `add_sector_relative_return_features`
+- `add_sector_breadth_features`
+- `add_sector_leadership_flags`
+- `add_sector_dispersion_features`
+- `add_primary_sector_confirmation_features`
+- `add_sector_context_features`
+
+## Milestone 64 - Sector-Confirmed Event Studies
+
+Goal:
+Evaluate existing SPY events and forward outcome columns conditioned on sector
+context features with sample-size and coverage caveats.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/sector_event_study.py`
+- `tests/backtesting/test_sector_event_study.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+
+Public functions added:
+
+- `summarize_event_by_sector_context`
+- `compare_sector_confirmed_event_outcomes`
+- `build_sector_event_outcome_table`
+- `summarize_sector_context_coverage`
+- `build_sector_event_research_report`
+
+## Milestone 65 - Sector Rotation Research Reports
+
+Goal:
+Package sector leadership, breadth, dispersion, sector-event study summaries,
+and caveats into deterministic descriptive research report bundles.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/sector_rotation_reports.py`
+- `tests/backtesting/test_sector_rotation_reports.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `create_sector_rotation_report_metadata`
+- `build_sector_rotation_snapshot`
+- `summarize_sector_leadership_persistence`
+- `build_sector_rotation_report_bundle`
+- `validate_sector_rotation_report_bundle`
+- `summarize_sector_rotation_report_bundle`
+- `export_sector_rotation_report_bundle_to_csv`
+- `export_sector_rotation_report_bundle_to_json`
+
+Causal-safety notes:
+
+- Milestone 62 records sector ETF metadata only and does not imply
+  market-data availability, tradability, sector allocation, broker support,
+  portfolio construction, or execution.
+- Milestone 63 accepts caller-supplied, already-aligned DataFrames only.
+  Return features use current-vs-prior prices, breadth/leadership/dispersion
+  use current row sector returns, and high-dispersion context uses trailing
+  rolling information available at the row.
+- Milestone 64 reads forward outcomes only as evaluation targets. It produces
+  descriptive sector-context comparisons, sample-size flags, and coverage
+  diagnostics without ranking strategies, optimizing thresholds, simulating
+  P/L, claiming edge, or approving deployment.
+- Milestone 65 packages existing sector context and sector-event research
+  summaries only. Rotation is descriptive sector-leadership research, not
+  allocation guidance, portfolio construction, sector buy/sell ranking, paper
+  trading, broker integration, execution, or trade-readiness support.
+
+Commands run:
+
+```bash
+.venv/bin/python -m pytest tests/instruments/test_sector_universe.py -q
+.venv/bin/python -m pytest tests/signal_engine/test_sector_context_features.py -q
+.venv/bin/python -m pytest tests/backtesting/test_sector_event_study.py -q
+.venv/bin/python -m pytest tests/backtesting/test_sector_rotation_reports.py -q
+.venv/bin/python -m pytest tests/instruments/test_instrument_registry.py tests/instruments/test_sector_universe.py -q
+.venv/bin/python -m pytest tests/signal_engine/test_cross_instrument_features.py tests/signal_engine/test_sector_context_features.py -q
+.venv/bin/python -m pytest tests/backtesting/test_multi_instrument_event_study.py tests/backtesting/test_sector_event_study.py tests/backtesting/test_sector_rotation_reports.py -q
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused Milestone 62 tests passed: 5 passed.
+- Focused Milestone 63 tests passed: 6 passed.
+- Focused Milestone 64 tests passed: 6 passed.
+- Focused Milestone 65 tests passed: 6 passed.
+- Related instrument tests passed: 10 passed.
+- Related signal-engine tests passed: 11 passed.
+- Related backtesting context/report tests passed: 18 passed.
+- Final full suite passed: 651 passed, 4 skipped. The skipped tests require
+  matplotlib.
+
+Next recommended module boundary:
+
+- Stop after Milestone 65 as planned. The next module should remain
+  research-only and should be separately approved before beginning macro,
+  rates, credit, commodity, factor, portfolio/risk, dashboard, service API,
+  paper-trading, broker integration, options, alerting, execution, or
+  trade-readiness work.
+
+## Milestone 66 - Macro Instrument Universe
+
+Goal:
+Define a deterministic, JSON-serializable macro, rates, credit, commodity,
+volatility, currency, and risk-proxy universe for research metadata and
+grouping without implying tradability, allocation, broker support, or execution
+support.
+
+Files added:
+
+- `src/spy_edge_research/instruments/macro_universe.py`
+- `tests/instruments/test_macro_universe.py`
+
+Files modified:
+
+- `src/spy_edge_research/instruments/__init__.py`
+
+Public classes and functions added:
+
+- `MacroInstrumentDefinition`
+- `MacroInstrumentUniverse`
+- `create_macro_instrument_definition`
+- `build_macro_instrument_universe`
+- `default_macro_instrument_universe`
+- `validate_macro_instrument_universe`
+- `get_macro_instrument_definition`
+- `list_macro_instruments`
+- `filter_macro_instruments`
+- `write_macro_instrument_universe`
+- `read_macro_instrument_universe`
+
+## Milestone 67 - Macro Regime Feature Layer
+
+Goal:
+Create causal macro, rates, credit, commodity, volatility-proxy, and
+risk-on/risk-off context features from already-aligned macro instrument data.
+
+Files added:
+
+- `src/spy_edge_research/signal_engine/macro_regime_features.py`
+- `tests/signal_engine/test_macro_regime_features.py`
+
+Files modified:
+
+- `src/spy_edge_research/signal_engine/__init__.py`
+
+Public functions added:
+
+- `add_macro_relative_return_features`
+- `add_rates_regime_features`
+- `add_credit_regime_features`
+- `add_commodity_regime_features`
+- `add_volatility_proxy_regime_features`
+- `add_risk_on_risk_off_features`
+- `add_macro_regime_features`
+
+## Milestone 68 - Macro-Conditioned Event Studies
+
+Goal:
+Evaluate existing SPY events and forward outcome columns conditioned on macro
+regime context features with sample-size and coverage caveats.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/macro_event_study.py`
+- `tests/backtesting/test_macro_event_study.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+
+Public functions added:
+
+- `summarize_event_by_macro_regime`
+- `compare_macro_regime_event_outcomes`
+- `build_macro_event_outcome_table`
+- `summarize_macro_context_coverage`
+- `build_macro_event_research_report`
+
+## Milestone 69 - Macro Regime Research Reports
+
+Goal:
+Package macro regime snapshots, macro-conditioned event summaries, coverage
+diagnostics, persistence summaries, and caveats into deterministic descriptive
+research report bundles.
+
+Files added:
+
+- `src/spy_edge_research/backtesting/macro_regime_reports.py`
+- `tests/backtesting/test_macro_regime_reports.py`
+
+Files modified:
+
+- `src/spy_edge_research/backtesting/__init__.py`
+- `README.md`
+- `PROJECT_MILESTONES.md`
+
+Public functions added:
+
+- `create_macro_regime_report_metadata`
+- `build_macro_regime_snapshot`
+- `summarize_macro_regime_persistence`
+- `build_macro_regime_report_bundle`
+- `validate_macro_regime_report_bundle`
+- `summarize_macro_regime_report_bundle`
+- `export_macro_regime_report_bundle_to_csv`
+- `export_macro_regime_report_bundle_to_json`
+
+Causal-safety notes:
+
+- Milestone 66 records macro proxy metadata only and does not imply
+  market-data availability, tradability, macro allocation, broker support,
+  portfolio construction, or execution.
+- Milestone 67 accepts caller-supplied, already-aligned DataFrames only.
+  Return features use current-vs-prior prices. Rates, credit, commodity,
+  volatility-proxy, and risk-on/risk-off context columns use current and prior
+  row information only.
+- Milestone 68 reads forward outcomes only as evaluation targets. It produces
+  descriptive macro-regime comparisons, sample-size flags, and coverage
+  diagnostics without ranking strategies, optimizing thresholds, simulating
+  P/L, claiming edge, or approving deployment.
+- Milestone 69 packages existing macro context and macro-event research
+  summaries only. Macro regimes are descriptive context, not allocation
+  guidance, portfolio construction, instrument buy/sell ranking, paper
+  trading, broker integration, execution, or trade-readiness support.
+
+Focused test commands:
+
+```bash
+.venv/bin/python -m pytest tests/instruments/test_macro_universe.py -q
+.venv/bin/python -m pytest tests/signal_engine/test_macro_regime_features.py -q
+.venv/bin/python -m pytest tests/backtesting/test_macro_event_study.py -q
+.venv/bin/python -m pytest tests/backtesting/test_macro_regime_reports.py -q
+.venv/bin/python -m pytest tests/instruments/test_macro_universe.py tests/signal_engine/test_macro_regime_features.py tests/backtesting/test_macro_event_study.py tests/backtesting/test_macro_regime_reports.py -q
+```
+
+Full-suite command:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused Milestone 66 tests passed after correcting the expected alphabetical
+  deterministic symbol order: 5 passed.
+- Focused Milestone 67 tests passed: 6 passed.
+- Focused Milestone 68 tests passed: 6 passed.
+- Focused Milestone 69 tests passed: 6 passed.
+- Combined focused Milestone 66-69 tests passed: 23 passed.
+- Related instrument tests passed: 15 passed.
+- Related signal-engine tests passed: 17 passed.
+- Related backtesting context/report tests passed: 30 passed.
+- Final full suite passed: 674 passed, 4 skipped. The skipped tests require
+  matplotlib.
+
+Next recommended module boundary:
+
+- Stop after Milestone 69 as planned. The next module should remain
+  research-only and should be separately approved before beginning factor ETF
+  allocation research, value research, portfolio/risk construction, dashboard,
+  service API, paper-trading readiness, broker integration, options, alerting,
+  execution, or trade-readiness work.
