@@ -7,10 +7,10 @@
 ## 0. Verified snapshot at handoff
 
 - **Branch:** `main`
-- **HEAD:** `391f394` — `MOD 13 (M100): value/quality/momentum cross-sectional factor research`
+- **HEAD:** `e391e77` — `M104: live execution adapter (Phase 14, inert unless explicitly enabled)`
 - **Working tree:** clean
-- **Full suite:** `808 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib)
-- **Latest ledger milestone:** M100 (`PROJECT_MILESTONES.md`)
+- **Full suite:** `837 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib)
+- **Latest ledger milestone:** M104 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ## 1. ⚠️ This is a multi-writer repo — read first
@@ -84,16 +84,46 @@ The functional-app build-out is **COMPLETE** — all merged to `main`:
 3. **MOD 12 frontend** — done (M99).
 4. **MOD 13 value/quality/momentum research** — done (M100).
 
-**The frontier beyond is still gated.** Per `MASTER_PROJECT_BRIEF.md`, anything
-past here — human-approved semi-autonomous workflow, broker integration, live
-execution, options expression, production hardening — must be a **new,
-separately user-authorized** module. **Still forbidden until a further explicit
-OK:** real broker/money, live execution, order routing, options expression.
+**Staged "Trader module" build-out (user-authorized 2026-06-13) — CODE COMPLETE
+(M101–M104), live path INERT.** The user explicitly authorized crossing toward
+live execution, but as a **staged plan with hard gates**, not a jump to live.
+Locked decisions: **a human approves every order**; broker **Alpaca, equities/ETF
+only** (sandbox-first); **options deferred** (Phase 15). Plan file:
+`~/.claude/plans/binary-crunching-cascade.md`. Stages, all merged to `main`:
 
-Useful follow-ups that need no new authorization: wiring the negative-control /
-multiple-testing / temporal batteries into the MOD 11 runner so readiness can
-reach `eligible`; finishing the `_internal/_common` DRY migration for the
-non-`backtesting` subpackages (see §4).
+- **M101 — control batteries → readiness.** `cli/control_batteries.py` + Stage 9.5
+  in `run_pipeline` (toggle `PipelineConfig.run_control_batteries`, default on).
+  Negative-control / multiple-testing(family-size heuristic) / temporal-stability
+  now feed the gate, so a candidate **can** reach `eligible`. Drops the
+  `control_batteries_not_run_in_basic_pipeline` caveat when batteries run.
+- **M102 — `decision_support/` (Phase 12).** Human-in-the-loop review records from
+  eligible candidates + risk flags; descriptive only, `requires_human_review`.
+- **M103 — `broker/` sandbox (Phase 13).** Alpaca **paper endpoint only**;
+  human-approved `OrderIntent` → dry-run order + JSONL audit; `TradingLimits` +
+  `KillSwitch`; `alpaca-py` optional. Reaching a live endpoint is structurally
+  impossible from here.
+- **M104 — `broker/live_adapter.py` (Phase 14).** The only real-order path, behind
+  three gates: env flag `SPY_EDGE_ALLOW_LIVE=1` (else `BrokerLiveDisabledError`),
+  per-order `human_approval_token` matching the intent id (no batch/autonomous
+  path), and limits + kill-switch. No dry-run/live mode; needs a configured client.
+  **Inert by construction.**
+
+`decision_support/` and `broker/` are post-gate packages kept OUT of the top-level
+re-export (like `simulation`).
+
+**What remains is operational, NOT code — and is the real gate:**
+1. **Hard Gate A** — run the pipeline on a real multi-month SPY 1-minute CSV and
+   confirm ≥1 candidate reaches `eligible_for_paper_consideration`. No real SPY data
+   is in the repo (`data/raw` empty by design). **If nothing reaches `eligible`,
+   there is no validated edge — do not enable the broker layers.**
+2. After a clean Alpaca **paper-sandbox** run on that real edge, an explicit
+   per-deployment decision to set `SPY_EDGE_ALLOW_LIVE=1` and start at minimal size.
+
+Still forbidden without that explicit per-deployment OK: enabling live execution,
+and options expression (Phase 15) / production hardening (Phase 16).
+
+Other follow-ups needing no new authorization: finishing the `_internal/_common`
+DRY migration for the non-`backtesting` subpackages (see §4).
 
 ## 4. Staged maintenance follow-up (safe, mechanical)
 
