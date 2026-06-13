@@ -24,3 +24,8 @@ reports/*
 
 # macOS
 .DS_Store
+
+# Scratch / throwaway probes (never commit)
+scratch_*.py
+*_probe.py
+scratchpad/
