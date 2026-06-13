@@ -2555,7 +2555,7 @@ entries (M93–M95) quoted "754 passed" from a stale local reading; the suite
 count grows as modules are added because `tests/backtesting/test_event_study.py`
 parametrizes over source files. 766/4 is the current verified number.
 
-## Milestone 96 - MOD 11: Unified CLI / pipeline runner
+## Milestone 97 - MOD 11: Unified CLI / pipeline runner
 
 Added a new `cli/` package (`spy_edge_research.cli`) that makes the previously
 import-only research backend runnable end-to-end from one command. This is the

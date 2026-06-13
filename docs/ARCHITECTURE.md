@@ -175,6 +175,21 @@ verdict; missing metrics are conservatively `insufficient_evidence`),
 position, or runs an order; the paper-trading simulation layer remains a
 separate, unauthorized module.
 
+### `cli` — unified pipeline runner (MOD 11)
+Makes the import-only backend runnable end-to-end. `pipeline.run_pipeline` is a
+pure orchestration that threads one OHLCV frame through existing stage functions
+(load → indicators → causal events → forward labels → event-study workflow →
+report-bundle export → candidate registry → risk signal-overlap → walk-forward
+OOS stability → dashboard contract export → per-candidate readiness scorecard),
+writing a deterministic timestamped run dir (`reports/run_<UTC>/...`) plus a
+`run_manifest.json`. `main` is a thin argparse layer (`spy-edge` console script)
+with `run-pipeline`, `export-dashboard`, `score-readiness`, `list-runs`. It
+reimplements no stage logic and produces descriptive artifacts only. The basic
+pipeline does not run the negative-control / multiple-testing / temporal-stability
+batteries, so readiness verdicts stay `not_ready` (disclosed via the
+`control_batteries_not_run_in_basic_pipeline` manifest caveat) until the full
+battery is run.
+
 ## 5. Core data contracts
 
 | Contract | Shape | Key fields |
@@ -216,19 +231,32 @@ and `CODEX_MASTER_DESK.md` §"Hard Boundaries" for the governing list.
 
 ## 8. Where it's heading (next boundaries)
 
-The MOD 06–10 roadmap (Milestones 70–92) is now complete: portfolio/risk
-exposure, factor-ETF allocation research, the read-only research service layer,
-dashboard data export, and the paper-trading readiness gate all shipped, all
-research-only.
+The MOD 06–10 roadmap (Milestones 70–92) is complete: portfolio/risk exposure,
+factor-ETF allocation research, the read-only research service layer, dashboard
+data export, and the paper-trading readiness gate all shipped, all research-only.
+MOD 11 (Milestone 97, the `cli/` runner) then made the backend runnable
+end-to-end.
 
-The next boundary is a deliberate choice that **requires explicit
-authorization** — it is not an automatic march toward execution. Anything beyond
-the current research surface (an actual paper-trading *simulation* layer, broker
-integration, an options expression layer, or live execution) must be a new,
-separately-approved module per `MASTER_PROJECT_BRIEF.md` and
-`CODEX_MASTER_DESK.md`. Until then, the readiness gate's
-`eligible_for_paper_consideration` verdict means only that the evidence bar is
-met — not that anything is cleared to trade.
+**Functional-app build-out (authorized 2026-06-13).** The owner has approved a
+sequenced build-out toward a usable app and has **explicitly authorized** the
+paper-trading *simulation* layer as a new, clearly-bounded module:
+
+1. **MOD 11 — CLI / pipeline runner** *(done, M97)*.
+2. **MOD 14 — paper-trading simulation layer** *(authorized; not yet built)*:
+   simulated positions / fills / P&L on historical bars, in its own
+   `simulation/` module with its own data model and forbidden-field validator
+   (it must never round-trip through the research `candidate_rule_objects` /
+   `dashboard.contracts` validators, which reject `pnl`/`entry`/`exit`/`order`).
+   Entries stay causal (decided from rows ≤ t); fixed-horizon exits reuse the
+   `labels.py` forward-price math.
+3. **MOD 12 — frontend** consuming the MOD 09 JSON contracts (static SPA).
+4. **MOD 13 — value/quality/momentum research** (mirrors the factor module).
+
+Still forbidden until a further explicit authorization: real broker
+connectivity, real money, live/real-time execution, order routing, and options
+expression. The readiness gate's `eligible_for_paper_consideration` verdict
+still means only that the evidence bar is met — not that anything is cleared to
+trade.
 
 ## 9. Notes & open observations
 

@@ -642,6 +642,31 @@ five_minute = resample_ohlcv(regular, rule="5min")
 with_sessions = add_session_column(df)
 ```
 
+## Command-line pipeline runner (MOD 11)
+
+The `spy-edge` console script (installed with `pip install -e .`) runs the whole
+research pipeline end-to-end from one OHLCV CSV, writing a timestamped run
+directory of artifacts (report bundle, candidate registry, dashboard JSON
+contract + manifest, and a paper-trading readiness scorecard) plus a
+`run_manifest.json`:
+
+```bash
+# data -> indicators -> events -> labels -> event study -> candidates
+# -> risk overlap -> walk-forward OOS stability -> dashboard -> readiness gate
+spy-edge run-pipeline --input data/raw/SPY_1min.csv --output reports --horizons 5,15,30
+
+spy-edge list-runs --root reports                 # discover prior runs
+spy-edge score-readiness --run reports/run_<id>   # print the readiness verdict
+spy-edge export-dashboard --bundle reports/run_<id>/report_bundle --output out.json
+```
+
+It is **research-only**: it reimplements no stage logic, produces descriptive
+artifacts only, and the readiness verdict is a research gate — never a trade
+authorization. The basic pipeline does not run the negative-control /
+multiple-testing / temporal-stability batteries, so verdicts stay `not_ready`
+until those are run (disclosed via the manifest's
+`control_batteries_not_run_in_basic_pipeline` caveat).
+
 ## Research Modules (MOD 06–10) — Usage
 
 All of the following are **research-only**: descriptive diagnostics, advisory

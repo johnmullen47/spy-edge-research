@@ -23,6 +23,9 @@ dev = [
     "pytest-cov",
 ]
 
+[project.scripts]
+spy-edge = "spy_edge_research.cli.main:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
