@@ -1,23 +1,25 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Written 2026-06-13. **Re-verify the live state before trusting any
-> specific number here** — this repo has had concurrent writers (see §1).
+> project. Last updated 2026-06-13 (after M100). **Re-verify the live state before
+> trusting any specific number here** — this repo has had concurrent writers (see §1).
 
 ## 0. Verified snapshot at handoff
 
 - **Branch:** `main`
-- **HEAD:** `bdb493c` — `MOD 11 (M97): unified CLI / pipeline runner`
+- **HEAD:** `391f394` — `MOD 13 (M100): value/quality/momentum cross-sectional factor research`
 - **Working tree:** clean
-- **Full suite:** `766 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib)
-- **Latest ledger milestone:** M97 (`PROJECT_MILESTONES.md`)
+- **Full suite:** `808 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib)
+- **Latest ledger milestone:** M100 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ## 1. ⚠️ This is a multi-writer repo — read first
 
-This project has been advanced by **more than one session at once**. While this
-session did M94–M96, a parallel Claude Code session built and committed
-**MOD 11 (M97)**. Consequences for whoever picks up:
+This project has been advanced by **more than one session at once**. One session
+did M94–M96 (hardening + the `_internal/_common` DRY migration); a parallel
+Claude Code session built **MOD 11 (M97)** and then the whole functional-app
+build-out **MOD 14 (M98), MOD 12 (M99), MOD 13 (M100)** plus a MOD 11 round-trip
+fix. Consequences for whoever picks up:
 
 - **Always re-check before assuming state:** `git log --oneline | head`,
   `git branch --show-current`, `git status --porcelain`, and re-run the suite.
@@ -55,24 +57,43 @@ Completed and on `main`:
   `run_pipeline` threads one OHLCV frame through the whole backend into
   `reports/run_<UTC>/`. Note: it does not run the negative-control /
   multiple-testing / temporal batteries, so readiness stays `not_ready`
-  (disclosed via `control_batteries_not_run_in_basic_pipeline`).
+  (disclosed via `control_batteries_not_run_in_basic_pipeline`). A follow-up fix
+  (`d829fba`) makes its candidate registry round-trippable (was writing
+  `hit_rate=NaN` → JSON `null` → unreadable; now a caveated `0.0`).
+- **M98 — MOD 14 paper-trading SIMULATION layer** (the authorized boundary
+  crossing): new `simulation/` package. Simulates positions/fills/P&L on
+  *historical* bars only; own data model + forbidden-field validator
+  (`validate_sim_report`, `sim_caveat`); causal entries, `labels.py` exits. Reads
+  the **featured** frame (with `event_*` columns) + a candidate list — not raw bars.
+- **M99 — MOD 12 frontend**: `frontend/index.html` — a zero-build,
+  dependency-free, offline static viewer for the MOD 09 dashboard JSON contracts
+  (no Node toolchain here; a single static file, not React/Vite). `tests/frontend/`
+  pins the contract shape in CI.
+- **M100 — MOD 13 value/quality/momentum research**:
+  `signal_engine/value_quality_momentum_features.py` (causal cross-sectional
+  price-factor scores + ranks) + `backtesting/vqm_event_study.py` (bucketed
+  factor→forward-outcome study). OHLCV-only; distinct from MOD 07 (factor ETFs).
 
-## 3. Approved roadmap ahead (user-authorized 2026-06-13)
+## 3. Roadmap status (user-authorized 2026-06-13)
 
-Sequence toward a usable app:
+The functional-app build-out is **COMPLETE** — all merged to `main`:
 
 1. **MOD 11 runner** — done (M97).
-2. **MOD 14 — paper-trading SIMULATION layer.** The user **explicitly authorized
-   crossing the research-only boundary** for this. Build in a NEW `simulation/`
-   module with **its own forbidden-field validator** — it must NOT round-trip
-   through `candidate_rule_objects` / `dashboard.contracts`, which reject
-   `pnl`/`entry`/`exit`/`order`. Entries must be **causal**; exits reuse
-   `labels.py` horizon math. Simulated positions/fills/P&L only.
-3. **MOD 12 — frontend** (static SPA over the MOD 09 dashboard JSON contracts).
-4. **MOD 13 — value/quality/momentum research.**
+2. **MOD 14 paper-trading SIMULATION layer** — done (M98). The authorized
+   research-only boundary crossing.
+3. **MOD 12 frontend** — done (M99).
+4. **MOD 13 value/quality/momentum research** — done (M100).
 
-**Still forbidden until a further explicit OK:** real broker/money, live
-execution, order routing, options expression.
+**The frontier beyond is still gated.** Per `MASTER_PROJECT_BRIEF.md`, anything
+past here — human-approved semi-autonomous workflow, broker integration, live
+execution, options expression, production hardening — must be a **new,
+separately user-authorized** module. **Still forbidden until a further explicit
+OK:** real broker/money, live execution, order routing, options expression.
+
+Useful follow-ups that need no new authorization: wiring the negative-control /
+multiple-testing / temporal batteries into the MOD 11 runner so readiness can
+reach `eligible`; finishing the `_internal/_common` DRY migration for the
+non-`backtesting` subpackages (see §4).
 
 ## 4. Staged maintenance follow-up (safe, mechanical)
 
