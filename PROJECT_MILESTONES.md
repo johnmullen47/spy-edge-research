@@ -2359,3 +2359,51 @@ Next recommended module boundary:
   Stable, versioned, frontend-ready JSON contracts built from research
   artifacts; a data-contract layer only, descriptive, no UI, no live data, no
   trade-readiness fields.
+
+## Milestone 85 - Dashboard Contract Schema
+
+Added the `spy_edge_research.dashboard` package with `contracts.py`: a versioned
+JSON envelope (`DASHBOARD_SCHEMA_VERSION = "1.0"`) via `build_dashboard_contract`
+and `validate_dashboard_contract`. Each envelope carries `schema_version`,
+`payload_type`, `generated_at_utc`, JSON-safe `tables`, `source` provenance, and
+a caveat, with a forbidden-field guard on payload type, table names, and record
+keys. Tests: `tests/dashboard/test_contracts.py`.
+
+## Milestone 86 - Dashboard Payload Export
+
+Added `dashboard/export.py`: `build_dashboard_payload_from_bundle` turns a
+`LoadedReportBundle` (from the services layer) into a contract payload with
+source provenance, and `export_dashboard_payload_to_json` validates and writes
+it. Tests: `tests/dashboard/test_export.py`.
+
+## Milestone 87 - Dashboard Export Manifest
+
+Added `dashboard/manifest.py`: `build_dashboard_manifest` records schema version,
+payload types, and tables across a set of payloads for traceability, with
+`summarize_dashboard_manifest`. Tests: `tests/dashboard/test_manifest.py`.
+
+## Milestone 88 - Dashboard Module Integration
+
+The `dashboard` package composes on top of the services layer: services load a
+committed bundle, dashboard builds a versioned contract payload and a manifest.
+All contracts are descriptive data only; no UI, live data, or trade-readiness
+fields.
+
+Full-suite command:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused MOD 09 tests passed: 10 passed (`tests/dashboard`).
+- Final full suite passed: 740 passed, 4 skipped. The skipped tests require
+  matplotlib.
+
+Next recommended module boundary:
+
+- MOD 10 (Paper-Trading Readiness Criteria), per `docs/NEXT_MODULES_ROADMAP.md`.
+  A research-only readiness scorecard/gate (criteria + verdict + reasons), NOT
+  paper trading; the paper-trading simulation layer remains separate and
+  unauthorized.
