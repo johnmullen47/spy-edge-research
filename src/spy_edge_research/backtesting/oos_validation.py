@@ -8,6 +8,7 @@ signals, execution instructions, or tradability claims.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from numbers import Real
 from typing import Any
 
 import numpy as np
@@ -78,6 +79,20 @@ OOS_STABILITY_COLUMNS: list[str] = [
     "small_sample_split_count",
     "caveats",
 ]
+
+
+# Substring markers that identify a forward-looking label/outcome column.
+# Event-trigger, sequence, and context-filter columns must be causal, so they
+# may not carry these names. ``outcome_column`` is intentionally exempt because
+# it is the forward-looking evaluation target. ``return``/``profit`` are
+# deliberately excluded because a *prior-bar* return is a valid causal feature.
+_LOOKAHEAD_COLUMN_KEYWORDS: tuple[str, ...] = (
+    "forward",
+    "future",
+    "outcome",
+    "label",
+    "target",
+)
 
 
 def evaluate_candidate_edge_in_split(
@@ -348,6 +363,7 @@ def _resolve_candidate_definition(
         event_column = context.get("event_column", candidate["name"])
         if not isinstance(event_column, str) or not event_column:
             raise ValueError("event candidates require a non-empty event_column or name")
+        _reject_lookahead_column(event_column, "event")
         return {
             "outcome_column": outcome_column,
             "required_columns": [event_column, outcome_column],
@@ -362,6 +378,7 @@ def _resolve_candidate_definition(
             raise ValueError("sequence candidates require context.sequence_column")
         if not isinstance(sequence_value, str) or not sequence_value:
             raise ValueError("sequence candidates require a non-empty event_sequence or name")
+        _reject_lookahead_column(sequence_column, "sequence")
         return {
             "outcome_column": outcome_column,
             "required_columns": [sequence_column, outcome_column],
@@ -379,7 +396,10 @@ def _resolve_candidate_definition(
             )
         if not isinstance(context_filters, Mapping):
             raise TypeError("context.context_filters must be a mapping when provided")
+        _reject_lookahead_column(event_column, "event")
         filter_columns = [str(column) for column in context_filters.keys()]
+        for filter_column in filter_columns:
+            _reject_lookahead_column(filter_column, "context_filter")
         return {
             "outcome_column": outcome_column,
             "required_columns": [event_column, outcome_column, *filter_columns],
@@ -490,5 +510,17 @@ def _validate_positive_int(value: int, name: str) -> None:
 
 
 def _validate_number(value: float, name: str) -> None:
-    if not isinstance(value, (int, float)) or isinstance(value, bool):
+    if not isinstance(value, Real) or isinstance(value, bool):
         raise ValueError(f"{name} must be numeric")
+
+
+def _reject_lookahead_column(column: str, role: str) -> None:
+    lowered = column.lower()
+    matched = [keyword for keyword in _LOOKAHEAD_COLUMN_KEYWORDS if keyword in lowered]
+    if matched:
+        raise ValueError(
+            f"{role} column {column!r} is named like a forward-looking label "
+            f"(matched {matched}); causal trigger and context columns must not "
+            "use forward-looking names. Pass the forward column as outcome_column "
+            "instead."
+        )

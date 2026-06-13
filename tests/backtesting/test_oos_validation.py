@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -12,6 +13,9 @@ from spy_edge_research.backtesting import (
     evaluate_candidate_registry_oos,
     summarize_oos_edge_stability,
 )
+
+
+_DEFAULT_SPLIT = {"split_number": 0, "train_indices": [0, 1, 2, 3], "test_indices": [4, 5, 6]}
 
 
 def sample_oos_frame() -> pd.DataFrame:
@@ -232,6 +236,97 @@ def test_oos_validation_rejects_missing_outcome_mapping_and_bad_splits() -> None
             event_candidate(),
             {"split_number": 0, "train_indices": [0, 1], "test_indices": [1, 2]},
         )
+
+
+def test_oos_validation_rejects_lookahead_event_column() -> None:
+    df = sample_oos_frame()
+    candidate = event_candidate(candidate_id="leaky_event_5m")
+    candidate["context"] = {
+        "event_column": "forward_return_5m",
+        "outcome_column": "fwd_5m_return",
+    }
+
+    with pytest.raises(ValueError, match="forward-looking"):
+        evaluate_candidate_edge_in_split(df, candidate, _DEFAULT_SPLIT)
+
+
+def test_oos_validation_rejects_lookahead_sequence_column() -> None:
+    df = sample_oos_frame()
+    candidate = create_candidate_edge(
+        candidate_id="leaky_sequence_5m",
+        candidate_type="sequence",
+        name="a>b",
+        direction="long",
+        horizon="5m",
+        context={
+            "sequence_column": "future_sequence",
+            "event_sequence": "a>b",
+            "outcome_column": "fwd_5m_return",
+        },
+        sample_size=4,
+        baseline_sample_size=10,
+        expectancy=0.004,
+        baseline_expectancy=0.003,
+        hit_rate=0.75,
+        baseline_hit_rate=0.6,
+    )
+
+    with pytest.raises(ValueError, match="forward-looking"):
+        evaluate_candidate_edge_in_split(df, candidate, _DEFAULT_SPLIT)
+
+
+def test_oos_validation_rejects_lookahead_context_filter_column() -> None:
+    df = sample_oos_frame()
+    candidate = create_candidate_edge(
+        candidate_id="leaky_conditional_5m",
+        candidate_type="conditional_event",
+        name="event_vwap_reclaim",
+        direction="long",
+        horizon="5m",
+        context={
+            "event_column": "event_vwap_reclaim",
+            "outcome_column": "fwd_5m_return",
+            "context_filters": {"future_regime": "trend"},
+        },
+        sample_size=3,
+        baseline_sample_size=8,
+        expectancy=0.014,
+        baseline_expectancy=0.005,
+        hit_rate=1.0,
+        baseline_hit_rate=0.625,
+    )
+
+    with pytest.raises(ValueError, match="forward-looking"):
+        evaluate_candidate_edge_in_split(df, candidate, _DEFAULT_SPLIT)
+
+
+def test_oos_validation_allows_forward_looking_outcome_column() -> None:
+    # The evaluation target is *supposed* to look forward, so a forward-looking
+    # outcome_column name must remain accepted even though trigger columns are guarded.
+    df = sample_oos_frame().rename(columns={"fwd_5m_return": "forward_return_5m"})
+    candidate = event_candidate()
+    candidate["context"] = {
+        "event_column": "event_vwap_reclaim",
+        "outcome_column": "forward_return_5m",
+    }
+
+    result = evaluate_candidate_edge_in_split(df, candidate, _DEFAULT_SPLIT)
+
+    assert result["evaluation_target"] == "forward_return_5m"
+    assert result["hypothesis_definition"] == "event:event_vwap_reclaim"
+
+
+def test_oos_validation_accepts_numpy_scalar_threshold() -> None:
+    df = sample_oos_frame()
+
+    result = evaluate_candidate_edge_in_split(
+        df,
+        event_candidate(),
+        _DEFAULT_SPLIT,
+        hit_rate_threshold=np.float64(0.0),
+    )
+
+    assert result["candidate_id"] == "event_vwap_reclaim_5m"
 
 
 def test_oos_validation_outputs_avoid_live_trading_readiness_columns() -> None:
