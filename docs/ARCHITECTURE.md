@@ -25,9 +25,12 @@ the system is built to *measure whether an edge exists* and to **kill weak
 hypotheses** before they could ever reach decision support. A `No valid trade.`
 / `Evidence insufficient.` output is a first-class, desirable result.
 
-Current state (per the master brief / desk): completed through **Milestone 69**,
-latest verified suite **674 passed, 4 skipped**. Sector Context (M62–65) and
-Macro Regime (M66–69) research modules are complete.
+Current state: completed through **Milestone 92**, latest verified suite **750
+passed, 4 skipped**. The MOD 06–10 roadmap (`docs/NEXT_MODULES_ROADMAP.md`) is
+complete and all research-only — Portfolio/Risk Exposure (M70–74), Factor-ETF
+Allocation (M75–79), Research Service Layer (M80–84), Dashboard Data Export
+(M85–88), and Paper-Trading Readiness Criteria (M89–92), atop the earlier Sector
+(M62–65) and Macro Regime (M66–69) modules.
 
 ## 2. Package layout (as-built)
 
@@ -37,10 +40,14 @@ src/spy_edge_research/
 ├── indicators/           Layer 2  — causal technical indicators (ATR, ADX, EMA, Bollinger, VWAP, volume)
 ├── market_structure/     Layer 2/3 — pivots, structure breaks, retests, false breaks
 ├── support_resistance/   Layer 2/3 — prior-day & premarket levels, zones, zone scoring
-├── signal_engine/        Layer 3/4 — causal events, named-event registry, sequences, cross-instrument/sector/macro features
+├── signal_engine/        Layer 3/4 — causal events, named-event registry, sequences, cross-instrument/sector/macro/factor features
 ├── market_regime/        Layer 6  — volatility & directional regime classification + diagnostics
-├── instruments/          Layer 11/12 — instrument / sector / macro universe registries
-└── backtesting/          Layers 5,7–10,15 — labels, event studies, edge measurement, validation, governance & reporting
+├── instruments/          Layer 11/12 — instrument / sector / macro / factor universe registries
+├── backtesting/          Layers 5,7–10,15 — labels, event studies, edge measurement, validation, governance, reporting, sector/macro/factor studies
+├── risk/                 Layer 14 — exposure, signal-overlap, concentration, advisory limit flags          (MOD 06)
+├── services/             Layer 9  — read-only research API over committed artifacts + workflow facade      (MOD 08)
+├── dashboard/            Layer 10 — versioned, frontend-ready JSON data contracts                           (MOD 09)
+└── paper/                Layer 11/17 — paper-trading readiness gate (criteria → verdict); NOT paper trading  (MOD 10)
 ```
 
 Mapping is to the 19-layer target model in the master brief. Layers 8–10
@@ -81,6 +88,15 @@ current and prior rows) and *forward outcome labels* (which may look forward,
 but **only as labels — never as inputs to event detection**). The `outcome_`
 column prefix enforces this separation by convention throughout.
 
+**Downstream research consumers (MOD 06–10).** Beyond reporting, the
+candidate/registry and report-bundle artifacts feed four newer subpackages:
+`risk/` (exposure / overlap / concentration diagnostics + advisory limit flags),
+`services/` (read-only loading and querying of committed bundles, plus a
+workflow facade), `dashboard/` (versioned JSON data contracts built from loaded
+bundles), and `paper/` (a readiness *gate* that scores diagnostic metrics
+against pre-registered criteria and emits an eligibility verdict — never a
+trade).
+
 ## 4. Module reference
 
 ### `market_data` — Layer 1: ingestion & normalization
@@ -105,7 +121,7 @@ events must not be backdated unless explicitly tagged as known-late confirmation
 - **Named-event catalog:** `build_named_event_catalog`, `validate_event_catalog`, `filter_directional_event_catalog`, `infer_named_event_direction`, `infer_named_event_family`, `add_event_hypothesis_columns`.
 - **Named events:** structure / retest / false-break / trend-continuation / VWAP / momentum-volume / zone-break / trailing-break event builders + `find_named_event_columns`.
 - **Sequences:** `build_event_sequence`, `find_event_sequences`, `encode_recent_event_sequence`, `add_recent_event_sequence_features`, `summarize_event_sequence_counts`.
-- **Cross-context features:** cross-instrument confirmation/divergence, sector context (breadth, dispersion, leadership, relative return), macro regime (rates, credit, commodity, volatility-proxy, risk-on/off).
+- **Cross-context features:** cross-instrument confirmation/divergence, sector context (breadth, dispersion, leadership, relative return), macro regime (rates, credit, commodity, volatility-proxy, risk-on/off), and factor context (relative-return, leadership, dispersion).
 
 ### `market_regime` — Layer 6: regime classification
 - **Classifier + constants:** `classify_volatility_regime`, `classify_directional_regime`, `add_market_regime_classification/features`; labels `TRENDING_UP/DOWN`, `RANGE_BOUND`, `HIGH/NORMAL/LOW_VOLATILITY`, `UNKNOWN_*`.
@@ -113,8 +129,9 @@ events must not be backdated unless explicitly tagged as known-late confirmation
 - **Diagnostics:** `regime_value_counts`, `regime_duration_summary`, `regime_transition_counts`.
 
 ### `instruments` — Layer 11/12: research universes
-Typed registries for the base instrument set, the SPDR **sector** universe, and
-the **macro** universe (rates/credit/commodity/vol proxies), each with
+Typed registries for the base instrument set, the SPDR **sector** universe, the
+**macro** universe (rates/credit/commodity/vol proxies), and the **factor**
+universe (momentum/value/quality/size/low-vol/yield), each with
 create/build/read/write/validate/filter helpers and dataclass definitions.
 
 ### `backtesting` — Layers 5, 7–10, 15: the measurement & governance core
@@ -124,8 +141,39 @@ This is the largest subsystem. Functional groups:
 - **Baselines & honesty controls:** `baselines` (always-long/short, random, EMA/VWAP-relation, trailing-break), `negative_controls`, `placebo_statistics`, `multiple_testing` (Bonferroni / FDR), `statistical_tests` (bootstrap, permutation, confidence intervals).
 - **Out-of-sample / stability (Layers 9–10):** `time_splits` (walk-forward), `oos_validation`, `parameter_sensitivity`, `temporal_stability`, `data_quality_impact`.
 - **Candidate tracking (Layer 9):** `candidate_edges`, `candidate_rule_objects`, `candidate_rule_replay`, `candidate_rule_oos_comparison`, `candidate_rule_audits`, `candidate_rule_reports`, `candidate_family_aggregation`, `candidate_lineage`, `rule_context_review`.
-- **Cross-context studies:** `multi_instrument_event_study`, `sector_event_study` + `sector_rotation_reports`, `macro_event_study` + `macro_regime_reports`.
+- **Cross-context studies:** `multi_instrument_event_study`, `sector_event_study` + `sector_rotation_reports`, `macro_event_study` + `macro_regime_reports`, `factor_event_study` + `factor_rotation_reports`.
 - **Governance & reproducibility (Layer 15):** `event_reports`, `event_artifacts`, `event_run_registry`, `event_audit_index`(`_reports`), `event_reproducibility`(`_reports`), `research_decision_journal`, `research_artifact_integrity`, `research_risk_reports`, `research_maturity`, `research_governance_reports`, `research_package_manifest`/`_comparison`, `research_traceability`, `research_review_workflow`, `event_workflows`, `event_visualizations`, `robustness_reports`. Most report bundles export to both CSV and JSON.
+
+### `risk` — Layer 14: portfolio/risk exposure research (MOD 06)
+Descriptive exposure diagnostics over a candidate set — **not** position sizing
+or allocation. `exposure` (signed/gross aggregation), `signal_overlap` (pairwise
+co-occurrence / Jaccard / correlation), `concentration` (group shares +
+Herfindahl), `exposure_limits` (`ExposureLimits` config → advisory flags such as
+`risk_overlap_too_high`), `risk_reports` (bundle + CSV/JSON). A forbidden-field
+guard rejects allocation/portfolio/order/position_size field names.
+
+### `services` — Layer 9: read-only research service layer (MOD 08)
+Offline programmatic access to committed artifacts. `artifact_access`
+(`load_report_bundle_json` / `_csv_dir`, `discover_report_bundles`,
+`LoadedReportBundle`), `research_queries` (list/get/filter tables, summarize
+across bundles), `workflow_service` (a facade over
+`build_event_research_workflow_outputs`). No live data, no mutation, no
+execution. (An HTTP layer is deferred — no web framework in the environment.)
+
+### `dashboard` — Layer 10: frontend-ready data contracts (MOD 09)
+A versioned JSON contract layer (no UI). `contracts` (schema `1.0` envelope +
+validation + forbidden-field guard), `export` (`LoadedReportBundle` → payload →
+JSON file), `manifest` (provenance across exported payloads). Descriptive data
+only — no trade-readiness fields.
+
+### `paper` — Layer 11/17: paper-trading readiness gate (MOD 10)
+A research **gate**, *not* paper trading. `readiness_criteria`
+(`ReadinessCriteria` pre-registered thresholds), `readiness_scoring`
+(per-criterion scorecard + gated `eligible_for_paper_consideration` / `not_ready`
+verdict; missing metrics are conservatively `insufficient_evidence`),
+`readiness_reports` (bundle + CSV/JSON). It never authorizes a trade, sizes a
+position, or runs an order; the paper-trading simulation layer remains a
+separate, unauthorized module.
 
 ## 5. Core data contracts
 
@@ -168,12 +216,19 @@ and `CODEX_MASTER_DESK.md` §"Hard Boundaries" for the governing list.
 
 ## 8. Where it's heading (next boundaries)
 
-Per the desk, the Macro Regime module is the latest completed work; the next
-boundary is a deliberate choice (not an automatic march toward execution).
-Candidate directions: factor-ETF allocation research, portfolio/risk exposure
-research, a research API / service layer, dashboard data export, and
-paper-trading readiness criteria — each gated behind sufficient research
-evidence and governance.
+The MOD 06–10 roadmap (Milestones 70–92) is now complete: portfolio/risk
+exposure, factor-ETF allocation research, the read-only research service layer,
+dashboard data export, and the paper-trading readiness gate all shipped, all
+research-only.
+
+The next boundary is a deliberate choice that **requires explicit
+authorization** — it is not an automatic march toward execution. Anything beyond
+the current research surface (an actual paper-trading *simulation* layer, broker
+integration, an options expression layer, or live execution) must be a new,
+separately-approved module per `MASTER_PROJECT_BRIEF.md` and
+`CODEX_MASTER_DESK.md`. Until then, the readiness gate's
+`eligible_for_paper_consideration` verdict means only that the evidence bar is
+met — not that anything is cleared to trade.
 
 ## 9. Notes & open observations
 
