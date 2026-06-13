@@ -70,6 +70,13 @@ from spy_edge_research.signal_engine.factor_context_features import (
     add_factor_leadership_flags,
     add_factor_relative_return_features,
 )
+from spy_edge_research.signal_engine.value_quality_momentum_features import (
+    add_cross_sectional_factor_ranks,
+    add_momentum_score,
+    add_quality_score,
+    add_value_quality_momentum_features,
+    add_value_score,
+)
 
 __all__ = [
     "add_basic_event_primitives",
@@ -123,6 +130,11 @@ __all__ = [
     "summarize_event_sequence_counts",
     "validate_event_catalog",
     "add_factor_context_features",
+    "add_cross_sectional_factor_ranks",
+    "add_momentum_score",
+    "add_quality_score",
+    "add_value_quality_momentum_features",
+    "add_value_score",
     "add_factor_dispersion_features",
     "add_factor_leadership_flags",
     "add_factor_relative_return_features",

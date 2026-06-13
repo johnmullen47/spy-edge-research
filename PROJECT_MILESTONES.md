@@ -2677,3 +2677,36 @@ absence the UI depends on, so backend schema drift fails in CI (4 passed).
 Verified live by serving `frontend/` and rendering a real `spy-edge` run's
 `event_study.json` through the page's own `render()` (4 tables, 72 rows, caveat
 shown, no false warnings). Full suite: 796 passed, 4 skipped.
+
+## Milestone 100 - MOD 13: Value/Quality/Momentum cross-sectional factor research
+
+Phase-8 systematic factor research, built only from OHLCV price data (the platform
+ingests no fundamentals). Distinct from MOD 07 (which studies factor *ETFs* as
+instruments): this scores **any** symbol universe cross-sectionally from price
+alone. Mirrors the factor-module trio (`*_features` -> `*_event_study`).
+
+- `signal_engine/value_quality_momentum_features.py` - causal per-symbol factor
+  scores on a timestamp-aligned multi-symbol frame (`{SYMBOL}_close` columns):
+  **momentum** (trailing return), **quality** (negative trailing realized
+  volatility - steadier = higher), **value** (negative recent return - recently
+  cheaper = higher). `add_cross_sectional_factor_ranks` ranks each score across
+  symbols per row as a [0,1] pct rank (same-row only - no look-ahead);
+  `add_value_quality_momentum_features` composes all three + ranks + a composite
+  VQM rank + a caveat column. All scores use current/prior rows only.
+- `backtesting/vqm_event_study.py` - buckets rows by a factor score (rank-based
+  quantiles, robust to ties), summarizes the forward outcome label per bucket,
+  the descriptive top-minus-bottom `outcome_mean_spread`, and coverage; plus a
+  report bundle and a CSV exporter. Causality preserved: the score is a feature,
+  the outcome is a `forward_*` label; the spread is a descriptive statistic, not
+  an edge claim, allocation, or trade signal.
+
+Both reuse `_internal/_common` helpers and are exported from the `signal_engine`
+and `backtesting` package `__init__`s.
+
+Tests: `tests/signal_engine/test_value_quality_momentum_features.py` (incl. a
+truncation-based no-look-ahead check and exact cross-sectional rank math) and
+`tests/backtesting/test_vqm_event_study.py` (bucketing, spread sign, coverage,
+CSV round-trip, overwrite guard) - 12 passed. Full suite: 808 passed, 4 skipped.
+
+This completes the user-approved functional-app build-out: MOD 11 runner (M97),
+MOD 14 paper-sim (M98), MOD 12 frontend (M99), MOD 13 VQM research (M100).

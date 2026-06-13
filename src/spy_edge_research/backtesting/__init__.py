@@ -417,6 +417,13 @@ from spy_edge_research.backtesting.factor_event_study import (
     summarize_event_by_factor_context,
     summarize_factor_context_coverage,
 )
+from spy_edge_research.backtesting.vqm_event_study import (
+    build_vqm_event_research_report,
+    export_vqm_event_research_report_to_csv,
+    factor_score_bucket_spread,
+    summarize_factor_score_coverage,
+    summarize_outcomes_by_factor_score,
+)
 from spy_edge_research.backtesting.factor_rotation_reports import (
     build_factor_rotation_report_bundle,
     build_factor_rotation_snapshot,
@@ -735,6 +742,11 @@ __all__ = [
     "write_run_registry",
     "build_factor_event_outcome_table",
     "build_factor_event_research_report",
+    "build_vqm_event_research_report",
+    "export_vqm_event_research_report_to_csv",
+    "factor_score_bucket_spread",
+    "summarize_factor_score_coverage",
+    "summarize_outcomes_by_factor_score",
     "build_factor_rotation_report_bundle",
     "build_factor_rotation_snapshot",
     "compare_factor_context_event_outcomes",

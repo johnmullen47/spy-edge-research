@@ -190,6 +190,16 @@ batteries, so readiness verdicts stay `not_ready` (disclosed via the
 `control_batteries_not_run_in_basic_pipeline` manifest caveat) until the full
 battery is run.
 
+### `signal_engine` / `backtesting` — value/quality/momentum research (MOD 13)
+Phase-8 cross-sectional price-factor research (OHLCV only; no fundamentals).
+`signal_engine/value_quality_momentum_features.py` computes causal per-symbol
+momentum (trailing return), quality (negative trailing volatility), and value
+(negative recent return) scores on a timestamp-aligned multi-symbol frame, then
+ranks each across symbols per row (`add_cross_sectional_factor_ranks`) plus a
+composite. `backtesting/vqm_event_study.py` buckets rows by a score, summarizes
+the forward outcome per bucket, the top-minus-bottom spread, and coverage.
+Distinct from MOD 07 (factor ETFs as instruments); descriptive research only.
+
 ### `simulation` — paper-trading simulation (MOD 14, post-gate, authorized)
 The first module **past** the research-only readiness gate, built under explicit
 user authorization. Simulates positions/fills/P&L on *historical* bars only — no
@@ -267,7 +277,12 @@ paper-trading *simulation* layer as a new, clearly-bounded module:
    (`frontend/index.html`) over the MOD 09 dashboard JSON contracts — offline,
    dependency-free, descriptive research only. Contract shape pinned by
    `tests/frontend/`.
-4. **MOD 13 — value/quality/momentum research** (mirrors the factor module).
+4. **MOD 13 — value/quality/momentum research** *(done, M100)*: cross-sectional
+   causal price-factor scoring + a bucketed factor-outcome event study.
+
+The user-approved functional-app build-out (MOD 11/14/12/13) is now complete. Any
+move toward real broker/money, live execution, order routing, or options
+expression remains forbidden until a further explicit authorization.
 
 Still forbidden until a further explicit authorization: real broker
 connectivity, real money, live/real-time execution, order routing, and options
