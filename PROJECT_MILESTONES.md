@@ -2596,3 +2596,53 @@ Tests: `tests/cli/` (`test_pipeline.py`, `test_cli_main.py`, `test_list_runs.py`
 + a `conftest.py` synthetic-OHLCV fixture) - 12 passed. End-to-end verified via
 the installed `spy-edge` console script. Full suite: 766 passed, 4 skipped (the
 4 skips require matplotlib).
+
+## Milestone 98 - MOD 14: Paper-trading SIMULATION layer (authorized boundary crossing)
+
+The project's **first module past the research-only readiness gate**, built under
+**explicit user authorization (2026-06-13)**. It simulates positions, fills, and
+P&L on *historical* bars only — it is NOT live trading and NOT a broker. Still
+forbidden until a further explicit OK: real broker/money, live/real-time
+execution, order routing, accounts, options.
+
+New package `src/spy_edge_research/simulation/`:
+
+- `contracts.py` - sim data model (`SimFill`, `SimPosition`, `SimTrade`,
+  `EquityPoint`) + the layer's **own** forbidden-field validator. Sim records
+  intentionally use `entry_price` / `exit_price` / `pnl_points` (which the
+  research guards `candidate_rule_objects.FORBIDDEN_RULE_OBJECT_FIELDS` and
+  `dashboard.contracts.FORBIDDEN_DASHBOARD_FIELDS` reject) — so sim records must
+  never be round-tripped through those. `validate_sim_report` requires the
+  mandatory `sim_caveat = "simulation_only_no_broker_no_real_money"` and rejects
+  the *next* boundary out (whole-token `broker`/`live`/`route`/`account`/`order`/
+  `option`/`margin`/`money`/...).
+- `execution_model.py` - deterministic `ExecutionModel` (round-trip `cost_bps`
+  charged against gross return; fixed unit `quantity`; no randomness, no broker).
+- `position_sim.py` - `simulate_candidate_positions`: walks bars, opens a
+  position each time a candidate's event column fires (entry decided **causally**
+  from rows <= t), holds for the candidate's fixed horizon, and closes at the
+  historical close that many bars later. Exits reuse
+  `backtesting.labels.add_forward_return_labels` (a forward column is the right
+  tool to *close* a position opened at t, never to *trigger* one). Positions whose
+  horizon can't resolve same-day are not opened (counted, not silently dropped);
+  non-directional candidates are skipped and counted.
+- `pnl.py` - per-trade ledger, realized equity curve (P&L booked at each exit
+  bar), max drawdown, descriptive summary (win rate, gross/net mean bps, total
+  P&L, drawdown).
+- `eligibility.py` - `select_eligible_candidates`: applies the MOD 10 readiness
+  gate as a filter (verdict == `eligible_for_paper_consideration`). The simulator
+  accepts any candidate list for research; callers wanting the gated subset filter
+  first. Simulating a not-yet-eligible candidate is research-descriptive only and
+  never an authorization.
+- `sim_reports.py` - assembles a validated, JSON-safe report bundle (reusing
+  `_internal/_common`) and writes it to disk.
+
+Invariants held: causal entries; deterministic (no RNG); reuses existing
+label/`_common` code rather than reimplementing. Newly allowed (the authorized
+crossing): persisted position state, P&L, equity curve, drawdown, simulated fills
+with explicit cost assumptions.
+
+Tests: `tests/simulation/` (`test_position_sim.py`, `test_pnl.py`,
+`test_sim_contracts.py`, `test_sim_reports_and_eligibility.py` + a `conftest.py`
+rising-market fixture) - 25 passed. P&L cross-checked against the forward-return
+labels by hand. Full suite: 791 passed, 4 skipped.

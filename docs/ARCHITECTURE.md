@@ -190,6 +190,22 @@ batteries, so readiness verdicts stay `not_ready` (disclosed via the
 `control_batteries_not_run_in_basic_pipeline` manifest caveat) until the full
 battery is run.
 
+### `simulation` — paper-trading simulation (MOD 14, post-gate, authorized)
+The first module **past** the research-only readiness gate, built under explicit
+user authorization. Simulates positions/fills/P&L on *historical* bars only — no
+real broker, money, live execution, order routing, or options. `position_sim`
+opens a position each time a candidate's event column fires (entry decided
+causally from rows ≤ t), holds for the candidate's horizon, and closes at the
+historical close that many bars later (exits reuse `labels.add_forward_return_labels`).
+`execution_model` is a deterministic cost/fill model; `pnl` builds the trade
+ledger, realized equity curve, and drawdown; `eligibility` applies the MOD 10
+gate as a filter; `sim_reports` packages a validated JSON-safe bundle.
+`contracts` holds the **own** data model + forbidden-field validator — sim
+records use `entry_price`/`exit_price`/`pnl_points` (rejected by the research
+guards) and must never round-trip through `candidate_rule_objects` /
+`dashboard.contracts`; every report carries `sim_caveat =
+"simulation_only_no_broker_no_real_money"`.
+
 ## 5. Core data contracts
 
 | Contract | Shape | Key fields |
@@ -242,13 +258,11 @@ sequenced build-out toward a usable app and has **explicitly authorized** the
 paper-trading *simulation* layer as a new, clearly-bounded module:
 
 1. **MOD 11 — CLI / pipeline runner** *(done, M97)*.
-2. **MOD 14 — paper-trading simulation layer** *(authorized; not yet built)*:
-   simulated positions / fills / P&L on historical bars, in its own
-   `simulation/` module with its own data model and forbidden-field validator
-   (it must never round-trip through the research `candidate_rule_objects` /
-   `dashboard.contracts` validators, which reject `pnl`/`entry`/`exit`/`order`).
-   Entries stay causal (decided from rows ≤ t); fixed-horizon exits reuse the
-   `labels.py` forward-price math.
+2. **MOD 14 — paper-trading simulation layer** *(done, M98)*: simulated
+   positions / fills / P&L on historical bars in `simulation/`, with its own data
+   model and forbidden-field validator (never round-trips through the research
+   `candidate_rule_objects` / `dashboard.contracts` validators). Entries causal;
+   fixed-horizon exits reuse the `labels.py` forward-price math.
 3. **MOD 12 — frontend** consuming the MOD 09 JSON contracts (static SPA).
 4. **MOD 13 — value/quality/momentum research** (mirrors the factor module).
 
