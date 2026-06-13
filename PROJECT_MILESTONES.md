@@ -2785,3 +2785,33 @@ rejection, CSV/JSON round-trip, clobber guard). Full suite: 822 passed, 4 skippe
 Still gated: a decision support record is not an instruction; broker preparation
 and live execution remain separate modules and require the real-data Hard Gate A
 plus an explicit per-deployment authorization before anything can run live.
+
+## Milestone 103 - broker preparation sandbox (Phase 13, Alpaca paper, no real money)
+
+Stage 3 of the staged Trader build-out. New `src/spy_edge_research/broker/` turns
+a human-approved order intent into a dry-run order against Alpaca's PAPER endpoint
+with a full audit trail. **No real money; reaching a live endpoint is structurally
+impossible from this module.**
+
+- `broker/order_intent.py` - frozen `OrderIntent`; `build_order_intent_from_review`
+  builds one ONLY from a decision-support review record with `human_approved=True`
+  (refuses otherwise) and maps direction long/short -> side buy/sell.
+- `broker/safety.py` - `TradingLimits` (tiny fail-closed defaults), `KillSwitch`,
+  and `check_order_against_limits` (kill-switch, missing-approval, non-positive
+  qty, per-order and open-position quantity caps, daily-loss cap) -> violation
+  codes; `BrokerSafetyError`.
+- `broker/audit.py` - append-only JSONL log (`append_audit_event` / `read_audit_log`);
+  no secrets ever written.
+- `broker/alpaca_adapter.py` - `AlpacaSandboxAdapter` hard-pinned to the paper
+  endpoint (constructor refuses any non-sandbox mode or non-paper endpoint);
+  `dry_run=True` default needs no network/credentials; `alpaca-py` is an optional
+  dependency. Every submission audits intent_received -> (rejected | result).
+
+The order/side vocabulary lives inside this authorized boundary, so the research
+forbidden-field guards do not apply here. Credentials are env-only, never in the
+repo. Tests: `tests/broker/test_broker_sandbox.py` (approval requirement,
+direction->side, sandbox/endpoint refusal, dry-run accept+audit, limit/kill-switch
+rejection, injected-client paper submit). Full suite: 830 passed, 4 skipped.
+
+Still gated: live execution is a separate module; nothing here can place a real
+order. Real runs additionally require Hard Gate A (an eligible edge on real data).
