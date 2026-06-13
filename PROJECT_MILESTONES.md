@@ -2754,3 +2754,34 @@ trade signal, order, or authorization.
 1-minute CSV and inspect `run_<id>/readiness/verdict.csv`. If no candidate reaches
 `eligible_for_paper_consideration`, there is no validated edge and Stages 2-4
 (decision_support, broker-prep, live execution) do not proceed - a valid result.
+
+## Milestone 102 - decision_support package (Phase 12, human-in-the-loop)
+
+Stage 2 of the staged Trader build-out. New `src/spy_edge_research/decision_support/`
+takes candidates that cleared the research readiness gate and assembles a
+*descriptive* per-candidate review surface for a human to consider. It authorizes
+nothing, sizes nothing, and routes no orders.
+
+- `decision_support/contracts.py` - `DECISION_SUPPORT_REPORT_CAVEAT`
+  (`decision_support_analysis_is_research_only_requires_human_review`),
+  `FORBIDDEN_DECISION_SUPPORT_FIELDS` (a superset of the upstream research/sim
+  forbidden tokens - adds broker/route/execution/money/account/...), and the
+  bundle validator.
+- `decision_support/recommendation.py` - `build_decision_support_records`
+  reuses `simulation.select_eligible_candidates` to keep only
+  `eligible_for_paper_consideration` candidates, emitting one review record each
+  (direction, horizon, sample_size, expectancy_difference, verdict, portfolio
+  `risk_flags`, `requires_human_review=True`, caveat). `summarize_decision_support`
+  counts by direction / risk-flag presence.
+- `decision_support/reports.py` - standard `{metadata, tables}` bundle with
+  `build_*`, `summarize_*`, and deterministic `export_*_to_csv/json`; reuses
+  `_internal/_common` helpers.
+
+Like `simulation`, this post-gate package is intentionally kept OUT of the
+top-level package re-export. Tests: `tests/decision_support/test_decision_support.py`
+(eligible-only filtering, empty set, risk-flag surfacing, forbidden-field
+rejection, CSV/JSON round-trip, clobber guard). Full suite: 822 passed, 4 skipped.
+
+Still gated: a decision support record is not an instruction; broker preparation
+and live execution remain separate modules and require the real-data Hard Gate A
+plus an explicit per-deployment authorization before anything can run live.
