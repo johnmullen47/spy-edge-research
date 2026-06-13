@@ -10,6 +10,7 @@ import pytest
 
 from spy_edge_research.cli.pipeline import PipelineConfig, run_pipeline
 from spy_edge_research.services.artifact_access import load_report_bundle_csv_dir
+from spy_edge_research.backtesting.candidate_edges import read_candidate_edge_registry
 
 
 def _run(csv: Path, out: Path, **kw):
@@ -63,6 +64,15 @@ def test_pipeline_readiness_is_research_gate_not_authorization(synth_ohlcv_csv, 
         verdicts["verdict_caveat"]
         == "readiness_score_is_research_gate_not_trade_authorization"
     ).all()
+
+
+def test_pipeline_candidate_registry_round_trips(synth_ohlcv_csv, tmp_path):
+    # Regression: candidate registries must be re-readable (no NaN -> null
+    # fields that the reader rejects). Surfaced by the MOD 11 -> MOD 14 handoff.
+    result = _run(synth_ohlcv_csv, tmp_path / "reports")
+    registry = read_candidate_edge_registry(result.paths.candidates_path)
+    assert not registry.empty
+    assert registry["hit_rate"].notna().all()
 
 
 def test_pipeline_refuses_to_clobber_existing_run(synth_ohlcv_csv, tmp_path):

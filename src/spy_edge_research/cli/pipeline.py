@@ -253,13 +253,18 @@ def _study_to_candidate_registry(
                 baseline_sample_size=int(total_rows),
                 expectancy=float(r.label_mean_on_event),
                 baseline_expectancy=float(r.overall_label_mean),
-                hit_rate=float("nan"),
-                baseline_hit_rate=float("nan"),
+                # Hit rate is not computed in the basic pipeline. Recorded as a
+                # caveated 0.0 placeholder rather than NaN so the registry JSON
+                # round-trips (the candidate schema requires a numeric hit_rate,
+                # and NaN serializes to null which the reader rejects). The gate
+                # does not use this field; the caveat marks it as not meaningful.
+                hit_rate=0.0,
+                baseline_hit_rate=0.0,
                 context={
                     "label_column": str(r.label_column),
                     "event_family": str(r.event_family),
                 },
-                caveats=["hit_rate_not_computed_in_basic_pipeline"],
+                caveats=["hit_rate_not_computed_in_basic_pipeline_recorded_as_zero"],
             )
         )
     return build_candidate_edge_registry(records)
