@@ -2183,10 +2183,77 @@ Result:
 - Final full suite passed: 674 passed, 4 skipped. The skipped tests require
   matplotlib.
 
-Next recommended module boundary:
+Next recommended module boundary (as recorded at Milestone 69):
 
 - Stop after Milestone 69 as planned. The next module should remain
   research-only and should be separately approved before beginning factor ETF
   allocation research, value research, portfolio/risk construction, dashboard,
   service API, paper-trading readiness, broker integration, options, alerting,
   execution, or trade-readiness work.
+
+> Superseded 2026-06-13: the user reviewed `docs/NEXT_MODULES_ROADMAP.md` and
+> approved building the full Milestone 70+ roadmap (MOD 06-10), one module at a
+> time, all research-only. MOD 06 (Portfolio/Risk Exposure Research) follows.
+
+## Milestone 70 - Candidate Directional Exposure
+
+Added the `spy_edge_research.risk` package with `exposure.py`: descriptive
+directional-exposure aggregation for a candidate edge set. `add_exposure_columns`
+maps direction (long/short/neutral, with synonyms) to a signed exposure and a
+gross exposure (default weight 1.0, optional non-negative weight column);
+`summarize_exposure` reports candidate/long/short/neutral counts and gross/net
+exposure, overall or grouped. Exposure is descriptive research only and is not a
+position size. Tests: `tests/risk/test_exposure.py` (6 passed).
+
+## Milestone 71 - Candidate Signal-Overlap Diagnostics
+
+Added `risk/signal_overlap.py`: `compute_event_mask_overlap` produces pairwise
+co-occurrence/Jaccard/correlation across candidate event masks, and
+`summarize_signal_overlap` counts redundant pairs above a Jaccard threshold and
+reports max/mean Jaccard. Descriptive redundancy research only; not features,
+signals, or sizes. Tests: `tests/risk/test_signal_overlap.py` (4 passed).
+
+## Milestone 72 - Candidate Exposure Concentration
+
+Added `risk/concentration.py`: `compute_group_concentration` aggregates gross
+exposure by group (instrument/family/regime) with each group's share, and
+`summarize_concentration` reports largest share, Herfindahl index, and effective
+group count. Descriptive only; not allocation guidance. Tests:
+`tests/risk/test_concentration.py` (3 passed).
+
+## Milestone 73 - Advisory Exposure-Limit Checks
+
+Added `risk/exposure_limits.py`: the `ExposureLimits` config dataclass and
+`evaluate_exposure_limits`, which compares exposure/concentration/overlap
+summaries against configured limits and emits advisory rows with `ok`,
+`exceeds_limit`, or `not_evaluated` statuses and flags such as
+`risk_overlap_too_high` and `concentration_exceeds_limit`. Flags are advisory
+research signals for a human reviewer, never orders or position sizes. Tests:
+`tests/risk/test_exposure_limits.py` (4 passed).
+
+## Milestone 74 - Risk Exposure Research Reports
+
+Added `risk/risk_reports.py`: a descriptive risk-exposure report bundle
+(exposure, concentration, signal-overlap, limit-check, and caveat tables) with
+metadata, structural summary, deterministic CSV/JSON export, and a
+forbidden-field guard (rejecting allocation/portfolio/order/position_size/
+trade-action field names). Tests: `tests/risk/test_risk_reports.py` (3 passed).
+
+Full-suite command:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+- Focused MOD 06 tests passed: 20 passed (`tests/risk`).
+- Final full suite passed: 699 passed, 4 skipped. The skipped tests require
+  matplotlib.
+
+Next recommended module boundary:
+
+- MOD 07 (Factor-ETF Allocation Research), per `docs/NEXT_MODULES_ROADMAP.md`.
+  Remains research-only: factor leadership/dispersion diagnostics and
+  factor-conditioned event studies, not allocation weights or factor-timing
+  signals.
