@@ -7,11 +7,33 @@
 ## 0. Verified snapshot at handoff
 
 - **Branch:** `main`
-- **HEAD:** `e391e77` — `M104: live execution adapter (Phase 14, inert unless explicitly enabled)`
+- **HEAD:** `e30d675` — `M107: slippage in the execution model`
 - **Working tree:** clean
-- **Full suite:** `837 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib)
-- **Latest ledger milestone:** M104 (`PROJECT_MILESTONES.md`)
+- **Full suite:** `844 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib)
+- **Latest ledger milestone:** M107 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
+
+### Hard Gate A — RAN, definitive negative result (no validated edge)
+
+Real SPY 1-min data was fetched via `scripts/fetch_spy_bars.py` (Alpaca; creds in
+gitignored `secrets/alpaca.env`) and run through `scripts/run_hard_gate_a.py`.
+Across **both** the IEX feed (2024-06..2026-06, 189,663 bars) and the full-volume
+**SIP** feed (2023..2024, 195,487 bars), **0 of 42 candidates reached
+`eligible`.** After the M105–M107 hardening, candidates fail on up to three
+independent grounds at once (negative control, FDR multiple-testing, economic
+significance). **There is no validated intraday edge in this candidate set — the
+broker layers stay OFF.** That is the designed, desirable outcome. Robustness
+milestones added after the first run:
+- **M105** — economic-significance gate (`ReadinessCriteria.min_edge_bps`, default
+  1.0 bp cost floor) on the OOS mean edge. The first run's "eligible" 15 were all
+  0.06–0.46 bps — sub-cost noise.
+- **M106** — per-candidate permutation p-value + Benjamini-Hochberg FDR replaces
+  the family-size heuristic for multiple-testing.
+- **M107** — `ExecutionModel.slippage_bps` separated from `cost_bps`.
+
+Note on data: Alpaca free `--feed sip` works for **older** history but blocks the
+most recent ~15 months ("subscription does not permit querying recent SIP data");
+IEX carried only ~1–2% of real volume. Data CSVs are gitignored.
 
 ## 1. ⚠️ This is a multi-writer repo — read first
 
