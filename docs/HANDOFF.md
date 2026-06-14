@@ -50,7 +50,10 @@ fix. Consequences for whoever picks up:
 - **Never `git add -A`.** Stage explicit paths only. A blanket add here has
   swept in (a) another session's staged files and (b) a stray scratch probe.
   Scratch files (`scratch_*.py`, `*_probe.py`) are now gitignored.
-- There is **no git remote**; `main` is the only source of truth. Keep it green.
+- **Git remote (2026-06-14):** `origin` = **`https://github.com/johnmullen47/spy-edge-research`**
+  (PRIVATE). `main` tracks `origin/main`. **`pull` before starting work and `push`
+  after merging** so the multiple writers stay in sync. `secrets/` and `data/` are
+  gitignored and are NOT on the remote — keep credentials/market data local-only.
 
 ## 2. Where the project is
 
