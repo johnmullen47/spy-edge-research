@@ -29,3 +29,6 @@ reports/*
 scratch_*.py
 *_probe.py
 scratchpad/
+
+# Local credentials (never commit)
+secrets/
