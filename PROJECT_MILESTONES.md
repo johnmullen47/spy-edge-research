@@ -19,8 +19,14 @@ legacy_auto_trader_spy_scaffold/
 Future work should use this root folder, its `src/spy_edge_research` package,
 its `tests/` suite, and this `PROJECT_MILESTONES.md` ledger as authoritative.
 
-This unified project folder is not currently a Git repository in this
-filesystem snapshot, so status and diffs cannot be verified with Git.
+This project now lives on a private GitHub remote:
+
+```text
+https://github.com/johnmullen47/spy-edge-research
+```
+
+`main` tracks `origin/main`. Pull with `git pull --ff-only origin main` before
+starting work and push after merging authorized changes.
 
 ## Completed Milestones Inferred From Repo
 
@@ -56,6 +62,31 @@ filesystem snapshot, so status and diffs cannot be verified with Git.
 - Milestone 30: research candidate edge registry.
 - Milestone 31: statistical testing foundation.
 - Milestone 32: multiple hypothesis risk helpers.
+- Milestone 33: walk-forward split foundation.
+- Milestone 34: out-of-sample event validation.
+- Milestone 35: parameter sensitivity study.
+- Milestone 36: robustness report builder.
+- Milestone 37: candidate rule object research boundary.
+- Milestone 38: candidate rule catalog reporting.
+- Milestone 39: rule object evaluation replay.
+- Milestone 40: rule object OOS replay comparison.
+- Milestone 41: rule object robustness audit.
+- Milestone 42: research decision journal.
+- Milestone 43: candidate family aggregation.
+- Milestone 44: regime-conditioned rule review.
+- Milestone 45: negative control and placebo tests.
+- Milestone 46: expanded statistical placebo suite.
+- Milestone 47: temporal stability diagnostics.
+- Milestone 48: data quality and coverage impact review.
+- Milestone 49: research risk dashboard bundle.
+- Milestone 50: research package maturity scoring.
+- Milestone 51: candidate retirement and merge workflow.
+- Milestone 52: research package export manifest.
+- Milestone 53: end-to-end research review workflow.
+- Milestone 54: research review artifact integrity checks.
+- Milestone 55: research package comparison reports.
+- Milestone 56: research evidence traceability matrix.
+- Milestone 57: research governance summary bundle.
 - Milestone 58: deterministic research instrument registry foundation.
 - Milestone 59: in-memory multi-symbol dataframe alignment helpers.
 - Milestone 60: causal cross-instrument confirmation/divergence features.
@@ -68,6 +99,44 @@ filesystem snapshot, so status and diffs cannot be verified with Git.
 - Milestone 67: causal macro regime feature layer.
 - Milestone 68: macro-conditioned event study helpers.
 - Milestone 69: descriptive macro regime research reports.
+- Milestone 70: candidate directional exposure.
+- Milestone 71: candidate signal-overlap diagnostics.
+- Milestone 72: candidate exposure concentration.
+- Milestone 73: advisory exposure-limit checks.
+- Milestone 74: risk exposure research reports.
+- Milestone 75: factor ETF universe foundation.
+- Milestone 76: factor context feature layer.
+- Milestone 77: factor-conditioned event studies.
+- Milestone 78: factor rotation research reports.
+- Milestone 79: factor module integration.
+- Milestone 80: research artifact access.
+- Milestone 81: research query helpers.
+- Milestone 82: workflow service facade.
+- Milestone 83: optional HTTP layer deferred.
+- Milestone 84: service layer integration.
+- Milestone 85: dashboard contract schema.
+- Milestone 86: dashboard payload export.
+- Milestone 87: dashboard export manifest.
+- Milestone 88: dashboard module integration.
+- Milestone 89: readiness criteria definition.
+- Milestone 90: readiness scoring and verdict.
+- Milestone 91: readiness scorecard reports.
+- Milestone 92: readiness module integration.
+- Milestone 93: readiness input assembler.
+- Milestone 94: architecture review hardening and DRY foundation.
+- Milestone 95: helper migration batch 1.
+- Milestone 96: helper migration batch 2.
+- Milestone 97: unified CLI / pipeline runner.
+- Milestone 98: paper-trading simulation layer.
+- Milestone 99: dashboard frontend.
+- Milestone 100: value/quality/momentum cross-sectional factor research.
+- Milestone 101: control batteries wired into the pipeline runner.
+- Milestone 102: decision_support package.
+- Milestone 103: broker preparation sandbox.
+- Milestone 104: live execution adapter inert unless explicitly enabled.
+- Milestone 105: economic-significance readiness criterion.
+- Milestone 106: rigorous per-candidate multiple-testing.
+- Milestone 107: slippage in the execution model.
 
 ## Milestone 23 - Forward Path Outcome Labels
 
@@ -801,16 +870,20 @@ Result:
 - Pytest emitted a cache warning because this recovered repo snapshot is
   outside the writable workspace root.
 
-## Known Constraints
+## Known Constraints Recorded At Milestone 33
 
-- Research, validation, and backtesting only.
-- No broker integrations.
-- No live execution.
-- No order routing.
+These constraints describe the project state at Milestone 33 and are retained
+for historical continuity; current live/broker boundaries are governed by the
+front matter, `MASTER_PROJECT_BRIEF.md`, and `CODEX_MASTER_DESK.md`.
+
+- Research, validation, and backtesting only at that stage.
+- No broker integrations at that stage.
+- No live execution at that stage.
+- No order routing at that stage.
 - No options trading.
 - No profitability assumptions.
 - Forward-looking columns are labels/outcomes only, never causal inputs.
-- This filesystem snapshot is not a Git repository.
+- The recovered filesystem snapshot was not yet wired to Git at that stage.
 
 ## Known Open Questions
 

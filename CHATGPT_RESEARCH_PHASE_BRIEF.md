@@ -10,7 +10,11 @@ The project is being interpreted as:
 SPY Directional Edge Research -> Multi-Thesis Quant + Value Research Platform
 ```
 
-The active implementation is not a trading bot, not an AI stock picker, not an options assistant, and not a broker automation project. It is a research-first platform for testing whether observable SPY intraday conditions show repeatable short-term directional edge.
+The active implementation is not a trading bot, not an AI stock picker, and not
+an options assistant. It is a research-first platform for testing whether
+observable SPY intraday conditions show repeatable short-term directional edge.
+Broker sandbox/live-adapter code now exists, but it is gated, inert, and
+unauthorized for use while Hard Gate A remains negative.
 
 ## Current Project Interpretation
 
@@ -27,7 +31,10 @@ The implementation priority has been:
 7. Research-only candidate/rule objects.
 8. Audit, reproducibility, lineage, maturity, manifest, and governance workflows.
 
-This ordering intentionally slows down before trade simulation, paper trading, dashboards, broker integration, or options logic.
+This ordering intentionally slowed down before execution-like surfaces. Later
+work added paper simulation, human-in-the-loop decision support, and broker/live
+adapter scaffolding under explicit staged gates. The empirical hard gate remains
+negative, so those layers stay off.
 
 ## Authoritative Implementation State
 
@@ -47,28 +54,40 @@ Authoritative files:
 - `src/spy_edge_research/`
 - `tests/`
 
-The project currently records completed milestones through Milestone 57.
+The project currently records completed milestones through Milestone 107.
 
-The most recently completed module is:
+The most recently completed hardening sequence is:
 
 ```text
-Research Governance Module
+M101-M107 staged Trader module hardening
 ```
 
-This module covers Milestones 54-57:
+This sequence covers:
 
-- Milestone 54: Research Review Artifact Integrity Checks.
-- Milestone 55: Research Package Comparison Reports.
-- Milestone 56: Research Evidence Traceability Matrix.
-- Milestone 57: Research Governance Summary Bundle.
+- M101: control batteries wired into the pipeline runner.
+- M102: human-in-the-loop decision support records.
+- M103: Alpaca paper/sandbox broker preparation.
+- M104: inert live adapter behind explicit gates.
+- M105: economic-significance cost-floor readiness criterion.
+- M106: per-candidate permutation p-values and FDR.
+- M107: slippage separated from costs in the execution model.
 
 Latest verified test baseline:
 
 ```text
-607 passed, 4 skipped
+844 passed, 4 skipped
 ```
 
 The skipped tests are optional matplotlib visualization tests.
+
+Hard Gate A has run on real SPY 1-minute data. The current candidate set has:
+
+```text
+0 of 42 candidates eligible
+```
+
+Therefore there is no validated intraday edge in the current candidate set, and
+broker/live layers remain off.
 
 ## How Codex Has Applied The Master Brief
 
@@ -84,6 +103,8 @@ That means:
 - Positive diagnostics must not be framed as proof of edge.
 - Maturity, rank, score, and comparison language must not imply trade readiness.
 - Candidate rule objects are research artifacts, not executable strategy rules.
+- Decision-support records authorize nothing.
+- Broker/live paths must remain gated and inert while no candidate clears Hard Gate A.
 
 Codex should now operate as the project Master Desk by default: maintain the
 roadmap, generate precise implementation briefs, review outputs for drift, and
@@ -94,17 +115,26 @@ implement an approved milestone or module.
 
 Do not ask Codex to implement these during the current research phase:
 
-- Live trading.
-- Broker integration.
-- Order routing.
-- Robinhood integration.
 - Options selection or options execution.
+- Autonomous trading.
 - Buy/sell alerts.
-- LLM trade decision engines.
 - Trade recommendations.
-- Paper trading unless explicitly authorized by a later milestone.
-- Dashboards that imply current trade instructions.
 - Real-money portfolio automation.
+- Any live deployment while Hard Gate A remains negative.
+
+Broker/live scaffolding exists only under explicit gates:
+
+- Hard Gate A must find a validated eligible edge.
+- The user must authorize deployment.
+- `SPY_EDGE_ALLOW_LIVE=1` must be set.
+- Every order must have a matching per-order human approval token.
+- Limits and kill-switch checks must pass.
+
+Also avoid:
+
+- Robinhood integration.
+- LLM trade decision engines.
+- Dashboards that imply current trade instructions.
 
 The system should be able to conclude:
 
@@ -164,21 +194,27 @@ The current implementation is building toward that answer by strengthening:
 
 ## Recommended Next ChatGPT Research Use
 
-Use ChatGPT to review whether the completed Research Governance Module is sufficient before any later module begins.
+Use ChatGPT to decide whether the next research move should expand the
+hypothesis space, test longer horizons, explore other instruments, improve
+slippage modeling, or accept the efficient-market/null interpretation for the
+current intraday SPY candidate set.
 
 Useful questions:
 
-- Are Milestones 54-57 enough to close the governance layer?
-- What integrity failures should Milestone 54 catch?
-- What package comparisons are useful without creating "best strategy" language?
-- What should a traceability matrix include to make every research claim auditable?
-- What governance bundle would make weak evidence impossible to hide?
-- What should be required before the project considers trade simulation or paper trading readiness?
+- Is there a richer hypothesis space worth testing after Hard Gate A rejected all 42 candidates?
+- Should the project explore longer horizons or non-SPY instruments?
+- What would a dynamic volatility/volume-scaled slippage model require?
+- What would falsify the next candidate family?
+- What evidence would justify keeping the staged broker layers at all?
+- What documentation should explain the current no-edge result?
 
 ## Handoff Summary
 
-Codex has implemented the master brief as a conservative, research-first, evidence-governance platform.
+Codex has implemented the master brief as a conservative, research-first,
+evidence-governance platform with staged, gated trader scaffolding.
 
-The Research Governance Module is now complete through Milestone 57.
+The project is complete through Milestone 107.
 
-The project should now reassess whether the research foundation is strong enough to justify the next module, rather than automatically progressing toward execution or productization.
+The project should now reassess whether new research hypotheses are worthwhile
+given the negative Hard Gate A result, rather than automatically progressing
+toward execution or productization.

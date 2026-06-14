@@ -38,9 +38,20 @@ tests in `tests`, and the milestone ledger in `PROJECT_MILESTONES.md`.
 The original compact event-transformation scaffold is no longer authoritative,
 but it remains archived rather than deleted.
 
-The project currently records completed milestones through Milestone 69.
-Milestones 62-65 completed the Sector Context Research Module. Milestones
-66-69 completed the Macro Regime Research Module.
+The project currently records completed milestones through Milestone 107.
+Milestones 101-107 completed staged Trader module hardening: control batteries,
+human-in-the-loop decision support, broker sandbox, inert live adapter, economic
+significance, rigorous multiple testing, and slippage support.
+
+Hard Gate A has run on real SPY 1-minute data and found `0 of 42` candidates
+eligible after the M105-M107 hardening. There is no validated intraday edge in
+the current candidate set. Broker and live layers remain OFF.
+
+The private GitHub remote is authoritative:
+
+```text
+https://github.com/johnmullen47/spy-edge-research
+```
 
 ## Codex Master Desk Role
 
@@ -80,7 +91,6 @@ Do not implement any of the following until explicitly allowed by a later milest
 
 - Options trading or options chain selection.
 - Robinhood or broker API integration.
-- Live order execution or live order routing.
 - Automatic trading.
 - Alerts that imply trade instructions.
 - Buy-now or sell-now dashboards.
@@ -89,6 +99,17 @@ Do not implement any of the following until explicitly allowed by a later milest
 - Discretionary chatbot stock picking.
 - Portfolio auto-rebalancing with real money.
 - Real-time production deployment.
+
+Broker sandbox and live-adapter code now exists, but it is not permission to
+trade. The live path is inert by construction and must remain off unless all
+gates hold:
+
+- Hard Gate A finds at least one validated eligible candidate.
+- A paper/sandbox process succeeds on that real edge.
+- The user explicitly authorizes deployment.
+- `SPY_EDGE_ALLOW_LIVE=1` is set.
+- A per-order human approval token matches the order intent id.
+- Limits and kill-switch checks pass.
 
 The system should be comfortable producing outputs such as:
 
@@ -292,10 +313,10 @@ This unified folder is the current source of truth for milestone progress:
 Verified from other project chats and `PROJECT_MILESTONES.md`:
 
 - Milestone 22 is not the most recently accomplished milestone.
-- Milestones 1-69 are recorded as completed.
-- The latest verified full-suite result is `674 passed, 4 skipped`.
-- Milestones 62-65 completed the Sector Context Research Module.
-- Milestones 66-69 completed the Macro Regime Research Module.
+- Milestones 1-107 are recorded as completed.
+- The latest verified full-suite result is `844 passed, 4 skipped`.
+- Milestones 101-107 completed staged Trader module hardening.
+- Hard Gate A found `0 of 42` candidates eligible; broker/live layers remain OFF.
 
 Before implementing roadmap work, inspect this root folder and use
 `PROJECT_MILESTONES.md` here as the progress ledger.
@@ -321,11 +342,12 @@ Next major planned phases:
 
 ## Immediate Research Roadmap
 
-The immediate next implementation module is Macro Regime Research, Milestones
-66-69.
+The immediate next step is not automatic implementation. First decide whether
+the next module should expand the hypothesis space, test longer horizons,
+explore other instruments, improve slippage modeling, or perform maintenance.
 
-This module must remain research-only. It must not imply trade readiness,
-create signals, optimize thresholds, simulate P/L, or connect to brokers.
+Do not assume the next move is toward execution. The current empirical result is
+the efficient-market/null outcome for the tested intraday SPY candidate set.
 
 ## Success Criteria
 
