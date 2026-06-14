@@ -2902,3 +2902,14 @@ FDR-adjusted p-value is below alpha (default 0.05).
 
 Tests: per-candidate pass for a real edge, fail for a null; existing suites green.
 Full suite: 840 passed, 4 skipped.
+
+## Milestone 107 - slippage in the execution model
+
+Second robustness improvement. `simulation/ExecutionModel` now separates
+`cost_bps` (commissions/fees) from a new `slippage_bps` (market-impact/spread:
+the gap between the bar-close fill the simulator assumes and the price a real
+order would achieve). `net_return_bps` subtracts both (`total_cost_bps` property);
+`slippage_bps` defaults to 0.0 so existing behaviour and tests are unchanged. It
+is a flat, conservative round-trip charge (no per-fill distribution yet) - the
+honest floor; a volatility/volume-scaled model could extend it later. Tests:
+`tests/simulation/test_execution_model.py`. Full suite: 844 passed, 4 skipped.
