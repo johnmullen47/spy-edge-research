@@ -64,6 +64,11 @@ Architecture map: [`ARCHITECTURE.md`](ARCHITECTURE.md). Governance/constraints:
 `../MASTER_PROJECT_BRIEF.md`, `../CODEX_MASTER_DESK.md`. Progress ledger:
 `../PROJECT_MILESTONES.md`.
 
+For the ChatGPT-side trading theory, research philosophy, signal vocabulary, and
+thesis context behind this repo, read
+[`CHATGPT_TRADING_THEORY_HANDOFF.md`](CHATGPT_TRADING_THEORY_HANDOFF.md). Treat
+it as the project "why," not as the live implementation ledger.
+
 Completed and on `main`:
 
 - **Core stack** (M1–69): data → indicators → structure/levels → causal events →

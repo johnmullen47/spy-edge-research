@@ -10,11 +10,32 @@ Canonical workspace:
 /Users/johnmullen/Documents/Codex/Auto-Trader SPY
 ```
 
+Private GitHub remote:
+
+```text
+https://github.com/johnmullen47/spy-edge-research
+```
+
 This folder is now the unified authoritative project root. The former flat
 `Auto-Trader SPY` scaffold has been archived under
 `legacy_auto_trader_spy_scaffold/`; future work should use `src/`,
 `tests/`, `MASTER_PROJECT_BRIEF.md`, `PROJECT_MILESTONES.md`,
 `CODEX_MASTER_DESK.md`, and this README in the current root.
+
+For the ChatGPT-side trading theory, research philosophy, signal vocabulary,
+and thesis context behind this repo, see
+[`docs/CHATGPT_TRADING_THEORY_HANDOFF.md`](docs/CHATGPT_TRADING_THEORY_HANDOFF.md).
+That document explains the project "why"; use the live handoff, milestones, and
+code for current implementation state.
+
+Current verified state:
+
+- Completed through Milestone 107.
+- Latest full suite: `844 passed, 4 skipped`.
+- Hard Gate A ran on real SPY 1-minute data and found `0 of 42` candidates
+  eligible after M105-M107 hardening.
+- Broker/live layers remain off; there is no validated intraday edge in the
+  current candidate set.
 
 Milestone 1 implements the local data foundation: loading, validating,
 session classification, and causal OHLCV resampling.
