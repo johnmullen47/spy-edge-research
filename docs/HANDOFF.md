@@ -54,6 +54,7 @@ fix. Consequences for whoever picks up:
   (PRIVATE). `main` tracks `origin/main`. **`pull` before starting work and `push`
   after merging** so the multiple writers stay in sync. `secrets/` and `data/` are
   gitignored and are NOT on the remote — keep credentials/market data local-only.
+  Fresh-clone bootstrap (venv, credentials, data fetch): [`CLONE_SETUP.md`](CLONE_SETUP.md).
 
 ## 2. Where the project is
 
