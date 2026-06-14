@@ -19,6 +19,7 @@ def _eligible_metrics():
         "multiple_testing_passed": True,
         "temporal_stable_period_count": 3,
         "max_pairwise_jaccard": 0.5,
+        "edge_bps": 2.0,
     }
 
 
@@ -31,12 +32,23 @@ def test_default_criteria_values():
 
 def test_eligible_candidate_passes_all_criteria():
     scorecard = score_candidate_readiness(_eligible_metrics())
-    assert len(scorecard) == 6
+    assert len(scorecard) == 7
     assert scorecard["passed"].all()
     verdict = summarize_readiness_verdict(scorecard).iloc[0]
     assert verdict["verdict"] == READINESS_VERDICT_ELIGIBLE
-    assert verdict["passed_count"] == 6
+    assert verdict["passed_count"] == 7
     assert verdict["failing_reasons"] == ""
+
+
+def test_sub_cost_edge_is_not_ready():
+    # A statistically clean candidate whose out-of-sample edge is below the
+    # economic-significance floor must not be eligible: sub-cost is not tradeable.
+    metrics = _eligible_metrics()
+    metrics["edge_bps"] = 0.3  # below the 1.0 bps default floor
+    scorecard = score_candidate_readiness(metrics)
+    verdict = summarize_readiness_verdict(scorecard).iloc[0]
+    assert verdict["verdict"] == READINESS_VERDICT_NOT_READY
+    assert "economic_edge_bps_below_min" in verdict["failing_reasons"]
 
 
 def test_failing_metrics_produce_not_ready_with_reasons():
@@ -69,6 +81,7 @@ def test_disabled_criteria_are_skipped():
         require_multiple_testing_pass=False,
         min_temporal_stable_periods=None,
         max_pairwise_jaccard=0.8,
+        min_edge_bps=None,
     )
     scorecard = score_candidate_readiness({"max_pairwise_jaccard": 0.5}, criteria)
     assert len(scorecard) == 1

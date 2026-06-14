@@ -80,6 +80,8 @@ def score_candidate_readiness(
                  crit.min_temporal_stable_periods, "ge")
     if crit.max_pairwise_jaccard is not None:
         evaluate("exposure_overlap", "max_pairwise_jaccard", crit.max_pairwise_jaccard, "le")
+    if crit.min_edge_bps is not None:
+        evaluate("economic_edge_bps", "edge_bps", crit.min_edge_bps, "ge")
 
     return pd.DataFrame(rows, columns=list(SCORECARD_COLUMNS))
 

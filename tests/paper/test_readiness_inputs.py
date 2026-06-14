@@ -17,7 +17,13 @@ from spy_edge_research.risk import (
 
 def test_build_metrics_from_summaries_feeds_gate():
     oos = pd.DataFrame(
-        [{"oos_positive_expectancy_difference_splits": 3, "oos_mean_sample_size": 50.0}]
+        [
+            {
+                "oos_positive_expectancy_difference_splits": 3,
+                "oos_mean_sample_size": 50.0,
+                "oos_mean_expectancy_difference": 0.0002,  # 2 bps, clears the floor
+            }
+        ]
     )
     overlap_summary = summarize_signal_overlap(
         compute_event_mask_overlap(

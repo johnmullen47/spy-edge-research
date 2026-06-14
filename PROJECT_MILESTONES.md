@@ -2846,3 +2846,36 @@ and confirm >=1 candidate reaches `eligible_for_paper_consideration` - and, only
 after a clean Alpaca paper-sandbox run on that real edge, an explicit
 per-deployment decision to set `SPY_EDGE_ALLOW_LIVE=1`. Until then the live path
 is inert by construction.
+
+## Hard Gate A — first real-data run (2026-06-14) and what it exposed
+
+Fetched 189,663 real SPY 1-min bars (2024-06..2026-06, Alpaca IEX feed, regular
+hours) via `scripts/fetch_spy_bars.py` and ran the pipeline (`scripts/
+run_hard_gate_a.py`, OOS train=30000 / test=7500). 42 candidates, and **15
+initially reached `eligible`** — but inspecting magnitudes showed every "edge" was
+**0.06–0.46 basis points**: statistically detectable only because of huge samples
+(4k–43k events), and far below SPY round-trip cost (~1 bp). Statistical
+detectability at large N is not a tradeable edge. The gate had a real gap: no
+economic-significance criterion.
+
+## Milestone 105 - economic-significance (cost-floor) readiness criterion
+
+Closes that gap. `ReadinessCriteria` gains `min_edge_bps` (default **1.0 bps**, a
+conservative round-trip cost-floor proxy; configurable; `None` disables).
+`build_readiness_metrics` now derives `edge_bps` from the OOS summary's
+`oos_mean_expectancy_difference` (out-of-sample, x1e4), and `score_candidate_
+readiness` adds an `economic_edge_bps` criterion (`edge_bps >= min_edge_bps`).
+A candidate that is statistically clean but sub-cost now fails with
+`economic_edge_bps_below_min`.
+
+Re-running Hard Gate A with the floor: **0 of 42 eligible** — all rejected on
+`economic_edge_bps_below_min`. The honest result: **no validated edge on this
+data; the broker layers stay OFF.** Tests: new `test_sub_cost_edge_is_not_ready`
+plus updates to the readiness/control-battery suites for the 7th criterion. Full
+suite: 838 passed, 4 skipped.
+
+Caveats on the run itself: IEX is a thin single-venue feed (volume understated —
+volume-based candidates especially suspect); 42 hypotheses tested carries
+multiple-testing risk only coarsely guarded by the family-size heuristic; no
+slippage model. Even an above-floor result here would warrant SIP-quality data
+and a stricter multiple-testing correction before any sandbox/live consideration.

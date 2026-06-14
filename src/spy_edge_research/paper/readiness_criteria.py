@@ -24,6 +24,12 @@ class ReadinessCriteria:
     require_multiple_testing_pass: bool = True
     min_temporal_stable_periods: int | None = 2
     max_pairwise_jaccard: float | None = 0.8
+    # Economic-significance floor: the out-of-sample mean expectancy difference
+    # must clear this many basis points. Statistical detectability at large N is
+    # not enough — a sub-cost "edge" is not a tradeable edge. The default is a
+    # conservative round-trip cost-floor proxy; set it to your actual all-in
+    # cost (spread + slippage + fees). ``None`` disables the criterion.
+    min_edge_bps: float | None = 1.0
 
 
 def default_readiness_criteria() -> ReadinessCriteria:

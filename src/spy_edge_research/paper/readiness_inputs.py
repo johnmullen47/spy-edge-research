@@ -41,6 +41,11 @@ def build_readiness_metrics(
         sample = row.get("oos_mean_sample_size")
         if sample is not None and pd.notna(sample):
             metrics["oos_mean_sample_size"] = float(sample)
+        edge = row.get("oos_mean_expectancy_difference")
+        if edge is not None and pd.notna(edge):
+            # Forward returns are fractional; express the out-of-sample edge in
+            # basis points for the economic-significance criterion.
+            metrics["edge_bps"] = float(edge) * 1e4
 
     overlap = _extract_max_pairwise_jaccard(exposure_limit_checks, signal_overlap_summary)
     if overlap is not None:

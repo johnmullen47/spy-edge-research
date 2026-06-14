@@ -102,6 +102,7 @@ def _oos_row() -> pd.DataFrame:
                 "candidate_id": "c1",
                 "oos_positive_expectancy_difference_splits": 3,
                 "oos_mean_sample_size": 50.0,
+                "oos_mean_expectancy_difference": 0.0002,  # 2 bps, clears the floor
             }
         ]
     )
