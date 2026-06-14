@@ -359,7 +359,9 @@ def _score_readiness(
     as insufficient evidence.
     """
     overlap = shared_metrics.get("max_pairwise_jaccard")
-    multiple_testing_passed = (
+    # Per-candidate FDR-adjusted multiple-testing is preferred; the portfolio
+    # family-size pass is only a coarse fallback for the no-OOS branch.
+    portfolio_multiple_testing = (
         control_results.multiple_testing_passed if control_results is not None else None
     )
     scorecards: list[pd.DataFrame] = []
@@ -370,7 +372,7 @@ def _score_readiness(
             signal_overlap_summary=(
                 pd.Series({"max_jaccard": overlap}) if overlap is not None else None
             ),
-            multiple_testing_passed=multiple_testing_passed,
+            multiple_testing_passed=portfolio_multiple_testing,
         )
         scorecard = score_candidate_readiness(metrics)
         verdict = summarize_readiness_verdict(scorecard)
@@ -382,10 +384,15 @@ def _score_readiness(
         candidate_id = str(getattr(row, "candidate_id", "candidate"))
         negative_control_passed = None
         temporal_stable_period_count = None
+        multiple_testing_passed = portfolio_multiple_testing
         if control_results is not None:
             per = control_results.per_candidate.get(candidate_id, {})
             negative_control_passed = per.get("negative_control_passed")
             temporal_stable_period_count = per.get("temporal_stable_period_count")
+            # Prefer the per-candidate FDR-adjusted result when available.
+            multiple_testing_passed = per.get(
+                "multiple_testing_passed", portfolio_multiple_testing
+            )
         metrics = build_readiness_metrics(
             oos_stability_row=pd.Series(row._asdict()),
             signal_overlap_summary=(

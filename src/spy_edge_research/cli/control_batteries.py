@@ -19,6 +19,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from spy_edge_research.backtesting.negative_controls import (
@@ -27,7 +28,13 @@ from spy_edge_research.backtesting.negative_controls import (
     evaluate_negative_control_outcomes,
     summarize_negative_control_risk,
 )
-from spy_edge_research.backtesting.multiple_testing import count_tested_hypotheses
+from spy_edge_research.backtesting.multiple_testing import (
+    apply_false_discovery_rate_adjustment,
+    count_tested_hypotheses,
+)
+from spy_edge_research.backtesting.statistical_tests import (
+    permutation_test_event_vs_baseline,
+)
 from spy_edge_research.backtesting.temporal_stability import (
     assign_temporal_period,
     summarize_metric_by_period,
@@ -37,8 +44,11 @@ from spy_edge_research.backtesting.temporal_stability import (
 CONTROL_BATTERY_CAVEAT = (
     "control_battery_results_are_research_diagnostics_not_trade_authorization"
 )
+MULTIPLE_TESTING_FDR_CAVEAT = (
+    "multiple_testing_pass_is_fdr_adjusted_permutation_p_value_below_alpha"
+)
 MULTIPLE_TESTING_HEURISTIC_CAVEAT = (
-    "multiple_testing_gate_is_family_size_heuristic_no_p_values_in_basic_pipeline"
+    "portfolio_multiple_testing_warning_is_a_coarse_family_size_heuristic"
 )
 TEMPORAL_COUNT_CAVEAT = (
     "temporal_stable_period_count_is_active_period_count_not_metric_stability"
@@ -57,7 +67,15 @@ class ControlBatteryConfig:
     random_seed: int = 0
     temporal_period: str = "M"
     timestamp_column: str | None = None  # auto-detect when None
-    multiple_testing_high_count: int = 100  # warning == "high" at/above this
+    multiple_testing_high_count: int = 100  # portfolio warning == "high" at/above this
+    # Per-candidate multiple-testing: permutation p-value of each candidate's
+    # event-vs-non-event forward outcome, then a Benjamini-Hochberg FDR
+    # correction across the whole candidate family. A candidate passes only if
+    # its FDR-adjusted p-value is below alpha.
+    n_permutations: int = 500
+    multiple_testing_alpha: float = 0.05
+    permutation_seed: int = 0
+    max_permutation_sample: int = 20000  # subsample cap per group for speed
 
 
 @dataclass
@@ -89,13 +107,12 @@ def run_control_batteries(
     cfg = config or ControlBatteryConfig()
     caveats = [
         CONTROL_BATTERY_CAVEAT,
+        MULTIPLE_TESTING_FDR_CAVEAT,
         MULTIPLE_TESTING_HEURISTIC_CAVEAT,
         TEMPORAL_COUNT_CAVEAT,
     ]
 
-    # Portfolio-level multiple-testing family-size guard. The basic pipeline does
-    # not compute per-candidate p-values, so we apply the module's own coarse
-    # family-size heuristic: a large search family raises multiple-testing risk.
+    # Coarse portfolio-level family-size warning, retained as a summary signal.
     tested = int(count_tested_hypotheses(registry))
     warning = (
         "high"
@@ -104,24 +121,14 @@ def run_control_batteries(
         if tested >= 20
         else "low"
     )
-    multiple_testing_passed = warning != "high"
-    multiple_testing_table = pd.DataFrame(
-        [
-            {
-                "tested_hypotheses": tested,
-                "high_count_threshold": cfg.multiple_testing_high_count,
-                "multiple_testing_warning": warning,
-                "multiple_testing_passed": multiple_testing_passed,
-                "multiple_testing_caveat": MULTIPLE_TESTING_HEURISTIC_CAVEAT,
-            }
-        ]
-    )
+    portfolio_passed = warning != "high"
 
     ts_df, ts_col = _ensure_timestamp(df, cfg.timestamp_column)
 
     per_candidate: dict[str, dict[str, Any]] = {}
     nc_rows: list[pd.DataFrame] = []
     ts_rows: list[pd.DataFrame] = []
+    pvalue_records: list[dict[str, Any]] = []
 
     for _, row in registry.iterrows():
         candidate_id = str(row["candidate_id"])
@@ -139,11 +146,17 @@ def run_control_batteries(
         temporal_count, ts_summary = _temporal_stability_for(
             ts_df, ts_col, event_column, outcome_column, cfg
         )
+        p_value, n_event = _permutation_pvalue_for(
+            df, event_column, outcome_column, cfg
+        )
 
         per_candidate[candidate_id] = {
             "negative_control_passed": nc_passed,
             "temporal_stable_period_count": temporal_count,
         }
+        pvalue_records.append(
+            {"candidate_id": candidate_id, "n_event": n_event, "p_value": p_value}
+        )
         if nc_summary is not None:
             nc_summary = nc_summary.copy()
             nc_summary.insert(0, "candidate_id", candidate_id)
@@ -152,6 +165,17 @@ def run_control_batteries(
             ts_summary = ts_summary.copy()
             ts_summary.insert(0, "candidate_id", candidate_id)
             ts_rows.append(ts_summary)
+
+    # Benjamini-Hochberg FDR correction across the whole candidate family, then a
+    # per-candidate pass = FDR-adjusted p-value below alpha. This replaces the old
+    # family-size heuristic as the gate's multiple-testing criterion.
+    multiple_testing_table = _build_multiple_testing_table(pvalue_records, cfg)
+    for record in multiple_testing_table.to_dict(orient="records"):
+        cid = str(record["candidate_id"])
+        if cid in per_candidate:
+            per_candidate[cid]["multiple_testing_passed"] = bool(
+                record["multiple_testing_passed"]
+            )
 
     negative_control_table = (
         pd.concat(nc_rows, ignore_index=True) if nc_rows else pd.DataFrame()
@@ -162,7 +186,7 @@ def run_control_batteries(
 
     return ControlBatteryResults(
         per_candidate=per_candidate,
-        multiple_testing_passed=multiple_testing_passed,
+        multiple_testing_passed=portfolio_passed,
         tested_hypotheses=tested,
         multiple_testing_warning=warning,
         negative_control_table=negative_control_table,
@@ -170,6 +194,65 @@ def run_control_batteries(
         multiple_testing_table=multiple_testing_table,
         caveats=caveats,
     )
+
+
+def _permutation_pvalue_for(
+    df: pd.DataFrame,
+    event_column: str,
+    outcome_column: str,
+    cfg: ControlBatteryConfig,
+) -> tuple[float, int]:
+    """Permutation p-value of the candidate's event-vs-non-event mean outcome."""
+    if not event_column or event_column not in df.columns:
+        return float("nan"), 0
+    if not outcome_column or outcome_column not in df.columns:
+        return float("nan"), 0
+    mask = df[event_column].fillna(False).astype(bool)
+    outcomes = pd.to_numeric(df[outcome_column], errors="coerce")
+    event_values = outcomes[mask].dropna().to_numpy()
+    baseline_values = outcomes[~mask].dropna().to_numpy()
+    n_event = int(event_values.size)
+    if n_event == 0 or baseline_values.size == 0:
+        return float("nan"), n_event
+    event_values = _subsample(event_values, cfg.max_permutation_sample, cfg.permutation_seed)
+    baseline_values = _subsample(
+        baseline_values, cfg.max_permutation_sample, cfg.permutation_seed + 1
+    )
+    result = permutation_test_event_vs_baseline(
+        event_values,
+        baseline_values,
+        statistic="mean",
+        n_permutations=cfg.n_permutations,
+        seed=cfg.permutation_seed,
+    )
+    return float(result["p_value"]), n_event
+
+
+def _subsample(values: np.ndarray, cap: int, seed: int) -> np.ndarray:
+    if values.size <= cap:
+        return values
+    rng = np.random.default_rng(seed)
+    index = rng.choice(values.size, size=cap, replace=False)
+    return values[index]
+
+
+def _build_multiple_testing_table(
+    pvalue_records: list[dict[str, Any]], cfg: ControlBatteryConfig
+) -> pd.DataFrame:
+    """FDR-adjust the family of per-candidate p-values and mark each pass/fail."""
+    if not pvalue_records:
+        return pd.DataFrame()
+    table = pd.DataFrame(pvalue_records)
+    table = apply_false_discovery_rate_adjustment(
+        table, p_value_col="p_value", output_col="p_value_fdr_bh"
+    )
+    adjusted = pd.to_numeric(table["p_value_fdr_bh"], errors="coerce")
+    table["alpha"] = cfg.multiple_testing_alpha
+    table["multiple_testing_passed"] = adjusted.lt(cfg.multiple_testing_alpha).fillna(
+        False
+    )
+    table["multiple_testing_caveat"] = MULTIPLE_TESTING_FDR_CAVEAT
+    return table
 
 
 def _ensure_timestamp(

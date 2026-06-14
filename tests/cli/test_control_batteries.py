@@ -82,6 +82,24 @@ def test_negative_control_fails_for_wrong_direction_condition():
     assert per["negative_control_passed"] is False
 
 
+def test_multiple_testing_per_candidate_passes_for_real_edge():
+    df = _daily_frame(edge=1.0)
+    registry = _registry("c_real", "event_x", "forward_return_5m")
+    results = run_control_batteries(df, registry)
+    # A strong, real edge yields a tiny permutation p-value -> survives FDR.
+    assert results.per_candidate["c_real"]["multiple_testing_passed"] is True
+    cols = set(results.multiple_testing_table.columns)
+    assert {"candidate_id", "p_value", "p_value_fdr_bh", "multiple_testing_passed"} <= cols
+
+
+def test_multiple_testing_per_candidate_fails_for_null_candidate():
+    df = _daily_frame(edge=0.0)
+    df["forward_return_5m"] = 0.0  # truly null: zero event-vs-non-event difference
+    registry = _registry("c_null", "event_x", "forward_return_5m")
+    results = run_control_batteries(df, registry)
+    assert results.per_candidate["c_null"]["multiple_testing_passed"] is False
+
+
 def test_multiple_testing_flags_high_for_large_family():
     df = _daily_frame(edge=1.0)
     registry = pd.concat(

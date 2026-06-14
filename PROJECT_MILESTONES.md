@@ -2879,3 +2879,26 @@ volume-based candidates especially suspect); 42 hypotheses tested carries
 multiple-testing risk only coarsely guarded by the family-size heuristic; no
 slippage model. Even an above-floor result here would warrant SIP-quality data
 and a stricter multiple-testing correction before any sandbox/live consideration.
+
+## Milestone 106 - rigorous per-candidate multiple-testing (permutation + FDR)
+
+First of the post-Hard-Gate-A robustness improvements. Replaces the coarse
+family-size heuristic with real statistics: for each candidate the control
+battery runs `permutation_test_event_vs_baseline` (event vs non-event forward
+outcome, n_permutations=500 default, baseline/event subsampled to <=20000 for
+speed), then applies a Benjamini-Hochberg FDR correction across the whole
+candidate family. A candidate's `multiple_testing_passed` is now True only if its
+FDR-adjusted p-value is below alpha (default 0.05).
+
+- `cli/control_batteries.py`: per-candidate permutation p-value + family-wide FDR
+  (`_permutation_pvalue_for`, `_build_multiple_testing_table`); new config
+  (`n_permutations`, `multiple_testing_alpha`, `permutation_seed`,
+  `max_permutation_sample`). The portfolio family-size warning is retained only as
+  a coarse summary / no-OOS fallback. `controls/multiple_testing.csv` is now a
+  per-candidate table (candidate_id, n_event, p_value, p_value_fdr_bh, alpha,
+  passed).
+- `cli/pipeline.py`: `_score_readiness` prefers the per-candidate FDR result,
+  falling back to the portfolio pass only when no per-candidate value exists.
+
+Tests: per-candidate pass for a real edge, fail for a null; existing suites green.
+Full suite: 840 passed, 4 skipped.
