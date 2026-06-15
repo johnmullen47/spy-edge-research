@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -21,6 +22,36 @@ def _run(csv: Path, out: Path, *, config: PipelineConfig | None = None, **kw):
         config=config or PipelineConfig(horizons_minutes=(5, 15)),
         **kw,
     )
+
+
+def _mim_variant_csv(tmp_path: Path) -> Path:
+    """Write enough controlled sessions for delayed-entry MIM variants to fire."""
+    frames = []
+    start = pd.Timestamp("2024-01-02 09:30:00", tz="America/New_York")
+    specs = [(0.0001, 0.0002)] * 5 + [(0.0006, 0.0040), (-0.0006, 0.0045)]
+    for day, (drift, vol) in enumerate(specs):
+        times = pd.date_range(start + pd.Timedelta(days=day), periods=61, freq="1min")
+        rets = drift + np.sin(np.arange(len(times))) * vol
+        rets[0] = 0.0
+        price = 100.0 * np.cumprod(1.0 + rets)
+        open_ = pd.Series(price, index=times).shift(1)
+        open_.iloc[0] = 100.0
+        frames.append(
+            pd.DataFrame(
+                {
+                    "timestamp": times,
+                    "symbol": "SPY",
+                    "open": open_.to_numpy(),
+                    "high": np.maximum(open_.to_numpy(), price),
+                    "low": np.minimum(open_.to_numpy(), price),
+                    "close": price,
+                    "volume": 1000,
+                }
+            )
+        )
+    csv = tmp_path / "mim_variant_bars.csv"
+    pd.concat(frames, ignore_index=True).to_csv(csv, index=False)
+    return csv
 
 
 def test_pipeline_writes_all_expected_artifacts(synth_ohlcv_csv, tmp_path):
@@ -65,6 +96,28 @@ def test_intraday_momentum_family_flows_through_same_gate(synth_ohlcv_csv, tmp_p
     verdicts = result.readiness_verdicts
     assert verdicts is not None and not verdicts.empty
     assert not (verdicts["verdict"] == "eligible_for_paper_consideration").any()
+
+
+def test_intraday_momentum_iteration_variants_enter_registry(tmp_path):
+    csv = _mim_variant_csv(tmp_path)
+    config = PipelineConfig(
+        horizons_minutes=(5, 15),
+        include_intraday_momentum=True,
+        mim_realized_vol_lookback_days=5,
+    )
+    result = _run(csv, tmp_path / "reports", config=config)
+    registry = read_candidate_edge_registry(result.paths.candidates_path)
+    mim = registry[registry["name"].str.startswith("event_mim_")]
+    iteration = mim[
+        mim["name"].str.contains("_q75_w15_e30")
+        | mim["name"].str.contains("_q70_w45_e45")
+    ]
+
+    assert mim["name"].str.startswith("event_mim_long_q75_w15_e30").any()
+    assert mim["name"].str.startswith("event_mim_short_q70_w45_e45").any()
+    # M117 adds four parameter-iteration event columns. Across this test's two
+    # horizons, those eight added hypotheses must enter the registry and DSR N.
+    assert len(iteration) == 8
 
 
 def test_intraday_momentum_off_by_default(synth_ohlcv_csv, tmp_path):

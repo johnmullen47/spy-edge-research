@@ -78,7 +78,10 @@ from spy_edge_research.signal_engine.value_quality_momentum_features import (
     add_value_score,
 )
 from spy_edge_research.signal_engine.intraday_momentum_features import (
+    MIM_PARAMETER_ITERATION_SPECS,
     MIM_EVENT_PREFIX,
+    IntradayMomentumVariantSpec,
+    add_intraday_momentum_parameter_iteration_features,
     add_intraday_momentum_features,
     find_intraday_momentum_event_columns,
 )
@@ -89,11 +92,14 @@ from spy_edge_research.signal_engine.end_of_day_reversal_features import (
 )
 
 __all__ = [
+    "MIM_PARAMETER_ITERATION_SPECS",
     "MIM_EVENT_PREFIX",
+    "IntradayMomentumVariantSpec",
     "EOD_EVENT_PREFIX",
     "add_basic_event_primitives",
     "add_end_of_day_reversal_features",
     "find_end_of_day_reversal_event_columns",
+    "add_intraday_momentum_parameter_iteration_features",
     "add_intraday_momentum_features",
     "add_candle_body_features",
     "add_crossover_events",
