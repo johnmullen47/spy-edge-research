@@ -3358,3 +3358,52 @@ Hard Gate A driver, and the default IEX real-data run still produced **no
 validated edge**. Broker/live layers remain OFF. This milestone does not touch
 broker/live code, does not lower the gate, and does not authorize action.
 SPA/Hansen remains deferred.
+
+## Milestone 118 - enable F2 end-of-day reversal in Hard Gate A driver
+
+Branch `milestone/M118`. M116 wired the end-of-day reversal (F2) family through the
+SAME candidate/Hard-Gate-A pipeline behind `PipelineConfig.include_end_of_day_reversal`
+(default off), but the real-data Hard Gate A driver never set the flag, so F2
+candidates existed in the code path yet were never evaluated on real data. This
+milestone closes that gap — the exact analogue of what M115 did for MIM.
+
+- `scripts/run_hard_gate_a.py`: the `PipelineConfig` now also passes
+  `include_end_of_day_reversal=True` (alongside the M115 `include_intraday_momentum=True`).
+  This routes the M116 `event_eod_reversal_*` family and its appended to-close (60m)
+  horizon through the same existing candidate/OOS/control-battery/DSR-PBO/readiness
+  pipeline. The pipeline wiring itself was unchanged (already complete in M116).
+- The gate itself is unchanged: a candidate must still reach
+  `eligible_for_paper_consideration`; the change only adds F2 candidates to the
+  evaluated set (and honestly raises N, the deflation cost of looking in one more place).
+- `tests/scripts/test_run_hard_gate_a.py`: the driver regression test now also asserts
+  `include_end_of_day_reversal is True`, while preserving the Hard Gate A horizon/OOS
+  defaults and the MIM flag.
+
+Verification:
+
+- Focused suite:
+  `.venv/bin/python -m pytest tests/scripts/test_run_hard_gate_a.py tests/cli/test_pipeline_end_of_day_reversal.py`
+  -> passed.
+- Full suite: `.venv/bin/python -m pytest -q` -> 941 passed, 4 skipped.
+
+Default real-data Hard Gate A run (MIM + F2 both enabled):
+
+```bash
+.venv/bin/python scripts/run_hard_gate_a.py --input data/raw/spy_1min.csv --output reports
+```
+
+Result:
+
+- Run directory: `run_20260615T191621Z`.
+- Input bars: 189,663.
+- Event columns: 26 (was 22 MIM-only; F2 adds the `event_eod_reversal_*` columns).
+- Candidate count: 100 (was 66 MIM-only; F2 honestly raises N).
+- Portfolio PBO: 0.3303030303030303.
+- Readiness verdict counts: `{"not_ready": 100}`.
+- Eligible candidates: 0.
+- Wall-clock: ~253 s (~4m13s) on the IEX CSV.
+
+Conclusion: F2 is now evaluated by the Hard Gate A driver alongside MIM, and the
+default IEX real-data run still produced **no validated edge** — **0 of 100
+candidates eligible**. This did not lower or bypass the gate; broker/live layers
+remain OFF. SPA/Hansen remains deferred.

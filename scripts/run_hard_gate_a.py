@@ -31,6 +31,7 @@ def main() -> None:
         oos_test_size=args.test,
         oos_step_size=args.test,
         include_intraday_momentum=True,
+        include_end_of_day_reversal=True,
     )
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     result = run_pipeline(

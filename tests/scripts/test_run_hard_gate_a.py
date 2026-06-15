@@ -20,7 +20,9 @@ def _load_script_module():
     return module
 
 
-def test_hard_gate_a_driver_enables_intraday_momentum(monkeypatch, tmp_path, capsys):
+def test_hard_gate_a_driver_enables_intraday_momentum_and_end_of_day_reversal(
+    monkeypatch, tmp_path, capsys
+):
     module = _load_script_module()
     captured = {}
 
@@ -54,6 +56,7 @@ def test_hard_gate_a_driver_enables_intraday_momentum(monkeypatch, tmp_path, cap
     module.main()
 
     assert captured["config"].include_intraday_momentum is True
+    assert captured["config"].include_end_of_day_reversal is True
     assert captured["config"].horizons_minutes == (5, 15, 30)
     assert captured["config"].oos_initial_train_size == 30000
     assert captured["config"].oos_test_size == 7500

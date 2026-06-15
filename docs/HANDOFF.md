@@ -1,27 +1,30 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M116 + M117 merged to main; Build Master).
+> project. Last updated 2026-06-15 (M118 merged to main; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
 ## 0. Verified snapshot at handoff
 
 - **Branch:** `main`
-- **HEAD:** `main` includes **M116 (end-of-day reversal / F2)** and **M117 (MIM
-  parameter iteration)** — PR #3 (M116) fast-forwarded, PR #2 (M117) merged; both
-  landed by Build Master via private worktrees per the worktree protocol (§1).
-- **Current milestone:** **M116 + M117 complete on `main`.** M117 took the default
-  MIM-enabled Hard Gate A run from 54 → **66 candidates, 0 eligible** (portfolio PBO
-  0.1065). M116 adds the price-only F2 reversal family + its binding bounce/cost
-  control, **opt-in** via `include_end_of_day_reversal` (default off; not yet in the
-  default Hard-Gate-A driver). Next: separately wire the M114 regime-aware cost into
-  the economic gate; F1 (gamma-gated) remains blocked on option data.
+- **HEAD:** `main` includes **M116 (end-of-day reversal / F2)**, **M117 (MIM
+  parameter iteration)**, and now **M118 (F2 enabled in the Hard Gate A driver)** —
+  all landed by Build Master via private worktrees per the worktree protocol (§1).
+- **Current milestone:** **M118 complete on `main`.** M118 sets
+  `include_end_of_day_reversal=True` in `scripts/run_hard_gate_a.py` (alongside the
+  M115 `include_intraday_momentum=True`), so the M116 F2 reversal family is now
+  actually evaluated by the default real-data Hard Gate A run rather than merely
+  existing opt-in. The default IEX run (MIM + F2) went from **66 → 100 candidates,
+  still 0 eligible** (portfolio PBO 0.3303, 26 event columns, ~253 s wall-clock). The
+  pipeline wiring was already complete in M116; M118 is the analogue of M115's MIM
+  driver flag. Next: separately wire the M114 regime-aware cost into the economic
+  gate; F1 (gamma-gated) remains blocked on option data.
 - **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
   docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
   research dir (the Cowork research-drop folder — NOT a git worktree).
 - **Full suite:** `941 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
-- **Latest ledger milestone:** M117 (`PROJECT_MILESTONES.md`)
+- **Latest ledger milestone:** M118 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
@@ -88,6 +91,15 @@ decision (see `Auto-Trader Build/`):
   (`data/raw/spy_1min.csv`, 189,663 bars) produced 22 event columns, 66 candidates,
   portfolio PBO 0.1065, and **0 eligible** candidates. This did not lower or bypass
   the gate; broker layers stay OFF.
+- **M118 — F2 enabled in the Hard Gate A driver.** `scripts/run_hard_gate_a.py` now
+  also passes `include_end_of_day_reversal=True`, so the M116 `event_eod_reversal_*`
+  family (plus its appended 60m to-close horizon) is evaluated by the default
+  real-data Hard Gate A run rather than staying opt-in. Driver regression test in
+  `tests/scripts/test_run_hard_gate_a.py` locks the flag. The pipeline wiring was
+  unchanged (already complete in M116). Default IEX run (MIM + F2,
+  `data/raw/spy_1min.csv`, 189,663 bars) produced 26 event columns, **100
+  candidates** (up from 66), portfolio PBO 0.3303, and **0 eligible** candidates in
+  ~253 s wall-clock. This did not lower or bypass the gate; broker layers stay OFF.
 
 Deferred / tracked: SPA (Hansen, report-only per §4.3), SIP-quality/alternate
 real-data MIM runs if desired, and wiring the M114 regime-aware cost model into
@@ -118,10 +130,11 @@ the economic gate.
   (gamma-gated MIM) is blocked pending options-chain data; F2 is end-of-day
   reversal. Treat them as research specs, not authorization.
 
-**Operational MIM Hard Gate A result:** the default IEX real-data run
-(`reports/run_20260615T183644Z`) evaluated 66 candidates with MIM iteration enabled and
-found **0 eligible**. Per RESEARCH_C §4–5, this is a valid null result, not a
-system failure. Broker layers stay OFF.
+**Operational Hard Gate A result (M118, MIM + F2):** the default IEX real-data run
+(`run_20260615T191621Z`) evaluated **100 candidates** with MIM iteration **and** the
+F2 end-of-day reversal family both enabled and found **0 eligible** (portfolio PBO
+0.3303, 26 event columns, ~253 s wall-clock). Per RESEARCH_C §4–5, this is a valid
+null result, not a system failure. Broker layers stay OFF.
 
 ### Hard Gate A — RAN, definitive negative result (no validated edge)
 
