@@ -59,6 +59,17 @@ from spy_edge_research.backtesting.data_quality_impact import (
     summarize_required_context_coverage,
     summarize_session_coverage,
 )
+from spy_edge_research.backtesting.deflated_sharpe import (
+    DEFLATED_SHARPE_CAVEAT,
+    deflated_sharpe_ratio,
+    expected_maximum_sharpe_ratio,
+    portfolio_pbo_from_oos,
+    probabilistic_sharpe_ratio,
+    probabilistic_sharpe_ratio_from_moments,
+    probability_of_backtest_overfitting,
+    sharpe_ratio,
+    summarize_candidate_deflated_sharpe,
+)
 from spy_edge_research.backtesting.candidate_family_aggregation import (
     add_candidate_family_columns,
     aggregate_candidate_families,
@@ -514,6 +525,14 @@ __all__ = [
     "create_audit_record",
     "create_candidate_rule_audit_metadata",
     "create_candidate_edge",
+    "deflated_sharpe_ratio",
+    "expected_maximum_sharpe_ratio",
+    "portfolio_pbo_from_oos",
+    "probabilistic_sharpe_ratio",
+    "probabilistic_sharpe_ratio_from_moments",
+    "probability_of_backtest_overfitting",
+    "sharpe_ratio",
+    "summarize_candidate_deflated_sharpe",
     "create_candidate_lineage_record",
     "create_candidate_rule_object",
     "create_candidate_rule_report_metadata",

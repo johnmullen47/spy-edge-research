@@ -2986,3 +2986,33 @@ order would achieve). `net_return_bps` subtracts both (`total_cost_bps` property
 is a flat, conservative round-trip charge (no per-fill distribution yet) - the
 honest floor; a volatility/volume-scaled model could extend it later. Tests:
 `tests/simulation/test_execution_model.py`. Full suite: 844 passed, 4 skipped.
+
+## Milestone 108 - Deflated Sharpe Ratio + Probability of Backtest Overfitting
+
+Build 4, Amendment 1 (constitutional upgrade of the anti-overfitting stack to the
+López de Prado deflation framework; see `Auto-Trader Build/RESEARCH_C_DECISION.md`
+§4.3, which names the Deflated Sharpe Ratio "THE BINDING CONTROL" and PBO < 0.5 as
+a pass gate). New pure module `backtesting/deflated_sharpe.py`:
+
+- `probabilistic_sharpe_ratio` / `..._from_moments` - Bailey & López de Prado
+  (2012): P(true SR > benchmark), correcting for sample length, skewness, and
+  (Pearson) kurtosis.
+- `expected_maximum_sharpe_ratio` - the Sharpe a researcher should expect purely
+  from selecting the best of N trials (0.0 for a single trial / non-positive
+  variance).
+- `deflated_sharpe_ratio` - DSR (Bailey & López de Prado 2014): the PSR with the
+  benchmark set to that expected maximum, so the luckiest-of-many deflates toward
+  and below 0.5.
+- `probability_of_backtest_overfitting` - PBO via Combinatorially Symmetric
+  Cross-Validation (Bailey-Borwein-LdP-Zhu 2017) over a (T observations x N
+  configs) panel.
+- OOS adapters `summarize_candidate_deflated_sharpe` / `portfolio_pbo_from_oos`:
+  the candidate OOS per-split expectancy-difference results ARE the panel the
+  deflation stack needs (rows = splits, columns = candidates), so DSR/PBO are
+  derived from already-computed research numbers, not a re-fit.
+
+No SciPy in the venv, so the standard-normal CDF uses `math.erf` and the inverse
+CDF uses Acklam's rational approximation (~1e-9). Research-only measurement: no
+trade authorization, no I/O, pure functions. Exported from `backtesting`.
+Tests: `tests/backtesting/test_deflated_sharpe.py` (20). Full suite: 864 passed,
+4 skipped. Wiring into the readiness gate is M109.
