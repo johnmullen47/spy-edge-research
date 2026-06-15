@@ -29,6 +29,26 @@
   (N-count correction / DSR methodology amendment) committed to `docs/`.
   **N-count correction implementation pending** (Option 1 / effective-N via ONC
   clustering) — to be commissioned as a separate milestone; not yet started.
+- **F1 data-construction amendment:** `RESEARCH_G_AMENDMENT_1_Data_Construction_Decisions.md`
+  committed (`41e29a1`). Locks: SPX-based GEX primary (4→2 trial cells), exclude
+  0DTE (≥1DTE only), **gamma = Polygon-provided Greeks** (primary), data source
+  Polygon.io options (2016+).
+- **⚠️ F1 BLOCKING GATE — SPX historical OI (2016–2021) verification: NEGATIVE /
+  UNCERTAIN → CBOE fallback flagged to Dispatch.** Documentation-only check (no
+  Polygon API key in repo secrets — only `secrets/alpaca.env` — so the 2018-01-15
+  chain could not be fetched empirically). Findings: Polygon's deep options
+  history (2014/2016+) is **OPRA-sourced**, and OPRA flat files carry
+  trades/quotes/OHLCV but **not open interest**; OI is surfaced only via the v3
+  *snapshot* endpoint (a current/live view, per-contract). QuantConnect/Lean
+  explicitly warned "USA IndexOption OpenInterest data not supported" (later
+  patched to read the snapshot endpoint — still not a historical backfill). **No
+  Polygon documentation confirms continuous historical daily OI for SPX index
+  options pre-2022.** Fallback **CBOE DataShop** DOES cover it: the EOD Options
+  Summary includes `open_interest` for `^SPX` from 2005–2019 (no Greeks), and
+  "EOD Option Quotes with Calcs" carries newer data with Greeks/IV. **Action for
+  Dispatch:** F1 should NOT proceed on Polygon-for-OI alone for 2016–2021 without
+  either (a) a Polygon API key to empirically confirm pre-2022 OI, or (b)
+  adopting CBOE DataShop as the OI source.
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
