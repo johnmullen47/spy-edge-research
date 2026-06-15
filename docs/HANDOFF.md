@@ -25,6 +25,10 @@
   research dir (the Cowork research-drop folder — NOT a git worktree).
 - **Full suite:** `941 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
 - **Latest ledger milestone:** M118 (`PROJECT_MILESTONES.md`)
+- **Research docs:** `RESEARCH_G` (F1 options-data sourcing) and `RESEARCH_H`
+  (N-count correction / DSR methodology amendment) committed to `docs/`.
+  **N-count correction implementation pending** (Option 1 / effective-N via ONC
+  clustering) — to be commissioned as a separate milestone; not yet started.
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
