@@ -1,22 +1,23 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M115 complete; Codex branch). **Re-verify the
-> live state before trusting any specific number here** — this repo has had
+> project. Last updated 2026-06-15 (M115 merged to main; Build Master). **Re-verify
+> the live state before trusting any specific number here** — this repo has had
 > concurrent writers (see §1).
 
 ## 0. Verified snapshot at handoff
 
-- **Branch:** `codex/hard-gate-a-mim` pending Build Master review.
-- **HEAD basis:** `2d2358d` — `docs: update HANDOFF to M114`
-- **Current milestone:** **M115 complete on branch.** The Hard Gate A driver now
-  includes the MIM family; the default real-data run evaluated 54 candidates and
-  found 0 eligible. Next: Build Master review/PR, and separately wiring the
-  regime-aware cost into the economic gate.
+- **Branch:** `main`
+- **HEAD:** `52ae2f5` — `M115: extend Hard Gate A to include MIM (include_intraday_momentum=True)`
+- **Current milestone:** **M115 complete and merged to `main`** (PR #1, reviewed by
+  Build Master, fast-forward merge). The Hard Gate A driver now includes the MIM
+  family; the default real-data run evaluated 54 candidates and found 0 eligible.
+  Next: separately wiring the M114 regime-aware cost into the economic gate, and any
+  owner-dispatched implementation of the F1/F2 pre-registrations.
 - **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
   docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
-  research dir; M115 code/test/ledger changes are on `codex/hard-gate-a-mim`
-  pending review/PR.
+  research dir (the Cowork research-drop folder — NOT a git worktree); all M115
+  code/test/ledger changes are committed and pushed to `origin/main`.
 - **Full suite:** `914 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
 - **Latest ledger milestone:** M115 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
