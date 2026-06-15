@@ -3248,3 +3248,66 @@ Conclusion: MIM is now evaluated by the Hard Gate A driver, but the default IEX
 real-data run still produced **no validated edge**. Broker/live layers remain
 OFF. This milestone does not touch broker/live code, does not lower the gate, and
 does not authorize action. SPA/Hansen remains deferred.
+
+## Milestone 117 - MIM parameter iteration
+
+Codex branch `codex/mim-iteration`. This milestone expands the Path-2
+regime-conditioned intraday-momentum family without lowering Hard Gate A or
+hiding trials from the DSR budget.
+
+Parameter expansion:
+
+- Adds two frozen theory-guided MIM parameter cells:
+  - `q75_w15_e30`: 09:30-09:45 predictor window, 10:00 decision/entry, trailing
+    top-quartile realized-volatility gate (`high_vol_quantile=0.75`).
+  - `q70_w45_e45`: 09:30-10:15 predictor window and decision/entry, trailing
+    top-30% realized-volatility gate (`high_vol_quantile=0.70`).
+- Each cell emits only gated long/short events:
+  - `event_mim_long_q75_w15_e30`
+  - `event_mim_short_q75_w15_e30`
+  - `event_mim_long_q70_w45_e45`
+  - `event_mim_short_q70_w45_e45`
+- Across the standard 5/15/30 minute labels, these four event columns add 12
+  candidates. Current MIM-enabled Hard Gate A trial count moves from 54 to 66.
+
+Implementation:
+
+- `signal_engine/intraday_momentum_features.py`: adds delayed-entry support,
+  `IntradayMomentumVariantSpec`, the frozen `MIM_PARAMETER_ITERATION_SPECS`, and
+  `add_intraday_momentum_parameter_iteration_features`.
+- `cli/pipeline.py`: when `include_intraday_momentum=True`, the pipeline appends
+  the frozen M117 parameter-iteration columns by default, so every emitted variant
+  enters the event study, candidate registry, OOS validation, DSR/PBO, and
+  readiness gate. No variant is excluded from N.
+- `signal_engine/__init__.py`: exports the new spec/helper.
+- Tests cover delayed-entry causality, frozen variant names, catalog direction
+  inference, pipeline registry inclusion, and the M115 Hard Gate driver.
+
+Verification:
+
+- Focused suite:
+  `.venv/bin/python -m pytest tests/signal_engine/test_intraday_momentum_features.py tests/signal_engine/test_event_catalog.py tests/cli/test_pipeline.py tests/scripts/test_run_hard_gate_a.py`
+  -> 27 passed.
+- Full suite: `.venv/bin/python -m pytest -q` -> 917 passed, 4 skipped.
+
+Default real-data Hard Gate A run:
+
+```bash
+.venv/bin/python scripts/run_hard_gate_a.py --input data/raw/spy_1min.csv --output reports
+```
+
+Result:
+
+- Run directory: `reports/run_20260615T183644Z`.
+- Input bars: 189,663.
+- Event columns: 22.
+- Candidate count: 66.
+- Portfolio PBO: 0.10652680652680653.
+- Readiness verdict counts: `{"not_ready": 66}`.
+- Eligible candidates: 0.
+
+Conclusion: the expanded MIM parameter space is now evaluated by the unchanged
+Hard Gate A driver, and the default IEX real-data run still produced **no
+validated edge**. Broker/live layers remain OFF. This milestone does not touch
+broker/live code, does not lower the gate, and does not authorize action.
+SPA/Hansen remains deferred.

@@ -18,7 +18,7 @@ forward_* columns are used as evaluation labels only, never as event inputs.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -35,6 +35,7 @@ from spy_edge_research.indicators.volume import calculate_volume_features
 from spy_edge_research.signal_engine.events import add_basic_event_primitives
 from spy_edge_research.signal_engine.named_events import add_named_event_features
 from spy_edge_research.signal_engine.intraday_momentum_features import (
+    add_intraday_momentum_parameter_iteration_features,
     add_intraday_momentum_features,
 )
 from spy_edge_research.signal_engine.event_catalog import build_named_event_catalog
@@ -128,6 +129,10 @@ class PipelineConfig:
     mim_session_close: str = "16:00"
     mim_realized_vol_lookback_days: int = 20
     mim_high_vol_quantile: float = 0.66
+    # M117: add the frozen two-spec MIM parameter-iteration cells when MIM is
+    # enabled. This adds four event columns, or 12 candidates across 5/15/30m,
+    # and every emitted variant flows into the registry and DSR trial count.
+    mim_include_parameter_iteration: bool = True
 
 
 @dataclass
@@ -192,6 +197,14 @@ def run_pipeline(
             realized_vol_lookback_days=cfg.mim_realized_vol_lookback_days,
             high_vol_quantile=cfg.mim_high_vol_quantile,
         )
+        if cfg.mim_include_parameter_iteration:
+            df = add_intraday_momentum_parameter_iteration_features(
+                df,
+                timezone=cfg.timezone,
+                session_open=cfg.mim_session_open,
+                session_close=cfg.mim_session_close,
+                realized_vol_lookback_days=cfg.mim_realized_vol_lookback_days,
+            )
     event_columns = [c for c in df.columns if c.startswith("event_")]
     record("events", "ok", event_column_count=len(event_columns))
 

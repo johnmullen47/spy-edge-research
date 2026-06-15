@@ -37,6 +37,8 @@ authorization. Descriptive context columns only.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
 
@@ -45,6 +47,37 @@ MIM_EVENT_PREFIX = "event_mim_"
 VOL_REGIME_HIGH = "high"
 VOL_REGIME_NORMAL = "normal"
 VOL_REGIME_UNKNOWN = "unknown"
+
+
+@dataclass(frozen=True)
+class IntradayMomentumVariantSpec:
+    """Frozen MIM parameter-iteration cell.
+
+    Each spec contributes exactly two gated event columns (long/short). Across
+    the standard 5/15/30 minute labels that is six candidate hypotheses, so the
+    default M117 iteration set below adds 12 candidates total.
+    """
+
+    suffix: str
+    momentum_window_end: str
+    entry_time: str
+    high_vol_quantile: float
+
+
+MIM_PARAMETER_ITERATION_SPECS: tuple[IntradayMomentumVariantSpec, ...] = (
+    IntradayMomentumVariantSpec(
+        suffix="q75_w15_e30",
+        momentum_window_end="09:45",
+        entry_time="10:00",
+        high_vol_quantile=0.75,
+    ),
+    IntradayMomentumVariantSpec(
+        suffix="q70_w45_e45",
+        momentum_window_end="10:15",
+        entry_time="10:15",
+        high_vol_quantile=0.70,
+    ),
+)
 
 
 def add_intraday_momentum_features(
@@ -56,9 +89,12 @@ def add_intraday_momentum_features(
     timezone: str = "America/New_York",
     session_open: str = "09:30",
     momentum_window_end: str = "10:00",
+    entry_time: str | None = None,
     session_close: str = "16:00",
     realized_vol_lookback_days: int = 20,
     high_vol_quantile: float = 0.66,
+    event_suffix: str = "",
+    include_ungated_events: bool = True,
 ) -> pd.DataFrame:
     """Add causal regime-conditioned intraday-momentum features and event columns.
 
@@ -84,13 +120,17 @@ def add_intraday_momentum_features(
     _require_columns(df, [timestamp_col, open_col, close_col])
     _validate_positive_int(realized_vol_lookback_days, "realized_vol_lookback_days")
     _validate_quantile(high_vol_quantile, "high_vol_quantile")
+    _validate_event_suffix(event_suffix)
 
     open_min = _minute_of_day_from_clock(session_open, "session_open")
     end_min = _minute_of_day_from_clock(momentum_window_end, "momentum_window_end")
+    entry_clock = entry_time or momentum_window_end
+    entry_min = _minute_of_day_from_clock(entry_clock, "entry_time")
     close_min = _minute_of_day_from_clock(session_close, "session_close")
-    if not open_min < end_min <= close_min:
+    if not open_min < end_min <= entry_min <= close_min:
         raise ValueError(
-            "clock boundaries must satisfy session_open < momentum_window_end <= session_close"
+            "clock boundaries must satisfy session_open < "
+            "momentum_window_end <= entry_time <= session_close"
         )
 
     result = df.copy()
@@ -114,55 +154,153 @@ def add_intraday_momentum_features(
     realized_var = squared.groupby(trading_date).cumsum()
     result["intraday_realized_vol_so_far"] = np.sqrt(realized_var)
 
-    # Decision bar: first regular-session bar at/after the window end, per day.
-    at_or_after_end = in_session & (minute_of_day >= end_min)
-    previously_after_end = (
-        at_or_after_end.groupby(trading_date).shift(1).fillna(False).astype(bool)
+    # Prediction-window bar: first regular-session bar at/after the window end.
+    window_end_bar = _first_bar_at_or_after(
+        in_session=in_session,
+        minute_of_day=minute_of_day,
+        trading_date=trading_date,
+        minute=end_min,
     )
-    decision_bar = at_or_after_end & (~previously_after_end)
-    result["mim_decision_bar"] = decision_bar
 
-    open_return = result["intraday_open_return"].where(decision_bar)
-    realized_vol = result["intraday_realized_vol_so_far"].where(decision_bar)
-    result["mim_open_return"] = open_return
-    result["mim_realized_vol"] = realized_vol
+    # Decision/entry bar: first regular-session bar at/after the entry time.
+    # Delayed-entry variants use only the window-end features, then wait until a
+    # later decision bar to emit the event.
+    decision_bar = _first_bar_at_or_after(
+        in_session=in_session,
+        minute_of_day=minute_of_day,
+        trading_date=trading_date,
+        minute=entry_min,
+    )
+    result[_suffixed("mim_decision_bar", event_suffix)] = decision_bar
 
-    threshold = _trailing_high_vol_threshold(
-        realized_vol,
-        decision_bar=decision_bar,
+    window_open_return = result["intraday_open_return"].where(window_end_bar)
+    window_realized_vol = result["intraday_realized_vol_so_far"].where(window_end_bar)
+
+    window_threshold = _trailing_high_vol_threshold(
+        window_realized_vol,
+        decision_bar=window_end_bar,
         trading_date=trading_date,
         lookback=realized_vol_lookback_days,
         quantile=high_vol_quantile,
     )
-    result["mim_vol_threshold"] = threshold
+
+    open_return = _map_window_value_to_decision_bar(
+        window_open_return, window_end_bar=window_end_bar, decision_bar=decision_bar, trading_date=trading_date
+    )
+    realized_vol = _map_window_value_to_decision_bar(
+        window_realized_vol, window_end_bar=window_end_bar, decision_bar=decision_bar, trading_date=trading_date
+    )
+    threshold = _map_window_value_to_decision_bar(
+        window_threshold, window_end_bar=window_end_bar, decision_bar=decision_bar, trading_date=trading_date
+    )
+
+    result[_suffixed("mim_open_return", event_suffix)] = open_return
+    result[_suffixed("mim_realized_vol", event_suffix)] = realized_vol
+    result[_suffixed("mim_vol_threshold", event_suffix)] = threshold
 
     high_vol = decision_bar & realized_vol.notna() & threshold.notna() & (
         realized_vol >= threshold
     )
-    result["mim_high_vol_regime"] = _safe_bool(high_vol, result.index)
-    result["mim_vol_regime"] = _vol_regime_label(
+    high_vol_col = _suffixed("mim_high_vol_regime", event_suffix)
+    result[high_vol_col] = _safe_bool(high_vol, result.index)
+    result[_suffixed("mim_vol_regime", event_suffix)] = _vol_regime_label(
         decision_bar=decision_bar,
         threshold=threshold,
-        high_vol=result["mim_high_vol_regime"],
+        high_vol=result[high_vol_col],
         index=result.index,
     )
 
     positive = decision_bar & (open_return > 0)
     negative = decision_bar & (open_return < 0)
-    result["event_mim_long_all"] = _safe_bool(positive, result.index)
-    result["event_mim_short_all"] = _safe_bool(negative, result.index)
-    result["event_mim_long"] = _safe_bool(
-        positive & result["mim_high_vol_regime"], result.index
+    if include_ungated_events:
+        result[_suffixed("event_mim_long_all", event_suffix)] = _safe_bool(
+            positive, result.index
+        )
+        result[_suffixed("event_mim_short_all", event_suffix)] = _safe_bool(
+            negative, result.index
+        )
+    result[_suffixed("event_mim_long", event_suffix)] = _safe_bool(
+        positive & result[high_vol_col], result.index
     )
-    result["event_mim_short"] = _safe_bool(
-        negative & result["mim_high_vol_regime"], result.index
+    result[_suffixed("event_mim_short", event_suffix)] = _safe_bool(
+        negative & result[high_vol_col], result.index
     )
+    return result
+
+
+def add_intraday_momentum_parameter_iteration_features(
+    df: pd.DataFrame,
+    *,
+    specs: tuple[IntradayMomentumVariantSpec, ...] = MIM_PARAMETER_ITERATION_SPECS,
+    timestamp_col: str = "timestamp",
+    open_col: str = "open",
+    close_col: str = "close",
+    timezone: str = "America/New_York",
+    session_open: str = "09:30",
+    session_close: str = "16:00",
+    realized_vol_lookback_days: int = 20,
+) -> pd.DataFrame:
+    """Append the frozen M117 MIM parameter-iteration event columns.
+
+    The default iteration deliberately adds only two specs, each long/short only,
+    so the 5/15/30 minute pipeline adds 12 candidate hypotheses rather than an
+    open-ended grid. Ungated baselines are not emitted for these variants; every
+    emitted event column flows into the candidate registry and DSR trial count.
+    """
+    result = df.copy()
+    for spec in specs:
+        result = add_intraday_momentum_features(
+            result,
+            timestamp_col=timestamp_col,
+            open_col=open_col,
+            close_col=close_col,
+            timezone=timezone,
+            session_open=session_open,
+            momentum_window_end=spec.momentum_window_end,
+            entry_time=spec.entry_time,
+            session_close=session_close,
+            realized_vol_lookback_days=realized_vol_lookback_days,
+            high_vol_quantile=spec.high_vol_quantile,
+            event_suffix=spec.suffix,
+            include_ungated_events=False,
+        )
     return result
 
 
 def find_intraday_momentum_event_columns(df: pd.DataFrame) -> list[str]:
     """Return the MIM event columns present in ``df`` (sorted, deterministic)."""
     return sorted(c for c in df.columns if c.startswith(MIM_EVENT_PREFIX))
+
+
+def _first_bar_at_or_after(
+    *,
+    in_session: pd.Series,
+    minute_of_day: pd.Series,
+    trading_date: pd.Series,
+    minute: int,
+) -> pd.Series:
+    at_or_after = in_session & (minute_of_day >= minute)
+    previously_after = at_or_after.groupby(trading_date).shift(1).fillna(False).astype(bool)
+    return at_or_after & (~previously_after)
+
+
+def _map_window_value_to_decision_bar(
+    values: pd.Series,
+    *,
+    window_end_bar: pd.Series,
+    decision_bar: pd.Series,
+    trading_date: pd.Series,
+) -> pd.Series:
+    result = pd.Series(np.nan, index=values.index, dtype="float64")
+    window_idx = window_end_bar[window_end_bar].index
+    if len(window_idx) == 0:
+        return result
+    by_date = pd.Series(values.loc[window_idx].to_numpy(), index=trading_date.loc[window_idx])
+    decision_idx = decision_bar[decision_bar].index
+    if len(decision_idx) == 0:
+        return result
+    result.loc[decision_idx] = trading_date.loc[decision_idx].map(by_date).to_numpy()
+    return result
 
 
 def _trailing_high_vol_threshold(
@@ -247,3 +385,14 @@ def _validate_positive_int(value: int, name: str) -> None:
 def _validate_quantile(value: float, name: str) -> None:
     if not isinstance(value, (int, float)) or isinstance(value, bool) or not 0.0 < value < 1.0:
         raise ValueError(f"{name} must be a float in the open interval (0, 1)")
+
+
+def _validate_event_suffix(value: str) -> None:
+    if not isinstance(value, str):
+        raise ValueError("event_suffix must be a string")
+    if value and not value.replace("_", "").isalnum():
+        raise ValueError("event_suffix may contain only letters, numbers, and underscores")
+
+
+def _suffixed(name: str, suffix: str) -> str:
+    return name if not suffix else f"{name}_{suffix}"

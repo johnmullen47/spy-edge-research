@@ -1,24 +1,25 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M115 complete; Codex branch). **Re-verify the
+> project. Last updated 2026-06-15 (M117 complete; Codex branch). **Re-verify the
 > live state before trusting any specific number here** — this repo has had
 > concurrent writers (see §1).
 
 ## 0. Verified snapshot at handoff
 
-- **Branch:** `codex/hard-gate-a-mim` pending Build Master review.
-- **HEAD basis:** `2d2358d` — `docs: update HANDOFF to M114`
-- **Current milestone:** **M115 complete on branch.** The Hard Gate A driver now
-  includes the MIM family; the default real-data run evaluated 54 candidates and
+- **Branch:** `codex/mim-iteration` pending Build Master review.
+- **HEAD basis:** `52ae2f5` — `M115: extend Hard Gate A to include MIM (include_intraday_momentum=True)`
+- **Current milestone:** **M117 complete on branch.** The MIM family now includes
+  two theory-guided parameter-iteration cells (4 event columns, 12 candidates
+  across 5/15/30m). Default real-data Hard Gate A evaluated 66 candidates and
   found 0 eligible. Next: Build Master review/PR, and separately wiring the
   regime-aware cost into the economic gate.
 - **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
   docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
-  research dir; M115 code/test/ledger changes are on `codex/hard-gate-a-mim`
+  research dir; M117 code/test/ledger changes are on `codex/mim-iteration`
   pending review/PR.
-- **Full suite:** `914 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
-- **Latest ledger milestone:** M115 (`PROJECT_MILESTONES.md`)
+- **Full suite:** `917 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
+- **Latest ledger milestone:** M117 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
@@ -64,6 +65,15 @@ decision (see `Auto-Trader Build/`):
   (`data/raw/spy_1min.csv`, 189,663 bars) produced 18 event columns, 54 candidates,
   portfolio PBO 0.1065, and **0 eligible** candidates. This did not lower or bypass
   the gate; broker layers stay OFF.
+- **M117 — MIM parameter iteration.** Adds exactly two theory-guided MIM
+  parameter cells: `q75_w15_e30` (09:30-09:45 predictor, 10:00 entry, top-quartile
+  trailing vol gate) and `q70_w45_e45` (09:30-10:15 predictor/entry, top-30%
+  trailing vol gate). Each emits only gated long/short event columns; no ungated
+  extras. Across the 5/15/30m labels this adds 12 candidates, taking the default
+  MIM-enabled Hard Gate A run from 54 to 66 candidates. Default IEX run
+  (`data/raw/spy_1min.csv`, 189,663 bars) produced 22 event columns, 66 candidates,
+  portfolio PBO 0.1065, and **0 eligible** candidates. This did not lower or bypass
+  the gate; broker layers stay OFF.
 
 Deferred / tracked: SPA (Hansen, report-only per §4.3), SIP-quality/alternate
 real-data MIM runs if desired, and wiring the M114 regime-aware cost model into
@@ -90,12 +100,12 @@ the economic gate.
 - **RESEARCH_E** (`docs/RESEARCH_E_TypeI_TypeII_Signal_Discovery.md`, committed `28a51ed`)
   — Type I/II tension + two-stage discovery funnel (non-authorizing Stage-0 pre-screen
   with honest-N ledger → unchanged Stage-1 harness). No gate changes; Hard Gate A stays.
-- **Pending from Cowork Master Agent:** RESEARCH_F (signal-discovery survey) and Task 3
-  (per-hypothesis pre-registration docs) — to be reviewed/committed by Build Master
-  before any new implementation milestone starts.
+- **RESEARCH_F** and pre-registration docs F1/F2 are committed on `main`. F1
+  (gamma-gated MIM) is blocked pending options-chain data; F2 is end-of-day
+  reversal. Treat them as research specs, not authorization.
 
 **Operational MIM Hard Gate A result:** the default IEX real-data run
-(`reports/run_20260615T180758Z`) evaluated 54 candidates with MIM enabled and
+(`reports/run_20260615T183644Z`) evaluated 66 candidates with MIM iteration enabled and
 found **0 eligible**. Per RESEARCH_C §4–5, this is a valid null result, not a
 system failure. Broker layers stay OFF.
 

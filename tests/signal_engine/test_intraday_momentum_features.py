@@ -5,6 +5,8 @@ import pandas as pd
 import pytest
 
 from spy_edge_research.signal_engine import (
+    MIM_PARAMETER_ITERATION_SPECS,
+    add_intraday_momentum_parameter_iteration_features,
     add_intraday_momentum_features,
     find_intraday_momentum_event_columns,
 )
@@ -118,6 +120,51 @@ def test_event_columns_gate_and_only_fire_on_decision_bars():
         assert (fired["mim_open_return"] > 0).all()
     # Long and short are mutually exclusive.
     assert not (out["event_mim_long_all"] & out["event_mim_short_all"]).any()
+
+
+def test_delayed_entry_variant_uses_window_end_features_at_later_decision_bar():
+    df = _frame([(0.0001, 0.0002)] * 5 + [(0.0005, 0.0030)])
+    out = add_intraday_momentum_features(
+        df,
+        momentum_window_end="09:45",
+        entry_time="10:00",
+        realized_vol_lookback_days=5,
+        high_vol_quantile=0.75,
+        event_suffix="q75_w15_e30",
+        include_ungated_events=False,
+    )
+
+    decision = out[out["mim_decision_bar_q75_w15_e30"]].reset_index(drop=True)
+    last = decision.iloc[-1]
+    assert last["timestamp"].hour == 10
+    assert last["timestamp"].minute == 0
+
+    final_day = df[df["timestamp"].dt.date == last["timestamp"].date()].reset_index(drop=True)
+    close_at_945 = final_day.loc[15, "close"]
+    assert last["mim_open_return_q75_w15_e30"] == pytest.approx(
+        close_at_945 / 100.0 - 1.0
+    )
+    assert "event_mim_long_all_q75_w15_e30" not in out.columns
+    assert "event_mim_short_all_q75_w15_e30" not in out.columns
+
+
+def test_parameter_iteration_adds_two_frozen_specs_four_event_columns():
+    df = _frame([(0.0001, 0.0002)] * 5 + [(0.0005, 0.0030), (-0.0005, 0.0030)])
+    out = add_intraday_momentum_parameter_iteration_features(
+        df, realized_vol_lookback_days=5
+    )
+    cols = find_intraday_momentum_event_columns(out)
+
+    expected = {
+        "event_mim_long_q75_w15_e30",
+        "event_mim_short_q75_w15_e30",
+        "event_mim_long_q70_w45_e45",
+        "event_mim_short_q70_w45_e45",
+    }
+    assert expected <= set(cols)
+    assert len(MIM_PARAMETER_ITERATION_SPECS) == 2
+    assert not any(col.endswith("_all_q75_w15_e30") for col in cols)
+    assert not any(col.endswith("_all_q70_w45_e45") for col in cols)
 
 
 def test_long_and_short_split_by_open_return_sign():
