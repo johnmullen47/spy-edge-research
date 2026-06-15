@@ -18,6 +18,11 @@ from spy_edge_research.simulation.contracts import (
     validate_sim_field_name,
     validate_sim_report,
 )
+from spy_edge_research.simulation.cost_model import (
+    DEFAULT_TIME_OF_DAY_MULTIPLIERS,
+    DEFAULT_VOL_REGIME_MULTIPLIERS,
+    RegimeAwareCostModel,
+)
 from spy_edge_research.simulation.execution_model import ExecutionModel
 from spy_edge_research.simulation.position_sim import simulate_candidate_positions
 from spy_edge_research.simulation.pnl import (
@@ -42,6 +47,9 @@ __all__ = [
     "validate_sim_field_name",
     "validate_sim_report",
     "ExecutionModel",
+    "RegimeAwareCostModel",
+    "DEFAULT_TIME_OF_DAY_MULTIPLIERS",
+    "DEFAULT_VOL_REGIME_MULTIPLIERS",
     "simulate_candidate_positions",
     "build_equity_curve",
     "build_trade_ledger",

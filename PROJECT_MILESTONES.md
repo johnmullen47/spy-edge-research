@@ -3163,3 +3163,44 @@ Still out of scope / tracked for a later milestone: SPA (Hansen) — report-only
 RESEARCH_C §4.3 L336 — and the operational Hard Gate A run of the MIM family on
 real SPY data (extend `scripts/run_hard_gate_a.py` with
 `include_intraday_momentum=True`).
+
+## Milestone 114 - regime-aware cost model (binding economic control)
+
+RESEARCH_C_DECISION.md §4.5. The flat round-trip charge (M107) is the honest
+floor but **flatters a volatility-gated strategy**: the MIM edge concentrates on
+high-vol days, and so do spreads and slippage, so a flat low cost books a phantom
+edge. §4.5 prohibits a flat low cost for the economic evaluation and requires:
+
+`cost_bps(t) = half_spread_bps(t) + k·σ_intraday(t) + impact_sqrt(Q/ADV)`
+
+made **time-of-day and VIX-regime aware**, with cost charged **at point-of-fill**.
+
+New pure module `simulation/cost_model.py` — `RegimeAwareCostModel`:
+- `half_spread_bps(t) = base · time_of_day_mult[bucket] · vol_regime_mult[regime]`.
+  Time-of-day reuses the seven `backtesting.time_of_day` session buckets (U-shape:
+  `open`/`power_hour` widest, midday tightest, `outside_regular` widest of all).
+  VIX regime uses the `volatility_regime` proxy (low/normal/high; no real VIX in
+  the SPY 1-min data) — `None` → `normal_volatility`.
+- `k·σ_intraday(t)` — the continuous realized-vol term that makes cost co-move
+  with the edge (negative/NaN sigma floored to 0).
+- `impact_sqrt(Q/ADV)` — square-root market impact (opt-in; default coef 0).
+- `cost_bps(...)` returns the **one-way** (per-fill) charge; `cost_bps_at(ts, ...)`
+  derives the session bucket from a bar-close timestamp. Pure, deterministic,
+  research-only — no I/O, no randomness, no trade authorization.
+
+Integrated into `simulation/position_sim.simulate_candidate_positions` behind an
+optional `cost_model` arg (with `intraday_vol_col`, `volatility_regime_col`,
+`sigma_scale_to_bps`). When supplied, the round trip is charged per-fill at the
+entry-bar and exit-bar regimes (point-of-fill); when `None`, the flat
+`ExecutionModel` behaviour is byte-for-byte unchanged. **Hard Gate A unchanged** —
+this milestone builds the control; wiring it into the economic-significance
+evaluation is a separate, later step.
+
+Tests: `tests/simulation/test_cost_model.py` (21) — monotonic-in-vol, U-shaped
+time-of-day, VIX-regime ordering, sqrt impact, fail-loud validation, and the §4.5
+co-movement end-to-end (high-vol fill costs more; a gross-positive trade can go
+net-negative; flat-path equivalence). Full suite: 913 passed, 4 skipped.
+
+Still out of scope / tracked: SPA (Hansen, report-only per §4.3), wiring the
+regime-aware cost into the actual Hard Gate A economic evaluation, and the
+operational MIM Hard-Gate-A run on real SPY data.
