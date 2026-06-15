@@ -1,7 +1,7 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M118 merged to main; Build Master).
+> project. Last updated 2026-06-15 (M119 merged to main; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
@@ -24,7 +24,20 @@
   docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
   research dir (the Cowork research-drop folder — NOT a git worktree).
 - **Full suite:** `941 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
-- **Latest ledger milestone:** M118 (`PROJECT_MILESTONES.md`)
+- **Current milestone:** **M119 complete on `main`** (effective-N via ONC
+  clustering, RESEARCH_H). The Deflated Sharpe cross-trial N moved from
+  `len(registry)` (=100) to the **effective number of independent trials** via ONC
+  clustering of candidate return streams, bounded `[family_count=2, total=100]`,
+  with `sigma_SR` over cluster representatives and a within-cluster Holm screen.
+  New `backtesting/effective_n.py` (pure-numpy ONC fallback = UPGMA average-linkage
+  + silhouette-optimal K). **Supersedes the "N = every cell" clause of RESEARCH_C
+  §4.3 / M109 for the cross-trial DSR input ONLY**; DSR>=0.95, PBO<=0.50, and all
+  other gates/thresholds unchanged. Re-run Hard Gate A (IEX, MIM + F2,
+  `run_20260615T230931Z`): **effective-N = 2** (silhouette K=2 = the two a-priori
+  families; clipped to the floor), Holm survivors 1/2, PBO 0.3303, verdicts
+  `{not_ready: 100}` → **0 eligible**. N fell from 100 to its principled floor of 2
+  and **still 0/100 eligible** — the null is robust to the N-count correction.
+- **Latest ledger milestone:** M119 (`PROJECT_MILESTONES.md`)
 - **Research docs:** `RESEARCH_G` (F1 options-data sourcing) and `RESEARCH_H`
   (N-count correction / DSR methodology amendment) committed to `docs/`.
   **N-count correction implementation pending** (Option 1 / effective-N via ONC
@@ -171,11 +184,17 @@ the economic gate.
   (gamma-gated MIM) is blocked pending options-chain data; F2 is end-of-day
   reversal. Treat them as research specs, not authorization.
 
-**Operational Hard Gate A result (M118, MIM + F2):** the default IEX real-data run
-(`run_20260615T191621Z`) evaluated **100 candidates** with MIM iteration **and** the
-F2 end-of-day reversal family both enabled and found **0 eligible** (portfolio PBO
-0.3303, 26 event columns, ~253 s wall-clock). Per RESEARCH_C §4–5, this is a valid
-null result, not a system failure. Broker layers stay OFF.
+**Operational Hard Gate A result (M119, MIM + F2, effective-N):** the default IEX
+real-data run (`run_20260615T230931Z`) evaluated **100 candidates** with the
+RESEARCH_H effective-N correction active — DSR N = **2** (ONC clusters K=2, clipped
+to the family floor; down from the M118 N=100), within-cluster Holm survivors
+**1/2**, portfolio PBO **0.3303** — and still found **0 eligible**
+(`{not_ready: 100}`). Even at the *most lenient principled N the methodology
+allows*, the candidates fail on grounds other than trial-count inflation. Per
+RESEARCH_C §4–5 / RESEARCH_H, this is a valid null result, not a system failure;
+the amendment changed one DSR input (derivable from the DSR's own definition) and
+lowered nothing else. Broker layers stay OFF. (Prior M118 run, pre-correction,
+N=100: `run_20260615T191621Z`, also 0 eligible.)
 
 ### Hard Gate A — RAN, definitive negative result (no validated edge)
 
