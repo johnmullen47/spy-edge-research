@@ -1,49 +1,27 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-<<<<<<< HEAD
-> project. Last updated 2026-06-15 (M116 on branch, PR pending; Build Master).
+> project. Last updated 2026-06-15 (M116 + M117 merged to main; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
 ## 0. Verified snapshot at handoff
 
-- **Branch:** `main` is at `52ae2f5` (M115). **M116 (end-of-day reversal / F2) is
-  complete on `milestone/M116`, PR open, pending review** — built in a private
-  worktree per the worktree protocol (§1).
-- **HEAD (main):** `52ae2f5` — `M115: extend Hard Gate A to include MIM`. M116 adds
-  `signal_engine/end_of_day_reversal_features.py` +
-  `backtesting/end_of_day_reversal_placebos.py` + a pipeline flag.
-- **Current milestone:** **M116 (F2) on branch.** Price-only end-of-day reversal
-  (PREREG_F2), no regime gate, through the SAME gate as MIM; binding control is the
-  cost/bounce test. Next: review/merge M116; separately wire the M114 regime-aware
-  cost into the economic gate; F1 (gamma-gated) remains blocked on option data.
+- **Branch:** `main`
+- **HEAD:** `main` includes **M116 (end-of-day reversal / F2)** and **M117 (MIM
+  parameter iteration)** — PR #3 (M116) fast-forwarded, PR #2 (M117) merged; both
+  landed by Build Master via private worktrees per the worktree protocol (§1).
+- **Current milestone:** **M116 + M117 complete on `main`.** M117 took the default
+  MIM-enabled Hard Gate A run from 54 → **66 candidates, 0 eligible** (portfolio PBO
+  0.1065). M116 adds the price-only F2 reversal family + its binding bounce/cost
+  control, **opt-in** via `include_end_of_day_reversal` (default off; not yet in the
+  default Hard-Gate-A driver). Next: separately wire the M114 regime-aware cost into
+  the economic gate; F1 (gamma-gated) remains blocked on option data.
 - **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
   docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
   research dir (the Cowork research-drop folder — NOT a git worktree).
-- **Full suite:** `938 passed, 4 skipped` on `milestone/M116` (`.venv/bin/python -m pytest -q`; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
-- **Latest ledger milestone:** M116 (`PROJECT_MILESTONES.md`, on branch)
-=======
-> project. Last updated 2026-06-15 (M117 complete; Codex branch). **Re-verify the
-> live state before trusting any specific number here** — this repo has had
-> concurrent writers (see §1).
-
-## 0. Verified snapshot at handoff
-
-- **Branch:** `codex/mim-iteration` pending Build Master review.
-- **HEAD basis:** `52ae2f5` — `M115: extend Hard Gate A to include MIM (include_intraday_momentum=True)`
-- **Current milestone:** **M117 complete on branch.** The MIM family now includes
-  two theory-guided parameter-iteration cells (4 event columns, 12 candidates
-  across 5/15/30m). Default real-data Hard Gate A evaluated 66 candidates and
-  found 0 eligible. Next: Build Master review/PR, and separately wiring the
-  regime-aware cost into the economic gate.
-- **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
-  docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
-  research dir; M117 code/test/ledger changes are on `codex/mim-iteration`
-  pending review/PR.
-- **Full suite:** `917 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
+- **Full suite:** `941 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
 - **Latest ledger milestone:** M117 (`PROJECT_MILESTONES.md`)
->>>>>>> origin/codex/mim-iteration
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
@@ -89,9 +67,8 @@ decision (see `Auto-Trader Build/`):
   (`data/raw/spy_1min.csv`, 189,663 bars) produced 18 event columns, 54 candidates,
   portfolio PBO 0.1065, and **0 eligible** candidates. This did not lower or bypass
   the gate; broker layers stay OFF.
-<<<<<<< HEAD
-- **M116 — end-of-day reversal (F2), on `milestone/M116` (PR pending).** Price-only
-  reversal per `docs/PREREG_F2_end_of_day_reversal.md`: decision bar at 15:00,
+- **M116 — end-of-day reversal (F2).** Price-only reversal per
+  `docs/PREREG_F2_end_of_day_reversal.md`: decision bar at 15:00,
   `r_pre`=log(close15/close14), primary `-sign(r_pre)` resolved at the to-close (60m)
   horizon; no regime gate. `signal_engine/end_of_day_reversal_features.py` emits
   `event_eod_reversal_*` (primary + a conviction-gated proxy for the magnitude-scaled
@@ -101,8 +78,7 @@ decision (see `Auto-Trader Build/`):
   random-direction placebos. Flows through the SAME gate via
   `PipelineConfig.include_end_of_day_reversal` (default off); appends the 60m horizon
   so it resolves at the close. DSR N=len(registry) unchanged (F2 honestly raises N).
-  Hard Gate A unchanged. Suite 938.
-=======
+  Hard Gate A unchanged.
 - **M117 — MIM parameter iteration.** Adds exactly two theory-guided MIM
   parameter cells: `q75_w15_e30` (09:30-09:45 predictor, 10:00 entry, top-quartile
   trailing vol gate) and `q70_w45_e45` (09:30-10:15 predictor/entry, top-30%
@@ -112,7 +88,6 @@ decision (see `Auto-Trader Build/`):
   (`data/raw/spy_1min.csv`, 189,663 bars) produced 22 event columns, 66 candidates,
   portfolio PBO 0.1065, and **0 eligible** candidates. This did not lower or bypass
   the gate; broker layers stay OFF.
->>>>>>> origin/codex/mim-iteration
 
 Deferred / tracked: SPA (Hansen, report-only per §4.3), SIP-quality/alternate
 real-data MIM runs if desired, and wiring the M114 regime-aware cost model into
