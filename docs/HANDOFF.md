@@ -1,17 +1,49 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-13 (after M100). **Re-verify the live state before
-> trusting any specific number here** — this repo has had concurrent writers (see §1).
+> project. Last updated 2026-06-15 (after M111, Build 4). **Re-verify the live state
+> before trusting any specific number here** — this repo has had concurrent writers
+> (see §1).
 
 ## 0. Verified snapshot at handoff
 
 - **Branch:** `main`
-- **HEAD:** `e30d675` — `M107: slippage in the execution model`
-- **Working tree:** clean
-- **Full suite:** `844 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib)
-- **Latest ledger milestone:** M107 (`PROJECT_MILESTONES.md`)
+- **HEAD:** `M111: wire the intraday-momentum family through Hard Gate A + regime study`
+- **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
+  docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
+  research dir; Build 4's code/test/ledger changes are all committed and pushed.
+- **Full suite:** `883 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib)
+- **Latest ledger milestone:** M111 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
+
+### Build 4 (M108–M111) — what changed this session
+
+Two constitutional amendments from the Cowork RESEARCH_D steelman / RESEARCH_C
+decision (see `Auto-Trader Build/`):
+
+- **Amendment 1 — modern anti-overfitting stack (M108–M109).** New
+  `backtesting/deflated_sharpe.py`: Probabilistic & Deflated Sharpe Ratio
+  (Bailey-López de Prado) + Probability of Backtest Overfitting via CSCV
+  (pure numpy, no SciPy). Wired into the readiness gate as two new criteria —
+  `max_pbo` (0.5) and `min_deflated_sharpe` (0.5) — **supplementing** the M106
+  BH/FDR multiple-testing gate. The pipeline derives DSR/PBO from the existing OOS
+  per-split expectancy-difference panel (Stage 9.25). The gate is now strictly
+  harder to pass; Hard Gate A stays NEGATIVE.
+- **Amendment 2 — regime-conditioned intraday momentum (M110–M111).** New
+  `signal_engine/intraday_momentum_features.py` (Path 2): a causal
+  open→window-end momentum-sign signal gated by a trailing realized-vol regime
+  threshold, emitting `event_mim_*` candidates. Opt-in
+  `PipelineConfig.include_intraday_momentum` routes them through the SAME
+  candidate/Hard-Gate-A pipeline (a new family, not a new gate).
+  `backtesting/intraday_momentum_study.py` adds the descriptive regime-conditioned
+  forward-outcome study + high-minus-all "regime lift".
+
+**Operational next step (no code):** run the MIM family through Hard Gate A on the
+real SPY data — extend `scripts/run_hard_gate_a.py` to pass
+`PipelineConfig(include_intraday_momentum=True)`. No MIM real-data run has been
+executed yet. Per RESEARCH_C §4–5, a positive result is not trusted until it
+clears the deflation stack (DSR/PBO) and a walk-forward on a calmer sub-period; if
+it fails, the correct verdict is the null. Broker layers stay OFF until then.
 
 ### Hard Gate A — RAN, definitive negative result (no validated edge)
 
@@ -64,8 +96,8 @@ Architecture map: [`ARCHITECTURE.md`](ARCHITECTURE.md). Governance/constraints:
 `../MASTER_PROJECT_BRIEF.md`, `../CODEX_MASTER_DESK.md`. Progress ledger:
 `../PROJECT_MILESTONES.md`.
 
-For the ChatGPT-side trading theory, research philosophy, signal vocabulary, and
-thesis context behind this repo, read
+For the ChatGPT-side trading theory, research philosophy, signal vocabulary,
+Break-Hold-Go / PRB context, and thesis context behind this repo, read
 [`CHATGPT_TRADING_THEORY_HANDOFF.md`](CHATGPT_TRADING_THEORY_HANDOFF.md). Treat
 it as the project "why," not as the live implementation ledger.
 

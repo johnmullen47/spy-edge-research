@@ -34,6 +34,9 @@ from spy_edge_research.indicators.bollinger import calculate_bollinger_bands
 from spy_edge_research.indicators.volume import calculate_volume_features
 from spy_edge_research.signal_engine.events import add_basic_event_primitives
 from spy_edge_research.signal_engine.named_events import add_named_event_features
+from spy_edge_research.signal_engine.intraday_momentum_features import (
+    add_intraday_momentum_features,
+)
 from spy_edge_research.signal_engine.event_catalog import build_named_event_catalog
 from spy_edge_research.backtesting.labels import add_forward_labels
 from spy_edge_research.backtesting.candidate_edges import (
@@ -114,6 +117,17 @@ class PipelineConfig:
     # ``eligible_for_paper_consideration``. When False the batteries are skipped
     # and the run discloses ``control_batteries_not_run_in_basic_pipeline``.
     run_control_batteries: bool = True
+    # When True the regime-conditioned intraday-momentum (MIM) family (Build 4
+    # Path 2) is added as additional causal ``event_mim_*`` candidates, so the new
+    # signal family flows through the SAME candidate / Hard-Gate-A pipeline — a new
+    # set of candidates through the same gate, not a new gate. Default off so
+    # existing chart-pattern runs are byte-for-byte unchanged.
+    include_intraday_momentum: bool = False
+    mim_session_open: str = "09:30"
+    mim_momentum_window_end: str = "10:00"
+    mim_session_close: str = "16:00"
+    mim_realized_vol_lookback_days: int = 20
+    mim_high_vol_quantile: float = 0.66
 
 
 @dataclass
@@ -168,6 +182,16 @@ def run_pipeline(
     # Stage 3: causal events
     df = add_basic_event_primitives(df)
     df = add_named_event_features(df)
+    if cfg.include_intraday_momentum:
+        df = add_intraday_momentum_features(
+            df,
+            timezone=cfg.timezone,
+            session_open=cfg.mim_session_open,
+            momentum_window_end=cfg.mim_momentum_window_end,
+            session_close=cfg.mim_session_close,
+            realized_vol_lookback_days=cfg.mim_realized_vol_lookback_days,
+            high_vol_quantile=cfg.mim_high_vol_quantile,
+        )
     event_columns = [c for c in df.columns if c.startswith("event_")]
     record("events", "ok", event_column_count=len(event_columns))
 

@@ -3074,3 +3074,36 @@ looks forward. Research-only feature engineering — no trade signal/order/sizin
 Exported from `signal_engine`. Tests:
 `tests/signal_engine/test_intraday_momentum_features.py` (7). Full suite: 875
 passed, 4 skipped. Pipeline + study wiring is M111.
+
+## Milestone 111 - wire the intraday-momentum family through Hard Gate A + regime study
+
+Build 4, Amendment 2 (completion). The M110 MIM family now flows through the SAME
+candidate / edge-measurement / readiness pipeline as every other family, and a
+descriptive regime-conditioned forward-outcome study summarizes it.
+
+- `signal_engine/event_catalog.py`: direction/family inference learns the MIM
+  naming — `event_mim_long*` -> `long`, `event_mim_short*` -> `short`, family
+  `intraday_momentum`. So MIM events are catalogued with the correct hypothesis
+  direction and become directional candidates (not `unknown`).
+- `cli/pipeline.py`: new opt-in `PipelineConfig.include_intraday_momentum` (+ MIM
+  window/lookback/quantile knobs). When True, Stage 3 adds the causal MIM features
+  so `event_mim_*` join `event_columns` -> the event study, candidate registry,
+  OOS, the M108/M109 deflation stack, and the readiness gate — a new set of
+  candidates through the same gate, not a new gate. Default off, so existing
+  chart-pattern runs and Hard Gate A are byte-for-byte unchanged.
+- `backtesting/intraday_momentum_study.py`: `summarize_intraday_momentum_outcomes`
+  (forward outcome by vol regime x direction, sign-adjusted for shorts),
+  `intraday_momentum_regime_lift` (high-minus-all directional mean — the
+  regime-conditioning quantity the thesis predicts to be positive), and a
+  report bundle + CSV export. Descriptive research only; allowed to show no edge.
+
+Causality preserved throughout: the signal/regime are features, the outcome is a
+`forward_*` label, never fed back. Tests:
+`tests/backtesting/test_intraday_momentum_study.py` (6) + 2 pipeline integration
+tests + updated catalog coverage. Full suite: 883 passed, 4 skipped.
+
+To run the new family through Hard Gate A on real SPY data, pass a
+`PipelineConfig(include_intraday_momentum=True, ...)` (e.g. extend
+`scripts/run_hard_gate_a.py`). No real-data MIM run has been executed yet — that
+is the next operational step; until a candidate clears the (now deflation-gated)
+readiness bar, the broker layers stay OFF.

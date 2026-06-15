@@ -70,6 +70,7 @@ def infer_named_event_direction(event_name: str) -> str:
         "higher_low",
         "momentum_up",
         "trend_continuation_up",
+        "mim_long",
     )
     short_patterns = (
         "failed_breakout",
@@ -85,6 +86,7 @@ def infer_named_event_direction(event_name: str) -> str:
         "lower_high",
         "momentum_down",
         "trend_continuation_down",
+        "mim_short",
     )
 
     if any(pattern in name for pattern in neutral_patterns):
@@ -103,6 +105,8 @@ def infer_named_event_family(event_name: str) -> str:
     _validate_event_name(event_name)
     name = event_name.lower()
 
+    if "mim_" in name or "intraday_momentum" in name:
+        return "intraday_momentum"
     if "vwap" in name:
         return "vwap"
     if "ema" in name:

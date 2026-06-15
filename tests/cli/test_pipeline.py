@@ -50,6 +50,29 @@ def test_pipeline_bundle_reloads_and_has_event_study(synth_ohlcv_csv, tmp_path):
     assert not bundle.tables["event_study_results"].empty
 
 
+def test_intraday_momentum_family_flows_through_same_gate(synth_ohlcv_csv, tmp_path):
+    # The regime-conditioned MIM family (Build 4 Path 2) is opt-in; when enabled it
+    # joins the candidate set as event_mim_* candidates through the SAME pipeline
+    # and the SAME Hard-Gate-A readiness gate — a new family, not a new gate.
+    config = PipelineConfig(
+        horizons_minutes=(5, 15), include_intraday_momentum=True
+    )
+    result = _run(synth_ohlcv_csv, tmp_path / "reports", config=config)
+    registry = read_candidate_edge_registry(result.paths.candidates_path)
+    mim = registry[registry["name"].str.startswith("event_mim_")]
+    assert not mim.empty, "MIM family did not reach the candidate registry"
+    # The gate must stay closed on this tiny synthetic data (the honest result).
+    verdicts = result.readiness_verdicts
+    assert verdicts is not None and not verdicts.empty
+    assert not (verdicts["verdict"] == "eligible_for_paper_consideration").any()
+
+
+def test_intraday_momentum_off_by_default(synth_ohlcv_csv, tmp_path):
+    result = _run(synth_ohlcv_csv, tmp_path / "reports")
+    registry = read_candidate_edge_registry(result.paths.candidates_path)
+    assert registry["name"].str.startswith("event_mim_").sum() == 0
+
+
 def test_pipeline_run_manifest_parses_and_records_stages(synth_ohlcv_csv, tmp_path):
     result = _run(synth_ohlcv_csv, tmp_path / "reports")
     manifest = json.loads(result.paths.run_manifest_path.read_text(encoding="utf-8"))

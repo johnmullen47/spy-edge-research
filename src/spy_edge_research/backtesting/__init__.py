@@ -59,6 +59,13 @@ from spy_edge_research.backtesting.data_quality_impact import (
     summarize_required_context_coverage,
     summarize_session_coverage,
 )
+from spy_edge_research.backtesting.intraday_momentum_study import (
+    INTRADAY_MOMENTUM_STUDY_CAVEAT,
+    build_intraday_momentum_research_report,
+    export_intraday_momentum_research_report_to_csv,
+    intraday_momentum_regime_lift,
+    summarize_intraday_momentum_outcomes,
+)
 from spy_edge_research.backtesting.deflated_sharpe import (
     DEFLATED_SHARPE_CAVEAT,
     deflated_sharpe_ratio,
@@ -525,8 +532,12 @@ __all__ = [
     "create_audit_record",
     "create_candidate_rule_audit_metadata",
     "create_candidate_edge",
+    "build_intraday_momentum_research_report",
     "deflated_sharpe_ratio",
     "expected_maximum_sharpe_ratio",
+    "export_intraday_momentum_research_report_to_csv",
+    "intraday_momentum_regime_lift",
+    "summarize_intraday_momentum_outcomes",
     "portfolio_pbo_from_oos",
     "probabilistic_sharpe_ratio",
     "probabilistic_sharpe_ratio_from_moments",
