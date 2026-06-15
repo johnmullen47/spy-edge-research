@@ -309,6 +309,8 @@ def summarize_candidate_deflated_sharpe(
     oos_results: pd.DataFrame,
     *,
     n_trials_evaluated: int | None = None,
+    effective_n: int | None = None,
+    sharpe_sample: Sequence[float] | None = None,
     candidate_column: str = "candidate_id",
     split_column: str = "split_number",
     value_column: str = "oos_expectancy_difference",
@@ -320,17 +322,23 @@ def summarize_candidate_deflated_sharpe(
     the trial *variance* for the deflation benchmark. One row per candidate;
     candidates with fewer than two finite splits get ``nan``.
 
-    ``n_trials_evaluated`` is the **full pre-pruning trial budget** — every
-    configuration / regime cell ever evaluated, *not* the count of candidates
-    that survived into the OOS panel. RESEARCH_C §4.3 makes this "THE BINDING
-    CONTROL": deflating against only the survivors is the canonical
-    false-discovery move (it shrinks N, lowers the expected-max-Sharpe benchmark,
-    and inflates every DSR). The caller must supply it; the trial count used is
-    ``max(n_trials_evaluated, panel_trials)`` so it can never fall below the
-    survivors present. When it is ``None`` the count falls back to the survivor
-    panel and every row is flagged with
-    :data:`DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT` (the DSR is then optimistic); the
-    pipeline path supplies the budget and must not hit this fallback.
+    There are three mutually exclusive ways to set the trial count ``N``:
+
+    - ``effective_n`` (RESEARCH_H / M119, **preferred**): ``N`` is the effective
+      number of *independent* trials from ONC clustering, used **verbatim** — it is
+      deliberately allowed below the survivor-panel size (correlated variants are
+      not independent trials), so it is NOT clamped up to the panel. When
+      ``sharpe_sample`` is given (the cluster-representative Sharpes), the
+      cross-trial variance ``sigma_SR`` is measured over that de-duplicated set per
+      RESEARCH_H §3. This is the only amendment vs the prior method: the DSR
+      formula, threshold, and every other control are unchanged.
+    - ``n_trials_evaluated`` (M109/M112): the full pre-pruning trial budget, used
+      as ``max(n_trials_evaluated, panel_trials)`` so it never falls below the
+      survivors. Use when an effective-N estimate is not available.
+    - neither: ``N`` falls back to the survivor panel and every row is flagged with
+      :data:`DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT` (the DSR is then optimistic).
+
+    ``effective_n`` takes precedence over ``n_trials_evaluated`` if both are given.
     """
     columns = [
         "candidate_id",
@@ -346,12 +354,11 @@ def summarize_candidate_deflated_sharpe(
     for required in (candidate_column, value_column):
         if required not in oos_results.columns:
             raise ValueError(f"oos_results is missing required column: {required}")
-    if n_trials_evaluated is not None and (
-        not isinstance(n_trials_evaluated, int)
-        or isinstance(n_trials_evaluated, bool)
-        or n_trials_evaluated < 1
-    ):
-        raise ValueError("n_trials_evaluated must be an integer >= 1 or None")
+    for name, val in (("n_trials_evaluated", n_trials_evaluated), ("effective_n", effective_n)):
+        if val is not None and (
+            not isinstance(val, int) or isinstance(val, bool) or val < 1
+        ):
+            raise ValueError(f"{name} must be an integer >= 1 or None")
 
     series_by_candidate: dict[str, np.ndarray] = {}
     for candidate_id, group in oos_results.groupby(candidate_column, sort=True):
@@ -363,17 +370,29 @@ def summarize_candidate_deflated_sharpe(
     ]
     finite_trial_sharpes = [s for s in trial_sharpes if np.isfinite(s)]
     panel_trials = len(series_by_candidate)
-    # N is the full trial budget, clamped so it never drops below the survivors
-    # actually present. Survivor-only N (the fallback) under-deflates the DSR.
-    if n_trials_evaluated is not None:
+    if effective_n is not None:
+        # RESEARCH_H / M119: N is the effective number of INDEPENDENT trials, used
+        # verbatim — deliberately NOT clamped up to the survivor panel (correlated
+        # variants are not independent trials).
+        n_trials = int(effective_n)
+        row_caveat = DEFLATED_SHARPE_CAVEAT
+    elif n_trials_evaluated is not None:
+        # M109/M112: full trial budget, never below the survivors actually present.
         n_trials = max(int(n_trials_evaluated), panel_trials)
         row_caveat = DEFLATED_SHARPE_CAVEAT
     else:
         n_trials = panel_trials
         row_caveat = DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT
+    # sigma_SR over the de-duplicated cluster representatives when supplied (§3),
+    # else over the survivor Sharpes (prior behaviour, unchanged).
+    sigma_source = (
+        [float(s) for s in sharpe_sample if np.isfinite(s)]
+        if sharpe_sample is not None
+        else finite_trial_sharpes
+    )
     variance = (
-        float(np.var(finite_trial_sharpes, ddof=1))
-        if len(finite_trial_sharpes) > 1
+        float(np.var(sigma_source, ddof=1))
+        if len(sigma_source) > 1
         else 0.0
     )
     benchmark = expected_maximum_sharpe_ratio(

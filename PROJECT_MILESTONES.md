@@ -3407,3 +3407,56 @@ Conclusion: F2 is now evaluated by the Hard Gate A driver alongside MIM, and the
 default IEX real-data run still produced **no validated edge** — **0 of 100
 candidates eligible**. This did not lower or bypass the gate; broker/live layers
 remain OFF. SPA/Hansen remains deferred.
+
+## Milestone 119 - Effective-N via ONC clustering (RESEARCH_H implementation)
+
+Implements the RESEARCH_H N-count correction
+(`docs/RESEARCH_H_N_Count_Correction_DSR_Amendment.md`, committed `366a614`).
+**Supersedes the "N = every regime cell" clause of RESEARCH_C §4.3 / M109 for the
+cross-trial DSR input ONLY.** Every other anti-snooping control and threshold
+(DSR >= 0.95, PBO <= 0.50, net-of-cost floor, walk-forward OOS, placebos) is
+unchanged.
+
+**What changed (exactly two coupled DSR inputs, per RESEARCH_H §3):**
+- `N` moves from `len(registry)` (=100) to an **effective number of independent
+  trials** from ONC clustering of the candidate return streams, bounded
+  `[family_count = 2, total = 100]`.
+- `sigma_SR` is measured over the **cluster representatives** (best-Sharpe member
+  per cluster), not all 100 raw variants.
+
+**New module `backtesting/effective_n.py`** (pure numpy; no sklearn/scipy/mlfinlab
+in-repo, so the frozen ONC fallback of RESEARCH_H §4.3 is used):
+- `build_candidate_return_matrix` → dense (candidate x split) panel.
+- `correlation_distance` → `sqrt(0.5*(1-rho))` (§4.2), NaN→uncorrelated.
+- `compute_effective_n` → UPGMA average-linkage agglomeration + **silhouette-
+  optimal K** over K in [2, M-1], `N_eff = clip(K, 2, M)`; conservative fallback
+  to `N_eff = total` when the panel is too small to cluster.
+- `within_cluster_holm` (§5) → Holm-Bonferroni step-down per cluster; a cluster is
+  carried forward only if its **best-Sharpe member survives** (FWE alpha=0.05).
+- `candidate_p_values_from_oos` → `1 - PSR(series, 0)` per candidate.
+- `summarize_candidate_deflated_sharpe` gains an `effective_n` path that uses N
+  **verbatim** (deliberately NOT clamped up to the survivor panel — correlated
+  variants are not independent trials) plus a `sharpe_sample` for sigma_SR.
+- Pipeline Stage 9.25 computes effective-N and feeds it to the DSR; records
+  `effective_n`, `effective_n_clusters`, and Holm survivors in the run metrics.
+
+**Tests:** `tests/backtesting/test_effective_n.py` (12) — recovers known cluster
+count as N_eff; floor/ceiling clipping; decorrelated > correlated N_eff;
+small-panel conservative fallback; distance properties; Holm representative +
+survival (incl. cluster killed when best member insignificant); effective-N used
+verbatim (not clamped); effective-N less deflation than full count. Full suite:
+**953 passed, 4 skipped** (was 941 at M118).
+
+**Re-run Hard Gate A (IEX, MIM + F2; `run_20260615T230931Z`):**
+- Candidates: **100**; **effective-N = 2** (clusters K = 2 — the silhouette-optimal
+  split mirrors the two a-priori families MIM/F2; clipped to the floor of 2).
+- Within-cluster Holm survivors: **1** of 2 clusters.
+- Portfolio PBO: **0.3303** (unchanged; PBO legitimately uses the dense panel).
+- Readiness verdicts: **{"not_ready": 100} → 0 eligible.**
+
+**Conclusion:** N fell from 100 to its **principled floor of 2** — the *largest*
+possible leniency the corrected methodology permits — and **still 0 of 100
+candidates are eligible.** The null is robust to the N-count correction: the
+candidates fail on grounds other than DSR trial-count inflation. This did not
+lower or bypass the gate (the amendment changes one input, derivable from the
+DSR's own definition); broker/live layers remain OFF. SPA/Hansen still deferred.

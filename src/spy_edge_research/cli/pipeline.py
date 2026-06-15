@@ -57,6 +57,11 @@ from spy_edge_research.backtesting.deflated_sharpe import (
     portfolio_pbo_from_oos,
     summarize_candidate_deflated_sharpe,
 )
+from spy_edge_research.backtesting.effective_n import (
+    candidate_p_values_from_oos,
+    compute_effective_n,
+    within_cluster_holm,
+)
 from spy_edge_research.risk.signal_overlap import (
     compute_event_mask_overlap,
     summarize_signal_overlap,
@@ -286,13 +291,31 @@ def run_pipeline(
     deflated_sharpe_by_candidate: dict[str, float] = {}
     portfolio_pbo: float | None = None
     if oos_results is not None and not oos_results.empty:
-        # N for the Deflated Sharpe is the FULL pre-OOS trial budget (every
-        # candidate evaluated), not the OOS survivors — RESEARCH_C §4.3 "THE
-        # BINDING CONTROL". ``len(registry)`` is the honest floor; the helper
-        # clamps it up to the survivor count if ever larger.
+        # N for the Deflated Sharpe is the EFFECTIVE number of independent trials
+        # (RESEARCH_H / M119): ONC clustering of the candidate return streams,
+        # bounded [family_count=2, total]. This supersedes the "N = every cell"
+        # (len(registry)) clause of RESEARCH_C §4.3 for the cross-trial DSR input
+        # ONLY; sigma_SR is measured over the cluster representatives. Every other
+        # control/threshold is unchanged.
+        effective_n_result = compute_effective_n(oos_results, family_floor=2)
         dsr_summary = summarize_candidate_deflated_sharpe(
-            oos_results, n_trials_evaluated=int(len(registry))
+            oos_results,
+            effective_n=effective_n_result.n_eff,
+            sharpe_sample=effective_n_result.representative_sharpes,
         )
+        # Within-cluster Holm candidacy screen (RESEARCH_H §5): a cluster is carried
+        # forward only if its best-Sharpe member survives the Holm threshold.
+        sharpes_by_candidate = {
+            str(r.candidate_id): float(r.observed_sharpe_ratio)
+            for r in dsr_summary.itertuples(index=False)
+        }
+        holm = within_cluster_holm(
+            effective_n_result.labels,
+            candidate_p_values_from_oos(oos_results),
+            sharpes_by_candidate,
+        )
+        result.metrics["effective_n"] = int(effective_n_result.n_eff)
+        result.metrics["effective_n_clusters"] = int(effective_n_result.k_clusters)
         deflated_sharpe_by_candidate = {
             str(r.candidate_id): float(r.deflated_sharpe_ratio)
             for r in dsr_summary.itertuples(index=False)
@@ -308,6 +331,12 @@ def run_pipeline(
             "ok",
             candidate_rows=int(len(dsr_summary)),
             portfolio_pbo=portfolio_pbo,
+            effective_n=int(effective_n_result.n_eff),
+            effective_n_clusters=int(effective_n_result.k_clusters),
+            total_candidates=int(effective_n_result.total_candidates),
+            within_cluster_holm_survivors=int(
+                sum(1 for v in holm.values() if v["survived"])
+            ),
         )
     else:
         record("deflation", "skipped", reason="insufficient_oos_results")

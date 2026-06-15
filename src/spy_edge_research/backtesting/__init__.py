@@ -93,6 +93,17 @@ from spy_edge_research.backtesting.deflated_sharpe import (
     sharpe_ratio,
     summarize_candidate_deflated_sharpe,
 )
+from spy_edge_research.backtesting.effective_n import (
+    DEFAULT_FAMILY_FLOOR,
+    EFFECTIVE_N_CAVEAT,
+    EFFECTIVE_N_NO_CLUSTER_CAVEAT,
+    EffectiveNResult,
+    build_candidate_return_matrix,
+    candidate_p_values_from_oos,
+    compute_effective_n,
+    correlation_distance,
+    within_cluster_holm,
+)
 from spy_edge_research.backtesting.candidate_family_aggregation import (
     add_candidate_family_columns,
     aggregate_candidate_families,
@@ -570,6 +581,12 @@ __all__ = [
     "probability_of_backtest_overfitting",
     "sharpe_ratio",
     "summarize_candidate_deflated_sharpe",
+    "EffectiveNResult",
+    "compute_effective_n",
+    "build_candidate_return_matrix",
+    "candidate_p_values_from_oos",
+    "correlation_distance",
+    "within_cluster_holm",
     "create_candidate_lineage_record",
     "create_candidate_rule_object",
     "create_candidate_rule_report_metadata",
