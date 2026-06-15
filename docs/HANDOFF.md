@@ -1,19 +1,20 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (after M111, Build 4). **Re-verify the live state
-> before trusting any specific number here** — this repo has had concurrent writers
-> (see §1).
+> project. Last updated 2026-06-15 (M113 complete, M114 in progress; Build Master).
+> **Re-verify the live state before trusting any specific number here** — this repo
+> has had concurrent writers (see §1).
 
 ## 0. Verified snapshot at handoff
 
 - **Branch:** `main`
-- **HEAD:** `M111: wire the intraday-momentum family through Hard Gate A + regime study`
+- **HEAD:** `fdcbd77` — `M113: Path-2 placebo controls (scrambled-gate + random-direction)`
+- **Current milestone:** **M113 complete; M114 (regime-aware cost model) in progress.**
 - **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
   docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
-  research dir; Build 4's code/test/ledger changes are all committed and pushed.
-- **Full suite:** `883 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib)
-- **Latest ledger milestone:** M111 (`PROJECT_MILESTONES.md`)
+  research dir; all milestone code/test/ledger changes are committed and pushed.
+- **Full suite:** `892 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
+- **Latest ledger milestone:** M113 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
@@ -44,8 +45,41 @@ decision (see `Auto-Trader Build/`):
   scrambled-gate + random-direction falsification controls (the edge must vanish
   under both). Macro/pre-FOMC gate deliberately excluded (dead post-2015).
 
+- **M114 (in progress) — regime-aware cost model (binding economic control,
+  RESEARCH_C §4.5).** `simulation/cost_model.py`:
+  `cost_bps(t) = half_spread(t) + k·σ_intraday(t) + impact_sqrt(Q/ADV)`, time-of-day
+  + VIX-regime aware, charged at point-of-fill (entry/exit bar regime), so cost
+  co-moves with the vol-gated edge. A flat low cost is prohibited. Integrated into
+  `simulation/position_sim.py` behind an optional `cost_model` arg (default `None`
+  → unchanged flat behavior). **Hard Gate A unchanged.**
+
 Deferred / tracked: SPA (Hansen, report-only per §4.3) and the operational MIM
 Hard-Gate-A run on real SPY data.
+
+### Governance protocol (active 2026-06-15)
+
+- **Single committer:** Build Master owns **all** git commits. Cowork/Research writes
+  files to the filesystem; Build Master reviews and commits. One committer, clean history.
+- **HANDOFF.md is mandatory at every milestone** — update + commit it as part of the
+  definition of "milestone complete," not optionally.
+- **Commit conventions:** research docs `RESEARCH_[letter]: …`; Cowork file commits
+  `research: add [filename] from Cowork Master Agent`; milestones `M[number]: …`;
+  HANDOFF updates `docs: update HANDOFF to M[number]`.
+- **Research-doc integrity:** decision/pre-registration docs land in `docs/RESEARCH_*.md`,
+  reviewed and committed by Build Master, then **immutable** — revisions ship as
+  amendment files (`RESEARCH_E_AMENDMENT_1.md`), the original is never edited.
+- **Branch strategy:** research hypotheses on `research/[signal-name]`; milestone
+  implementation on `milestone/M[number]` (or the established branch→ff-merge pattern),
+  merged to `main` at completion. Stage explicit paths only; never `git add -A`.
+
+### Active Cowork research
+
+- **RESEARCH_E** (`docs/RESEARCH_E_TypeI_TypeII_Signal_Discovery.md`, committed `28a51ed`)
+  — Type I/II tension + two-stage discovery funnel (non-authorizing Stage-0 pre-screen
+  with honest-N ledger → unchanged Stage-1 harness). No gate changes; Hard Gate A stays.
+- **Pending from Cowork Master Agent:** RESEARCH_F (signal-discovery survey) and Task 3
+  (per-hypothesis pre-registration docs) — to be reviewed/committed by Build Master
+  before any new implementation milestone starts.
 
 **Operational next step (no code):** run the MIM family through Hard Gate A on the
 real SPY data — extend `scripts/run_hard_gate_a.py` to pass
