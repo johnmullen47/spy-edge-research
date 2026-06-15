@@ -3204,3 +3204,47 @@ net-negative; flat-path equivalence). Full suite: 913 passed, 4 skipped.
 Still out of scope / tracked: SPA (Hansen, report-only per §4.3), wiring the
 regime-aware cost into the actual Hard Gate A economic evaluation, and the
 operational MIM Hard-Gate-A run on real SPY data.
+
+## Milestone 115 - MIM-enabled Hard Gate A driver
+
+Codex branch `codex/hard-gate-a-mim`. This milestone extends the real-data Hard
+Gate A driver so the Path-2 regime-conditioned intraday-momentum family actually
+flows through the gate evaluation on real SPY data.
+
+- `scripts/run_hard_gate_a.py`: the `PipelineConfig` now passes
+  `include_intraday_momentum=True`. This enables the M110-M111 `event_mim_*`
+  family in the same existing candidate/OOS/control-battery/readiness pipeline.
+- The gate itself is unchanged: a candidate must still reach
+  `eligible_for_paper_consideration`; the change only adds MIM candidates to the
+  evaluated set.
+- `tests/scripts/test_run_hard_gate_a.py`: focused regression coverage ensures the
+  script creates a config with `include_intraday_momentum=True` and preserves the
+  Hard Gate A horizon/OOS defaults.
+
+Verification:
+
+- Focused suite:
+  `.venv/bin/python -m pytest tests/scripts/test_run_hard_gate_a.py tests/cli/test_pipeline.py tests/signal_engine/test_intraday_momentum_features.py`
+  -> 17 passed.
+- Full suite: `.venv/bin/python -m pytest -q` -> 914 passed, 4 skipped.
+
+Default real-data Hard Gate A run:
+
+```bash
+.venv/bin/python scripts/run_hard_gate_a.py --input data/raw/spy_1min.csv --output reports
+```
+
+Result:
+
+- Run directory: `reports/run_20260615T180758Z`.
+- Input bars: 189,663.
+- Event columns: 18.
+- Candidate count: 54.
+- Portfolio PBO: 0.10652680652680653.
+- Readiness verdict counts: `{"not_ready": 54}`.
+- Eligible candidates: 0.
+
+Conclusion: MIM is now evaluated by the Hard Gate A driver, but the default IEX
+real-data run still produced **no validated edge**. Broker/live layers remain
+OFF. This milestone does not touch broker/live code, does not lower the gate, and
+does not authorize action. SPA/Hansen remains deferred.

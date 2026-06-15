@@ -30,6 +30,7 @@ def main() -> None:
         oos_initial_train_size=args.train,
         oos_test_size=args.test,
         oos_step_size=args.test,
+        include_intraday_momentum=True,
     )
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     result = run_pipeline(

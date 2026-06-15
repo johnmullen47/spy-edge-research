@@ -1,21 +1,24 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M114 complete; Build Master). **Re-verify the
+> project. Last updated 2026-06-15 (M115 complete; Codex branch). **Re-verify the
 > live state before trusting any specific number here** — this repo has had
 > concurrent writers (see §1).
 
 ## 0. Verified snapshot at handoff
 
-- **Branch:** `main`
-- **HEAD:** `9f7da18` — `M114: regime-aware cost model (binding economic control)`
-- **Current milestone:** **M114 complete.** Next: operational MIM Hard-Gate-A run on
-  real SPY data, and (separately) wiring the regime-aware cost into the economic gate.
+- **Branch:** `codex/hard-gate-a-mim` pending Build Master review.
+- **HEAD basis:** `2d2358d` — `docs: update HANDOFF to M114`
+- **Current milestone:** **M115 complete on branch.** The Hard Gate A driver now
+  includes the MIM family; the default real-data run evaluated 54 candidates and
+  found 0 eligible. Next: Build Master review/PR, and separately wiring the
+  regime-aware cost into the economic gate.
 - **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
   docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
-  research dir; all milestone code/test/ledger changes are committed and pushed.
-- **Full suite:** `913 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
-- **Latest ledger milestone:** M114 (`PROJECT_MILESTONES.md`)
+  research dir; M115 code/test/ledger changes are on `codex/hard-gate-a-mim`
+  pending review/PR.
+- **Full suite:** `914 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
+- **Latest ledger milestone:** M115 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
@@ -54,9 +57,17 @@ decision (see `Auto-Trader Build/`):
   `simulation/position_sim.py` behind an optional `cost_model` arg (default `None`
   → unchanged flat behavior). **Hard Gate A unchanged** — this builds the control;
   wiring it into the economic-significance evaluation is a separate later step.
+- **M115 — MIM-enabled Hard Gate A driver.** `scripts/run_hard_gate_a.py` now passes
+  `PipelineConfig(include_intraday_momentum=True)`, so Path-2 MIM candidates flow
+  through the real-data Hard Gate A run by default. Focused regression coverage in
+  `tests/scripts/test_run_hard_gate_a.py` locks that flag. Default IEX run
+  (`data/raw/spy_1min.csv`, 189,663 bars) produced 18 event columns, 54 candidates,
+  portfolio PBO 0.1065, and **0 eligible** candidates. This did not lower or bypass
+  the gate; broker layers stay OFF.
 
-Deferred / tracked: SPA (Hansen, report-only per §4.3) and the operational MIM
-Hard-Gate-A run on real SPY data.
+Deferred / tracked: SPA (Hansen, report-only per §4.3), SIP-quality/alternate
+real-data MIM runs if desired, and wiring the M114 regime-aware cost model into
+the economic gate.
 
 ### Governance protocol (active 2026-06-15)
 
@@ -83,12 +94,10 @@ Hard-Gate-A run on real SPY data.
   (per-hypothesis pre-registration docs) — to be reviewed/committed by Build Master
   before any new implementation milestone starts.
 
-**Operational next step (no code):** run the MIM family through Hard Gate A on the
-real SPY data — extend `scripts/run_hard_gate_a.py` to pass
-`PipelineConfig(include_intraday_momentum=True)`. No MIM real-data run has been
-executed yet. Per RESEARCH_C §4–5, a positive result is not trusted until it
-clears the deflation stack (DSR/PBO) and a walk-forward on a calmer sub-period; if
-it fails, the correct verdict is the null. Broker layers stay OFF until then.
+**Operational MIM Hard Gate A result:** the default IEX real-data run
+(`reports/run_20260615T180758Z`) evaluated 54 candidates with MIM enabled and
+found **0 eligible**. Per RESEARCH_C §4–5, this is a valid null result, not a
+system failure. Broker layers stay OFF.
 
 ### Hard Gate A — RAN, definitive negative result (no validated edge)
 
