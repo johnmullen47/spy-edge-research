@@ -243,7 +243,13 @@ def run_pipeline(
     deflated_sharpe_by_candidate: dict[str, float] = {}
     portfolio_pbo: float | None = None
     if oos_results is not None and not oos_results.empty:
-        dsr_summary = summarize_candidate_deflated_sharpe(oos_results)
+        # N for the Deflated Sharpe is the FULL pre-OOS trial budget (every
+        # candidate evaluated), not the OOS survivors — RESEARCH_C §4.3 "THE
+        # BINDING CONTROL". ``len(registry)`` is the honest floor; the helper
+        # clamps it up to the survivor count if ever larger.
+        dsr_summary = summarize_candidate_deflated_sharpe(
+            oos_results, n_trials_evaluated=int(len(registry))
+        )
         deflated_sharpe_by_candidate = {
             str(r.candidate_id): float(r.deflated_sharpe_ratio)
             for r in dsr_summary.itertuples(index=False)

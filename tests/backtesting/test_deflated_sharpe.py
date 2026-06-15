@@ -210,6 +210,43 @@ def test_summarize_candidate_deflated_sharpe_empty():
     assert "deflated_sharpe_ratio" in out.columns
 
 
+def test_full_trial_budget_deflates_harder_than_survivor_count():
+    # M112 regression (Build Master blocker): the DSR must deflate against the
+    # FULL pre-OOS trial budget, not the OOS-survivor panel. Passing the larger
+    # budget must STRICTLY raise the expected-max-Sharpe benchmark and STRICTLY
+    # lower every candidate's deflated Sharpe vs the survivor-only fallback.
+    oos = _oos_results(6, 20, edge_for_first=0.003, seed=8)  # 6 survivors
+    survivor = summarize_candidate_deflated_sharpe(oos)  # fallback, N = 6
+    full = summarize_candidate_deflated_sharpe(oos, n_trials_evaluated=42)  # N = 42
+
+    assert (survivor["n_trials"] == 6).all()
+    assert (full["n_trials"] == 42).all()
+    assert full["expected_max_sharpe_ratio"].iloc[0] > survivor["expected_max_sharpe_ratio"].iloc[0]
+    s = survivor.set_index("candidate_id")["deflated_sharpe_ratio"]
+    f = full.set_index("candidate_id")["deflated_sharpe_ratio"]
+    assert (f < s).all()
+    # The fallback path flags N as a lower bound; the full-budget path does not.
+    from spy_edge_research.backtesting.deflated_sharpe import (
+        DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT,
+    )
+
+    assert (survivor["deflated_sharpe_caveat"] == DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT).all()
+    assert (full["deflated_sharpe_caveat"] == DEFLATED_SHARPE_CAVEAT).all()
+
+
+def test_n_trials_clamped_to_at_least_panel_size():
+    # The invariant n_trials_used >= panel columns must always hold (clamp up).
+    oos = _oos_results(6, 20, edge_for_first=0.0, seed=9)
+    out = summarize_candidate_deflated_sharpe(oos, n_trials_evaluated=2)  # below 6
+    assert (out["n_trials"] == 6).all()
+
+
+def test_n_trials_evaluated_validation():
+    oos = _oos_results(4, 12, edge_for_first=0.0, seed=10)
+    with pytest.raises(ValueError, match="n_trials_evaluated"):
+        summarize_candidate_deflated_sharpe(oos, n_trials_evaluated=0)
+
+
 def test_portfolio_pbo_from_oos_roundtrip():
     oos = _oos_results(8, 16, edge_for_first=0.0, seed=6)
     result = portfolio_pbo_from_oos(oos)

@@ -3107,3 +3107,31 @@ To run the new family through Hard Gate A on real SPY data, pass a
 `scripts/run_hard_gate_a.py`). No real-data MIM run has been executed yet — that
 is the next operational step; until a candidate clears the (now deflation-gated)
 readiness bar, the broker layers stay OFF.
+
+## Milestone 112 - Deflated Sharpe trial count = full pre-OOS budget (Build Master blocker)
+
+Pre-merge correction filed by the Auto-Trader Build Master
+(`Auto-Trader Build/DISPATCH_BUILD4_M109_DSR_N_FIX.md`), authority RESEARCH_C
+§4.3. The M108/M109 Deflated Sharpe deflated against the OOS-**survivor** count
+(`n_trials = len(series_by_candidate)`), not the full trial budget. RESEARCH_C
+§4.3 makes "N counting EVERY regime cell ever evaluated" THE BINDING CONTROL and
+(L391) names shrinking N the canonical false-discovery move: survivor-only N
+lowers the expected-max-Sharpe benchmark and inflates every DSR -> a falsely
+lenient gate.
+
+- `backtesting/deflated_sharpe.py`: `summarize_candidate_deflated_sharpe` gains an
+  explicit `n_trials_evaluated` kwarg (the full pre-pruning trial budget). The
+  count used is `max(n_trials_evaluated, panel_trials)` so it can never fall below
+  the survivors present. The cross-trial **variance** estimate is unchanged (the
+  survivor Sharpes are an acceptable proxy); only N changes. The fallback
+  (`None`) path flags every row with the new
+  `DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT` (DSR is then optimistic).
+- `cli/pipeline.py` Stage 9.25 passes `n_trials_evaluated=int(len(registry))` —
+  the honest floor for the trial budget — so the pipeline never hits the fallback.
+- PBO/CSCV is unaffected: it legitimately operates on the dense survivor panel.
+
+Tests: M112 regression (full budget gives strictly higher expected-max-Sharpe and
+strictly lower DSR than the survivor count; the test would fail against the old
+code), the `n_trials >= panel` clamp invariant, and `n_trials_evaluated`
+validation. SPA (Hansen) and the Path-2 placebo controls remain out of scope per
+the dispatch (tracked separately). Full suite: 886 passed, 4 skipped.

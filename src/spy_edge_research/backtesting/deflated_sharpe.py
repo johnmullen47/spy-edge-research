@@ -41,6 +41,14 @@ _EULER_MASCHERONI = 0.5772156649015329
 DEFLATED_SHARPE_CAVEAT = (
     "deflated_sharpe_and_pbo_are_research_diagnostics_not_trade_authorization"
 )
+# Emitted when the trial count N falls back to the OOS-survivor panel size rather
+# than the full pre-pruning trial budget. Survivor-only N under-deflates, so the
+# Deflated Sharpe is then an optimistic UPPER bound (N is a lower bound). The
+# pipeline path must supply the full budget and never rely on this fallback —
+# RESEARCH_C §4.3 requires N = every regime cell ever evaluated.
+DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT = (
+    "deflated_sharpe_n_trials_is_survivor_lower_bound_dsr_is_optimistic"
+)
 
 # Acklam's inverse-normal-CDF coefficients.
 _A = (
@@ -300,6 +308,7 @@ def probability_of_backtest_overfitting(
 def summarize_candidate_deflated_sharpe(
     oos_results: pd.DataFrame,
     *,
+    n_trials_evaluated: int | None = None,
     candidate_column: str = "candidate_id",
     split_column: str = "split_number",
     value_column: str = "oos_expectancy_difference",
@@ -308,8 +317,20 @@ def summarize_candidate_deflated_sharpe(
 
     Each candidate's across-split ``value_column`` series is treated as its
     return stream; the family of per-candidate in-sample Sharpe estimates sets
-    the trial multiplicity and variance for the deflation benchmark. One row per
-    candidate. Candidates with fewer than two finite splits get ``nan``.
+    the trial *variance* for the deflation benchmark. One row per candidate;
+    candidates with fewer than two finite splits get ``nan``.
+
+    ``n_trials_evaluated`` is the **full pre-pruning trial budget** — every
+    configuration / regime cell ever evaluated, *not* the count of candidates
+    that survived into the OOS panel. RESEARCH_C §4.3 makes this "THE BINDING
+    CONTROL": deflating against only the survivors is the canonical
+    false-discovery move (it shrinks N, lowers the expected-max-Sharpe benchmark,
+    and inflates every DSR). The caller must supply it; the trial count used is
+    ``max(n_trials_evaluated, panel_trials)`` so it can never fall below the
+    survivors present. When it is ``None`` the count falls back to the survivor
+    panel and every row is flagged with
+    :data:`DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT` (the DSR is then optimistic); the
+    pipeline path supplies the budget and must not hit this fallback.
     """
     columns = [
         "candidate_id",
@@ -325,6 +346,12 @@ def summarize_candidate_deflated_sharpe(
     for required in (candidate_column, value_column):
         if required not in oos_results.columns:
             raise ValueError(f"oos_results is missing required column: {required}")
+    if n_trials_evaluated is not None and (
+        not isinstance(n_trials_evaluated, int)
+        or isinstance(n_trials_evaluated, bool)
+        or n_trials_evaluated < 1
+    ):
+        raise ValueError("n_trials_evaluated must be an integer >= 1 or None")
 
     series_by_candidate: dict[str, np.ndarray] = {}
     for candidate_id, group in oos_results.groupby(candidate_column, sort=True):
@@ -335,7 +362,15 @@ def summarize_candidate_deflated_sharpe(
         for series in series_by_candidate.values()
     ]
     finite_trial_sharpes = [s for s in trial_sharpes if np.isfinite(s)]
-    n_trials = len(series_by_candidate)
+    panel_trials = len(series_by_candidate)
+    # N is the full trial budget, clamped so it never drops below the survivors
+    # actually present. Survivor-only N (the fallback) under-deflates the DSR.
+    if n_trials_evaluated is not None:
+        n_trials = max(int(n_trials_evaluated), panel_trials)
+        row_caveat = DEFLATED_SHARPE_CAVEAT
+    else:
+        n_trials = panel_trials
+        row_caveat = DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT
     variance = (
         float(np.var(finite_trial_sharpes, ddof=1))
         if len(finite_trial_sharpes) > 1
@@ -357,7 +392,7 @@ def summarize_candidate_deflated_sharpe(
                 "expected_max_sharpe_ratio": benchmark,
                 "n_trials": int(n_trials),
                 "n_splits": int(series.size),
-                "deflated_sharpe_caveat": DEFLATED_SHARPE_CAVEAT,
+                "deflated_sharpe_caveat": row_caveat,
             }
         )
     return pd.DataFrame(rows, columns=columns)
