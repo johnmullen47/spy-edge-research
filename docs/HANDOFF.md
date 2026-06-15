@@ -33,32 +33,30 @@
   committed (`41e29a1`). Locks: SPX-based GEX primary (4→2 trial cells), exclude
   0DTE (≥1DTE only), **gamma = Polygon-provided Greeks** (primary), data source
   Polygon.io options (2016+).
-- **⚠️ F1 BLOCKING GATE — SPX historical OI (2016–2021): STILL NOT CLEARED;
-  empirical Polygon check BLOCKED on plan entitlement.** A Polygon key now exists
-  (`secrets/polygon.env`, gitignored), but it is a **free/low tier** and returns
-  **403 NOT_AUTHORIZED on every options snapshot endpoint** — the snapshot (chain
-  and per-contract) is the *only* source of `open_interest`. Empirical probes
-  (2026-06-15):
-  - `GET /v3/reference/options/contracts?underlying_ticker=SPX&expired=true` →
-    **200 OK**: SPX contract *metadata* exists deep in history (sample expiry
-    2010-02-05; the 2018-01-19 contract `O:SPX180119C00100000` resolves). But this
-    endpoint has **no `open_interest` field** (static contract defs only).
-  - `GET /v3/snapshot/options/I:SPX` (chain) → **403 NOT_AUTHORIZED**.
-  - `GET /v3/snapshot/options/AAPL` (equity chain) → **403** — not index-specific;
-    NO options snapshot entitlement at all.
-  - `GET /v3/snapshot/options/I:SPX/O:SPX180119C00100000` (per-contract 2018) →
-    **403**. `GET /v2/aggs/ticker/SPY/...2018` → 401 (stock data also not entitled).
-  - **Net:** OI is unreadable for *any* date on this plan, so the 2016–2021
-    coverage question **remains unanswered** — this is now a plan-entitlement
-    blocker, not (yet) a coverage finding.
-  - **Pending owner/Dispatch decision:** (a) **upgrade Polygon** to an options
-    tier (Options Starter+) that unlocks the snapshot endpoint, then re-run this
-    exact check — with the open caveat that the v3 snapshot is a *current* view, so
-    historical-as-of-2018 OI backfill still needs confirmation even after upgrade;
-    or (b) **adopt CBOE DataShop** (confirmed `^SPX` `open_interest` 2005–2019 +
-    "with Calcs" for newer), noting it lacks Greeks pre-2019, which collides with
-    Amendment 1 Decision 3 (Polygon-provided Greeks). Either path changes a locked
-    decision and is an owner call.
+- **⚠️ F1 BLOCKING GATE — SPX historical OI (2016–2021): RESOLVED as a NEGATIVE.
+  Polygon has NO historical open interest at any tier; CBOE DataShop is required.**
+  The Polygon account was upgraded to **Options Starter** and the check re-run
+  empirically (2026-06-15, key in gitignored `secrets/polygon.env`):
+  - `GET /v3/snapshot/options/I:SPX` (chain) → **200 OK**; schema now includes
+    `open_interest` (+ `greeks`, `implied_volatility`). A 250-contract scan showed
+    **193/250 with OI>0** — i.e. **current/live OI works** on Starter.
+  - Historical access **fails**: per-contract snapshot of the expired 2018
+    contract `O:SPX180119C00100000` with `as_of=2018-01-12` / `date=2018-01-12` →
+    **404**; neither param is honored. The snapshot endpoint is **live-only**
+    (Polygon's own feature-request #3 asks for historical date-range queries —
+    unimplemented).
+  - **Flat files do not carry OI:** the options day-aggregate flat-file schema is 8
+    columns (`open/high/low/close/volume/transactions/ticker/window_start`) —
+    **no `open_interest`** (flat files are OPRA-sourced; OPRA doesn't disseminate
+    OI). Reference-contracts endpoint also has no OI field.
+  - **Conclusion:** Polygon exposes OI only as a **current snapshot**; there is **no
+    historical OI** on any tier. F1's 2016–2021 window therefore **cannot** be
+    sourced from Polygon for OI (forward daily snapshotting is useless for a
+    backtest). **CBOE DataShop is required** for historical SPX OI (confirmed
+    `^SPX` `open_interest` 2005–2019 + "with Calcs" for newer; lacks Greeks
+    pre-2019, which collides with Amendment 1 Decision 3 "Polygon-provided Greeks").
+  - **F1 data-sourcing decision returned to the owner:** adopt CBOE DataShop for
+    OI (and resolve the Greeks-source collision with Decision 3), or rescope F1.
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
