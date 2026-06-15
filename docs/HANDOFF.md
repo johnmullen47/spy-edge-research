@@ -1,25 +1,27 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M115 merged to main; Build Master). **Re-verify
-> the live state before trusting any specific number here** — this repo has had
-> concurrent writers (see §1).
+> project. Last updated 2026-06-15 (M116 on branch, PR pending; Build Master).
+> **Re-verify the live state before trusting any specific number here** — this repo
+> has had concurrent writers (see §1).
 
 ## 0. Verified snapshot at handoff
 
-- **Branch:** `main`
-- **HEAD:** `52ae2f5` — `M115: extend Hard Gate A to include MIM (include_intraday_momentum=True)`
-- **Current milestone:** **M115 complete and merged to `main`** (PR #1, reviewed by
-  Build Master, fast-forward merge). The Hard Gate A driver now includes the MIM
-  family; the default real-data run evaluated 54 candidates and found 0 eligible.
-  Next: separately wiring the M114 regime-aware cost into the economic gate, and any
-  owner-dispatched implementation of the F1/F2 pre-registrations.
+- **Branch:** `main` is at `52ae2f5` (M115). **M116 (end-of-day reversal / F2) is
+  complete on `milestone/M116`, PR open, pending review** — built in a private
+  worktree per the worktree protocol (§1).
+- **HEAD (main):** `52ae2f5` — `M115: extend Hard Gate A to include MIM`. M116 adds
+  `signal_engine/end_of_day_reversal_features.py` +
+  `backtesting/end_of_day_reversal_placebos.py` + a pipeline flag.
+- **Current milestone:** **M116 (F2) on branch.** Price-only end-of-day reversal
+  (PREREG_F2), no regime gate, through the SAME gate as MIM; binding control is the
+  cost/bounce test. Next: review/merge M116; separately wire the M114 regime-aware
+  cost into the economic gate; F1 (gamma-gated) remains blocked on option data.
 - **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
   docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
-  research dir (the Cowork research-drop folder — NOT a git worktree); all M115
-  code/test/ledger changes are committed and pushed to `origin/main`.
-- **Full suite:** `914 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
-- **Latest ledger milestone:** M115 (`PROJECT_MILESTONES.md`)
+  research dir (the Cowork research-drop folder — NOT a git worktree).
+- **Full suite:** `938 passed, 4 skipped` on `milestone/M116` (`.venv/bin/python -m pytest -q`; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
+- **Latest ledger milestone:** M116 (`PROJECT_MILESTONES.md`, on branch)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
@@ -65,6 +67,18 @@ decision (see `Auto-Trader Build/`):
   (`data/raw/spy_1min.csv`, 189,663 bars) produced 18 event columns, 54 candidates,
   portfolio PBO 0.1065, and **0 eligible** candidates. This did not lower or bypass
   the gate; broker layers stay OFF.
+- **M116 — end-of-day reversal (F2), on `milestone/M116` (PR pending).** Price-only
+  reversal per `docs/PREREG_F2_end_of_day_reversal.md`: decision bar at 15:00,
+  `r_pre`=log(close15/close14), primary `-sign(r_pre)` resolved at the to-close (60m)
+  horizon; no regime gate. `signal_engine/end_of_day_reversal_features.py` emits
+  `event_eod_reversal_*` (primary + a conviction-gated proxy for the magnitude-scaled
+  secondary, sizing being a harness non-goal). THE BINDING CONTROL is the cost/bounce
+  test — `backtesting/end_of_day_reversal_placebos.py`: mandatory bounce-only synthetic
+  (Roll model), net-edge-distinguishable-from-half-spread (§6), + scrambled-mapping /
+  random-direction placebos. Flows through the SAME gate via
+  `PipelineConfig.include_end_of_day_reversal` (default off); appends the 60m horizon
+  so it resolves at the close. DSR N=len(registry) unchanged (F2 honestly raises N).
+  Hard Gate A unchanged. Suite 938.
 
 Deferred / tracked: SPA (Hansen, report-only per §4.3), SIP-quality/alternate
 real-data MIM runs if desired, and wiring the M114 regime-aware cost model into
