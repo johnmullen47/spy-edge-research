@@ -34,6 +34,9 @@ from spy_edge_research.indicators.bollinger import calculate_bollinger_bands
 from spy_edge_research.indicators.volume import calculate_volume_features
 from spy_edge_research.signal_engine.events import add_basic_event_primitives
 from spy_edge_research.signal_engine.named_events import add_named_event_features
+from spy_edge_research.signal_engine.end_of_day_reversal_features import (
+    add_end_of_day_reversal_features,
+)
 from spy_edge_research.signal_engine.intraday_momentum_features import (
     add_intraday_momentum_features,
 )
@@ -128,6 +131,18 @@ class PipelineConfig:
     mim_session_close: str = "16:00"
     mim_realized_vol_lookback_days: int = 20
     mim_high_vol_quantile: float = 0.66
+    # When True the end-of-day reversal (F2) family is added as additional causal
+    # ``event_eod_reversal_*`` candidates flowing through the SAME gate (PREREG_F2).
+    # The to-close hold horizon (``eod_hold_minutes``) is appended to the label
+    # horizons so the signal resolves at the close, as the pre-registration requires.
+    # Default off so existing runs are byte-for-byte unchanged.
+    include_end_of_day_reversal: bool = False
+    eod_pre_window_start: str = "14:00"
+    eod_pre_window_end: str = "15:00"
+    eod_session_close: str = "16:00"
+    eod_vol_lookback_days: int = 20
+    eod_conviction_z: float = 1.0
+    eod_hold_minutes: int = 60
 
 
 @dataclass
@@ -192,12 +207,27 @@ def run_pipeline(
             realized_vol_lookback_days=cfg.mim_realized_vol_lookback_days,
             high_vol_quantile=cfg.mim_high_vol_quantile,
         )
+    if cfg.include_end_of_day_reversal:
+        df = add_end_of_day_reversal_features(
+            df,
+            timezone=cfg.timezone,
+            pre_window_start=cfg.eod_pre_window_start,
+            pre_window_end=cfg.eod_pre_window_end,
+            session_close=cfg.eod_session_close,
+            vol_lookback_days=cfg.eod_vol_lookback_days,
+            conviction_z=cfg.eod_conviction_z,
+        )
     event_columns = [c for c in df.columns if c.startswith("event_")]
     record("events", "ok", event_column_count=len(event_columns))
 
-    # Stage 4: forward evaluation labels (labels only — never event inputs)
-    df = add_forward_labels(df, horizons_minutes=cfg.horizons_minutes, timezone=cfg.timezone)
-    label_columns = [f"forward_return_{h}m" for h in cfg.horizons_minutes]
+    # Stage 4: forward evaluation labels (labels only — never event inputs).
+    # F2 resolves at the close, so its to-close hold horizon is appended when the
+    # family is enabled (one extra horizon → honest additional cells in N).
+    horizons = tuple(cfg.horizons_minutes)
+    if cfg.include_end_of_day_reversal and cfg.eod_hold_minutes not in horizons:
+        horizons = horizons + (cfg.eod_hold_minutes,)
+    df = add_forward_labels(df, horizons_minutes=horizons, timezone=cfg.timezone)
+    label_columns = [f"forward_return_{h}m" for h in horizons]
     record("labels", "ok", label_columns=label_columns)
 
     # Stage 5: event-study workflow

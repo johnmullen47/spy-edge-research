@@ -82,10 +82,18 @@ from spy_edge_research.signal_engine.intraday_momentum_features import (
     add_intraday_momentum_features,
     find_intraday_momentum_event_columns,
 )
+from spy_edge_research.signal_engine.end_of_day_reversal_features import (
+    EOD_EVENT_PREFIX,
+    add_end_of_day_reversal_features,
+    find_end_of_day_reversal_event_columns,
+)
 
 __all__ = [
     "MIM_EVENT_PREFIX",
+    "EOD_EVENT_PREFIX",
     "add_basic_event_primitives",
+    "add_end_of_day_reversal_features",
+    "find_end_of_day_reversal_event_columns",
     "add_intraday_momentum_features",
     "add_candle_body_features",
     "add_crossover_events",

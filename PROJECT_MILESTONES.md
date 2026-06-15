@@ -3248,3 +3248,51 @@ Conclusion: MIM is now evaluated by the Hard Gate A driver, but the default IEX
 real-data run still produced **no validated edge**. Broker/live layers remain
 OFF. This milestone does not touch broker/live code, does not lower the gate, and
 does not authorize action. SPA/Hansen remains deferred.
+
+## Milestone 116 - end-of-day reversal (F2) — pre-reg PREREG_F2
+
+Implements the pre-registered F2 signal (`docs/PREREG_F2_end_of_day_reversal.md`):
+a *price-only* end-of-day reversal on existing SPY 1-min bars (Baltussen-Da-Soebhag,
+t=-6.28). No regime gate. Wired through the SAME candidate / Hard-Gate-A pipeline as
+MIM — a new family through the same gate, not a new gate.
+
+New `signal_engine/end_of_day_reversal_features.py`
+(`add_end_of_day_reversal_features`): causal decision bar at the pre-close-window
+end (default 15:00); predictor `r_pre` = log(close[15:00]/close[14:00]); primary
+events `-sign(r_pre)` (`event_eod_reversal_long/short`). Pre-declared **secondary**
+(magnitude-scaled, counted in N): because position *sizing* is a harness non-goal,
+the `-clip(r_pre/sigma_pre)` secondary is represented faithfully as a
+**conviction-gated** variant (`event_eod_reversal_*_conviction`) firing only when the
+shifted-trailing-same-time-of-day standardized move `|r_pre/sigma_pre|` clears a
+frozen z-threshold. Strictly no-lookahead (verified by a truncation test).
+
+New `backtesting/end_of_day_reversal_placebos.py` — **the binding economic control**
+(PREREG_F2 §4.1/§5/§6: for F2 the cost/bounce test, not DSR, is decisive):
+- `generate_bounce_only_panel` — a Roll bid-ask-bounce model (shared 15:00 bounce →
+  spurious negative autocorrelation), with an optional genuine reversal.
+- `evaluate_reversal_net_edge` — scores `-sign(r_pre)` with the full half-spread
+  charged at every fill; reports whether the **net** edge is positive and
+  statistically distinguishable from zero (the §6 decisive test).
+- `build_end_of_day_reversal_bounce_test` — the mandatory bounce-only synthetic
+  placebo: a pure-bounce series shows a positive GROSS edge that MUST vanish net of
+  the half-spread; if a bounce-only series shows a net edge the live edge is
+  mechanical → kill.
+- `build_end_of_day_reversal_placebo_comparison` — scrambled-mapping +
+  random-direction placebos (edge must vanish).
+
+Pipeline integration (`cli/pipeline.py`): `PipelineConfig.include_end_of_day_reversal`
+(default off → existing runs byte-for-byte unchanged) adds the F2 features and
+appends the to-close hold horizon (`eod_hold_minutes`, default 60) to the label
+horizons so the signal resolves at the close. DSR `n_trials_evaluated=len(registry)`
+is unchanged, so the added F2 cells (and the extra to-close horizon) honestly raise N
+— the deflation cost of looking in one more place (RESEARCH_E honest-N).
+
+Hard Gate A unchanged. Tests (24): feature causality/direction/conviction/no-lookahead;
+the bounce test discriminates (pure bounce → no net edge; true reversal above spread →
+distinguishable); placebos vanish; F2 flows through the pipeline and grows the
+registry. Full suite: 938 passed, 4 skipped.
+
+Note for research review: (a) the secondary is a conviction-gated proxy for the
+magnitude-scaled position (sizing out of scope); (b) enabling F2 appends the 60-min
+horizon, which also creates 60-min cells for other families — honest extra N, but
+worth noting vs the pre-reg's "F2 books 2 cells" research-level accounting.
