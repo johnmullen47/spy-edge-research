@@ -145,16 +145,45 @@ def _controls(*, negative_control: bool, multiple_testing: bool, temporal: int):
 
 def test_verdict_flips_to_eligible_when_all_criteria_pass():
     controls = _controls(negative_control=True, multiple_testing=True, temporal=3)
-    _, verdict = _score_readiness(_oos_row(), {"max_pairwise_jaccard": 0.1}, controls)
+    _, verdict = _score_readiness(
+        _oos_row(),
+        {"max_pairwise_jaccard": 0.1},
+        controls,
+        deflated_sharpe_by_candidate={"c1": 0.8},
+        portfolio_pbo=0.2,
+    )
     assert (verdict["verdict"] == "eligible_for_paper_consideration").all()
     assert (verdict["failing_reasons"] == "").all()
 
 
 def test_verdict_stays_not_ready_when_negative_control_fails():
     controls = _controls(negative_control=False, multiple_testing=True, temporal=3)
-    _, verdict = _score_readiness(_oos_row(), {"max_pairwise_jaccard": 0.1}, controls)
+    _, verdict = _score_readiness(
+        _oos_row(),
+        {"max_pairwise_jaccard": 0.1},
+        controls,
+        deflated_sharpe_by_candidate={"c1": 0.8},
+        portfolio_pbo=0.2,
+    )
     assert (verdict["verdict"] == "not_ready").all()
     assert "negative_control_not_passed" in verdict.iloc[0]["failing_reasons"]
+
+
+def test_verdict_stays_not_ready_when_deflation_fails():
+    # Even with the classic battery passing, a high PBO / low deflated Sharpe
+    # (the modern overfitting controls) must keep a candidate out of eligibility.
+    controls = _controls(negative_control=True, multiple_testing=True, temporal=3)
+    _, verdict = _score_readiness(
+        _oos_row(),
+        {"max_pairwise_jaccard": 0.1},
+        controls,
+        deflated_sharpe_by_candidate={"c1": 0.2},
+        portfolio_pbo=0.8,
+    )
+    assert (verdict["verdict"] == "not_ready").all()
+    reasons = verdict.iloc[0]["failing_reasons"]
+    assert "backtest_overfit_probability_above_max" in reasons
+    assert "deflated_sharpe_below_min" in reasons
 
 
 def test_verdict_stays_not_ready_when_temporal_below_min():

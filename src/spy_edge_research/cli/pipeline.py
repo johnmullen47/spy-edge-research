@@ -46,6 +46,10 @@ from spy_edge_research.backtesting.oos_validation import (
     evaluate_candidate_registry_oos,
     summarize_oos_edge_stability,
 )
+from spy_edge_research.backtesting.deflated_sharpe import (
+    portfolio_pbo_from_oos,
+    summarize_candidate_deflated_sharpe,
+)
 from spy_edge_research.risk.signal_overlap import (
     compute_event_mask_overlap,
     summarize_signal_overlap,
@@ -198,11 +202,42 @@ def run_pipeline(
         record("risk_overlap", "skipped", reason="insufficient_event_masks")
 
     # Stage 9: walk-forward OOS stability (per-candidate)
-    oos_stability = _safe_oos_stability(df, registry, label_columns, cfg)
+    oos_results = _safe_oos_results(df, registry, label_columns, cfg)
+    oos_stability = (
+        summarize_oos_edge_stability(oos_results) if oos_results is not None else None
+    )
     if oos_stability is not None and not oos_stability.empty:
         record("oos_stability", "ok", candidate_rows=int(len(oos_stability)))
     else:
         record("oos_stability", "skipped", reason="insufficient_bars_for_walk_forward")
+
+    # Stage 9.25: deflation stack (Deflated Sharpe per candidate + portfolio PBO).
+    # The OOS per-split expectancy-difference panel IS the input the López de
+    # Prado deflation stack needs (rows = splits, columns = candidates), so this
+    # reuses the numbers from Stage 9 rather than re-fitting. Descriptive research
+    # diagnostics only — never trade authorization.
+    deflated_sharpe_by_candidate: dict[str, float] = {}
+    portfolio_pbo: float | None = None
+    if oos_results is not None and not oos_results.empty:
+        dsr_summary = summarize_candidate_deflated_sharpe(oos_results)
+        deflated_sharpe_by_candidate = {
+            str(r.candidate_id): float(r.deflated_sharpe_ratio)
+            for r in dsr_summary.itertuples(index=False)
+            if pd.notna(r.deflated_sharpe_ratio)
+        }
+        pbo_result = portfolio_pbo_from_oos(oos_results)
+        pbo_value = pbo_result.get("pbo")
+        if pbo_value is not None and pd.notna(pbo_value):
+            portfolio_pbo = float(pbo_value)
+            result.metrics["portfolio_pbo"] = portfolio_pbo
+        record(
+            "deflation",
+            "ok",
+            candidate_rows=int(len(dsr_summary)),
+            portfolio_pbo=portfolio_pbo,
+        )
+    else:
+        record("deflation", "skipped", reason="insufficient_oos_results")
 
     # Stage 9.5: control batteries (negative controls, multiple-testing family
     # size, temporal stability). Reduced to the scalars the readiness gate
@@ -235,7 +270,13 @@ def run_pipeline(
     record("dashboard", "ok", path=str(paths.dashboard_path))
 
     # Stage 11: paper-trading readiness scorecard (research gate, not authorization)
-    scorecard, verdicts = _score_readiness(oos_stability, result.metrics, control_results)
+    scorecard, verdicts = _score_readiness(
+        oos_stability,
+        result.metrics,
+        control_results,
+        deflated_sharpe_by_candidate=deflated_sharpe_by_candidate,
+        portfolio_pbo=portfolio_pbo,
+    )
     paths.readiness_scorecard_path.parent.mkdir(parents=True, exist_ok=True)
     scorecard.to_csv(paths.readiness_scorecard_path, index=False)
     verdicts.to_csv(paths.readiness_verdict_path, index=False)
@@ -314,12 +355,17 @@ def _safe_overlap_summary(
     return summarize_signal_overlap(overlap)
 
 
-def _safe_oos_stability(
+def _safe_oos_results(
     df: pd.DataFrame,
     registry: pd.DataFrame,
     label_columns: Sequence[str],
     cfg: PipelineConfig,
 ) -> pd.DataFrame | None:
+    """Return the raw per-candidate per-split OOS results, or None.
+
+    A single source for both the stability summary (Stage 9) and the deflation
+    stack (Stage 9.25), so the walk-forward evaluation runs only once.
+    """
     if registry.empty:
         return None
     if len(df) < cfg.oos_initial_train_size + cfg.oos_test_size:
@@ -342,22 +388,27 @@ def _safe_oos_stability(
     )
     if oos_results.empty:
         return None
-    return summarize_oos_edge_stability(oos_results)
+    return oos_results
 
 
 def _score_readiness(
     oos_stability: pd.DataFrame | None,
     shared_metrics: Mapping[str, Any],
     control_results: ControlBatteryResults | None = None,
+    *,
+    deflated_sharpe_by_candidate: Mapping[str, float] | None = None,
+    portfolio_pbo: float | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Score each candidate's readiness; return (scorecard, verdicts) tables.
 
     Each candidate's OOS-stability row is combined with the shared portfolio
     overlap metric and (when available) the control-battery outcomes: per-candidate
     negative-control and temporal-stability results plus the portfolio-level
-    multiple-testing pass. Missing metrics are treated conservatively by the gate
-    as insufficient evidence.
+    multiple-testing pass. The deflation stack adds a per-candidate Deflated Sharpe
+    Ratio and the portfolio Probability of Backtest Overfitting. Missing metrics are
+    treated conservatively by the gate as insufficient evidence.
     """
+    deflated_sharpe_by_candidate = deflated_sharpe_by_candidate or {}
     overlap = shared_metrics.get("max_pairwise_jaccard")
     # Per-candidate FDR-adjusted multiple-testing is preferred; the portfolio
     # family-size pass is only a coarse fallback for the no-OOS branch.
@@ -401,6 +452,8 @@ def _score_readiness(
             negative_control_passed=negative_control_passed,
             multiple_testing_passed=multiple_testing_passed,
             temporal_stable_period_count=temporal_stable_period_count,
+            pbo=portfolio_pbo,
+            deflated_sharpe=deflated_sharpe_by_candidate.get(candidate_id),
         )
         scorecard = score_candidate_readiness(metrics)
         verdict = summarize_readiness_verdict(scorecard)

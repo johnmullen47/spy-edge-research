@@ -3016,3 +3016,30 @@ CDF uses Acklam's rational approximation (~1e-9). Research-only measurement: no
 trade authorization, no I/O, pure functions. Exported from `backtesting`.
 Tests: `tests/backtesting/test_deflated_sharpe.py` (20). Full suite: 864 passed,
 4 skipped. Wiring into the readiness gate is M109.
+
+## Milestone 109 - wire the deflation stack into the readiness gate
+
+Build 4, Amendment 1 (completion). The M108 Deflated Sharpe / PBO measurements
+now bind as readiness criteria, supplementing — not replacing — the M106 BH/FDR
+multiple-testing gate, exactly as the constitutional amendment specifies.
+
+- `ReadinessCriteria` gains `max_pbo` (default **0.5**: PBO >= 0.5 means selection
+  is no better than chance) and `min_deflated_sharpe` (default **0.5**: at-even
+  odds the edge beats the expected best-of-N-trials benchmark). `None` disables.
+- `readiness_scoring` adds two criteria — `backtest_overfit_probability`
+  (`pbo <= max_pbo`) and `deflated_sharpe` (`deflated_sharpe >= min_deflated_sharpe`)
+  — taking the gate from 7 to 9 criteria. Missing metrics stay conservatively
+  `insufficient_evidence` (not ready).
+- `build_readiness_metrics` accepts `pbo` / `deflated_sharpe` pass-throughs.
+- `cli/pipeline.py`: a single `_safe_oos_results` now sources both the Stage 9
+  stability summary and a new **Stage 9.25 deflation** stage, which derives the
+  per-candidate Deflated Sharpe (`summarize_candidate_deflated_sharpe`) and the
+  portfolio PBO (`portfolio_pbo_from_oos`) from the same OOS per-split panel and
+  feeds them into `_score_readiness`. No edge is re-fit.
+
+Effect on Hard Gate A: the chart-pattern candidates already failed on economic
+significance; they now face two additional overfitting gates. The gate stays
+closed (the designed NEGATIVE result) and is strictly harder to pass — a true
+edge must now also survive deflation. Tests: 3 new readiness-scoring cases (high
+PBO, low deflated Sharpe, missing-metric) + a control-battery deflation-fail case;
+updated eligible-path fixtures. Full suite: 868 passed, 4 skipped.

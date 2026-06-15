@@ -30,6 +30,15 @@ class ReadinessCriteria:
     # conservative round-trip cost-floor proxy; set it to your actual all-in
     # cost (spread + slippage + fees). ``None`` disables the criterion.
     min_edge_bps: float | None = 1.0
+    # Modern anti-overfitting stack (Build 4 / M109; López de Prado deflation
+    # framework). A candidate must additionally show a Probability of Backtest
+    # Overfitting below ``max_pbo`` (PBO >= 0.5 means selection is no better than
+    # chance) and a Deflated Sharpe Ratio at or above ``min_deflated_sharpe`` (the
+    # probability the edge beats the expected best-of-N-trials benchmark; 0.5 is a
+    # coin flip). These supplement — they do not replace — the BH/FDR
+    # multiple-testing gate. ``None`` disables a criterion.
+    max_pbo: float | None = 0.5
+    min_deflated_sharpe: float | None = 0.5
 
 
 def default_readiness_criteria() -> ReadinessCriteria:

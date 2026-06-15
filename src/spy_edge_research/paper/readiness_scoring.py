@@ -82,6 +82,10 @@ def score_candidate_readiness(
         evaluate("exposure_overlap", "max_pairwise_jaccard", crit.max_pairwise_jaccard, "le")
     if crit.min_edge_bps is not None:
         evaluate("economic_edge_bps", "edge_bps", crit.min_edge_bps, "ge")
+    if crit.max_pbo is not None:
+        evaluate("backtest_overfit_probability", "pbo", crit.max_pbo, "le")
+    if crit.min_deflated_sharpe is not None:
+        evaluate("deflated_sharpe", "deflated_sharpe", crit.min_deflated_sharpe, "ge")
 
     return pd.DataFrame(rows, columns=list(SCORECARD_COLUMNS))
 

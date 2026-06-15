@@ -24,6 +24,8 @@ def build_readiness_metrics(
     negative_control_passed: bool | None = None,
     multiple_testing_passed: bool | None = None,
     temporal_stable_period_count: int | None = None,
+    pbo: float | None = None,
+    deflated_sharpe: float | None = None,
 ) -> dict[str, Any]:
     """Build a readiness metrics mapping from upstream research summaries.
 
@@ -57,6 +59,10 @@ def build_readiness_metrics(
         metrics["multiple_testing_passed"] = bool(multiple_testing_passed)
     if temporal_stable_period_count is not None:
         metrics["temporal_stable_period_count"] = int(temporal_stable_period_count)
+    if pbo is not None and pd.notna(pbo):
+        metrics["pbo"] = float(pbo)
+    if deflated_sharpe is not None and pd.notna(deflated_sharpe):
+        metrics["deflated_sharpe"] = float(deflated_sharpe)
 
     return metrics
 

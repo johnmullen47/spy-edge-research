@@ -37,10 +37,14 @@ def test_build_metrics_from_summaries_feeds_gate():
         negative_control_passed=True,
         multiple_testing_passed=True,
         temporal_stable_period_count=3,
+        pbo=0.2,
+        deflated_sharpe=0.8,
     )
     assert metrics["oos_positive_expectancy_difference_splits"] == 3
     assert metrics["oos_mean_sample_size"] == 50.0
     assert "max_pairwise_jaccard" in metrics
+    assert metrics["pbo"] == 0.2
+    assert metrics["deflated_sharpe"] == 0.8
 
     verdict = summarize_readiness_verdict(score_candidate_readiness(metrics)).iloc[0]
     assert verdict["verdict"] == READINESS_VERDICT_ELIGIBLE
