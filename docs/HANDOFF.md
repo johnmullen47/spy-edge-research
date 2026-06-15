@@ -33,22 +33,32 @@
   committed (`41e29a1`). Locks: SPX-based GEX primary (4→2 trial cells), exclude
   0DTE (≥1DTE only), **gamma = Polygon-provided Greeks** (primary), data source
   Polygon.io options (2016+).
-- **⚠️ F1 BLOCKING GATE — SPX historical OI (2016–2021) verification: NEGATIVE /
-  UNCERTAIN → CBOE fallback flagged to Dispatch.** Documentation-only check (no
-  Polygon API key in repo secrets — only `secrets/alpaca.env` — so the 2018-01-15
-  chain could not be fetched empirically). Findings: Polygon's deep options
-  history (2014/2016+) is **OPRA-sourced**, and OPRA flat files carry
-  trades/quotes/OHLCV but **not open interest**; OI is surfaced only via the v3
-  *snapshot* endpoint (a current/live view, per-contract). QuantConnect/Lean
-  explicitly warned "USA IndexOption OpenInterest data not supported" (later
-  patched to read the snapshot endpoint — still not a historical backfill). **No
-  Polygon documentation confirms continuous historical daily OI for SPX index
-  options pre-2022.** Fallback **CBOE DataShop** DOES cover it: the EOD Options
-  Summary includes `open_interest` for `^SPX` from 2005–2019 (no Greeks), and
-  "EOD Option Quotes with Calcs" carries newer data with Greeks/IV. **Action for
-  Dispatch:** F1 should NOT proceed on Polygon-for-OI alone for 2016–2021 without
-  either (a) a Polygon API key to empirically confirm pre-2022 OI, or (b)
-  adopting CBOE DataShop as the OI source.
+- **⚠️ F1 BLOCKING GATE — SPX historical OI (2016–2021): STILL NOT CLEARED;
+  empirical Polygon check BLOCKED on plan entitlement.** A Polygon key now exists
+  (`secrets/polygon.env`, gitignored), but it is a **free/low tier** and returns
+  **403 NOT_AUTHORIZED on every options snapshot endpoint** — the snapshot (chain
+  and per-contract) is the *only* source of `open_interest`. Empirical probes
+  (2026-06-15):
+  - `GET /v3/reference/options/contracts?underlying_ticker=SPX&expired=true` →
+    **200 OK**: SPX contract *metadata* exists deep in history (sample expiry
+    2010-02-05; the 2018-01-19 contract `O:SPX180119C00100000` resolves). But this
+    endpoint has **no `open_interest` field** (static contract defs only).
+  - `GET /v3/snapshot/options/I:SPX` (chain) → **403 NOT_AUTHORIZED**.
+  - `GET /v3/snapshot/options/AAPL` (equity chain) → **403** — not index-specific;
+    NO options snapshot entitlement at all.
+  - `GET /v3/snapshot/options/I:SPX/O:SPX180119C00100000` (per-contract 2018) →
+    **403**. `GET /v2/aggs/ticker/SPY/...2018` → 401 (stock data also not entitled).
+  - **Net:** OI is unreadable for *any* date on this plan, so the 2016–2021
+    coverage question **remains unanswered** — this is now a plan-entitlement
+    blocker, not (yet) a coverage finding.
+  - **Pending owner/Dispatch decision:** (a) **upgrade Polygon** to an options
+    tier (Options Starter+) that unlocks the snapshot endpoint, then re-run this
+    exact check — with the open caveat that the v3 snapshot is a *current* view, so
+    historical-as-of-2018 OI backfill still needs confirmation even after upgrade;
+    or (b) **adopt CBOE DataShop** (confirmed `^SPX` `open_interest` 2005–2019 +
+    "with Calcs" for newer), noting it lacks Greeks pre-2019, which collides with
+    Amendment 1 Decision 3 (Polygon-provided Greeks). Either path changes a locked
+    decision and is an owner call.
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
