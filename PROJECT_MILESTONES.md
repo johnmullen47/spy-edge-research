@@ -3135,3 +3135,31 @@ strictly lower DSR than the survivor count; the test would fail against the old
 code), the `n_trials >= panel` clamp invariant, and `n_trials_evaluated`
 validation. SPA (Hansen) and the Path-2 placebo controls remain out of scope per
 the dispatch (tracked separately). Full suite: 886 passed, 4 skipped.
+
+## Milestone 113 - Path-2 placebo controls (scrambled-gate, random-direction)
+
+Build 4, Amendment 2 (falsification armor). RESEARCH_C §4.4 requires two negative
+controls before any MIM result is trusted — both must make the apparent edge
+vanish. New module `backtesting/intraday_momentum_placebos.py`:
+
+- **Scrambled-gate placebo** — keep the real `sign(r_open)` direction, randomly
+  permute which decision bars are high-vol (same count, relocated). If a random
+  gate reproduces the high-regime edge, the volatility gate is noise.
+- **Random-direction placebo** — keep the real high-vol gate, replace the
+  direction with a random ±1 per decision bar. If random direction in the
+  high-vol regime reproduces the edge, the momentum signal is noise.
+- The macro / pre-FOMC sub-gate is deliberately **excluded** (Lucca-Moench drift
+  vanished post-2015; RESEARCH_C §2.0) per the governing spec.
+
+`build_intraday_momentum_placebo_comparison` returns one row per variant (real /
+scrambled_gate / random_direction) with the high-regime directional mean (bps,
+sign-adjusted) and hit rate; plus a report bundle + CSV export. Deterministic
+given a seed; descriptive falsification controls, never trade signals. Tests show
+a genuine gated edge beats both placebos on an engineered fixture and does NOT
+separate from them on pure noise (the control behaving correctly).
+Full suite: 892 passed, 4 skipped.
+
+Still out of scope / tracked for a later milestone: SPA (Hansen) — report-only per
+RESEARCH_C §4.3 L336 — and the operational Hard Gate A run of the MIM family on
+real SPY data (extend `scripts/run_hard_gate_a.py` with
+`include_intraday_momentum=True`).

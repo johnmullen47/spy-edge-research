@@ -37,6 +37,15 @@ decision (see `Auto-Trader Build/`):
   candidate/Hard-Gate-A pipeline (a new family, not a new gate).
   `backtesting/intraday_momentum_study.py` adds the descriptive regime-conditioned
   forward-outcome study + high-minus-all "regime lift".
+- **M112 — DSR trial-count fix (Build Master blocker).** The Deflated Sharpe now
+  deflates against the FULL pre-OOS trial budget (`n_trials_evaluated=len(registry)`),
+  not the OOS-survivor panel — RESEARCH_C §4.3 "THE BINDING CONTROL".
+- **M113 — Path-2 placebo controls.** `backtesting/intraday_momentum_placebos.py`:
+  scrambled-gate + random-direction falsification controls (the edge must vanish
+  under both). Macro/pre-FOMC gate deliberately excluded (dead post-2015).
+
+Deferred / tracked: SPA (Hansen, report-only per §4.3) and the operational MIM
+Hard-Gate-A run on real SPY data.
 
 **Operational next step (no code):** run the MIM family through Hard Gate A on the
 real SPY data — extend `scripts/run_hard_gate_a.py` to pass

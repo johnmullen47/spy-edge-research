@@ -66,6 +66,12 @@ from spy_edge_research.backtesting.intraday_momentum_study import (
     intraday_momentum_regime_lift,
     summarize_intraday_momentum_outcomes,
 )
+from spy_edge_research.backtesting.intraday_momentum_placebos import (
+    INTRADAY_MOMENTUM_PLACEBO_CAVEAT,
+    build_intraday_momentum_placebo_comparison,
+    build_intraday_momentum_placebo_report,
+    export_intraday_momentum_placebo_report_to_csv,
+)
 from spy_edge_research.backtesting.deflated_sharpe import (
     DEFLATED_SHARPE_CAVEAT,
     DEFLATED_SHARPE_N_LOWER_BOUND_CAVEAT,
@@ -533,8 +539,11 @@ __all__ = [
     "create_audit_record",
     "create_candidate_rule_audit_metadata",
     "create_candidate_edge",
+    "build_intraday_momentum_placebo_comparison",
+    "build_intraday_momentum_placebo_report",
     "build_intraday_momentum_research_report",
     "deflated_sharpe_ratio",
+    "export_intraday_momentum_placebo_report_to_csv",
     "expected_maximum_sharpe_ratio",
     "export_intraday_momentum_research_report_to_csv",
     "intraday_momentum_regime_lift",
