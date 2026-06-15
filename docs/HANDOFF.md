@@ -45,16 +45,25 @@
     **404**; neither param is honored. The snapshot endpoint is **live-only**
     (Polygon's own feature-request #3 asks for historical date-range queries —
     unimplemented).
-  - **Flat files do not carry OI:** the options day-aggregate flat-file schema is 8
-    columns (`open/high/low/close/volume/transactions/ticker/window_start`) —
-    **no `open_interest`** (flat files are OPRA-sourced; OPRA doesn't disseminate
-    OI). Reference-contracts endpoint also has no OI field.
+  - **Flat files do not carry OI — confirmed EMPIRICALLY from the live S3 bucket**
+    (signed SigV4 request; S3 secret = the REST API key; access key id in
+    `secrets/polygon.env`). (1) The options bucket has exactly 4 datasets —
+    `us_options_opra/{day_aggs_v1,minute_aggs_v1,quotes_v1,trades_v1}` — and **no
+    open-interest dataset**. (2) A real downloaded day-aggs file
+    (`2024-06-03.csv.gz`) header is **`ticker,volume,open,close,high,low,window_start,transactions`
+    — no `open_interest`**. Reference-contracts endpoint also has no OI field. (So
+    although OPRA files exist for 2018 in the bucket, Polygon simply does not put OI
+    in flat files — verified from an actual file, not docs.)
+  - **Flat-file download entitlement is date-windowed on Options Starter:** a 2024
+    day-aggs file GET → 200, but the **2018 file → 403 "forbidden"** (recent-only).
+    Relevant if F1 ever wants Polygon historical *bars*; separate from the OI gap.
   - **Conclusion:** Polygon exposes OI only as a **current snapshot**; there is **no
-    historical OI** on any tier. F1's 2016–2021 window therefore **cannot** be
-    sourced from Polygon for OI (forward daily snapshotting is useless for a
-    backtest). **CBOE DataShop is required** for historical SPX OI (confirmed
-    `^SPX` `open_interest` 2005–2019 + "with Calcs" for newer; lacks Greeks
-    pre-2019, which collides with Amendment 1 Decision 3 "Polygon-provided Greeks").
+    historical OI** on any tier (snapshot live-only; flat files OHLCV/trades/quotes
+    only, empirically). F1's 2016–2021 window therefore **cannot** be sourced from
+    Polygon for OI (forward daily snapshotting is useless for a backtest). **CBOE
+    DataShop is required** for historical SPX OI (confirmed `^SPX` `open_interest`
+    2005–2019 + "with Calcs" for newer; lacks Greeks pre-2019, which collides with
+    Amendment 1 Decision 3 "Polygon-provided Greeks").
   - **F1 data-sourcing decision returned to the owner:** adopt CBOE DataShop for
     OI (and resolve the Greeks-source collision with Decision 3), or rescope F1.
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
