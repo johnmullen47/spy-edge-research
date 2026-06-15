@@ -3043,3 +3043,34 @@ closed (the designed NEGATIVE result) and is strictly harder to pass — a true
 edge must now also survive deflation. Tests: 3 new readiness-scoring cases (high
 PBO, low deflated Sharpe, missing-metric) + a control-battery deflation-fail case;
 updated eligible-path fixtures. Full suite: 868 passed, 4 skipped.
+
+## Milestone 110 - regime-conditioned intraday-momentum signal family (Path 2)
+
+Build 4, Amendment 2 (scaffold). The first signal family deliberately *disjoint*
+from the killed 42 chart-pattern candidates: it conditions on the sign of a
+realized clock-window return, not on price geometry. This is Path 2 from
+`Auto-Trader Build/RESEARCH_C_DECISION.md` — the most-replicated short-horizon
+equity effect (Gao-Han-Li-Zhou 2018; Bogousslavsky 2016; Heston-Korajczyk-Sadka
+2010), evaluated under the project's full honesty harness.
+
+New module `signal_engine/intraday_momentum_features.py`
+(`add_intraday_momentum_features`, `find_intraday_momentum_event_columns`):
+
+- **Signal.** Over a fixed early-session window (default 09:30-10:00 ET), the
+  open-to-window-end return `r_open`; directional hypothesis `sign(r_open)`,
+  emitted on the *decision bar* (first bar at/after the window end), using only
+  bars up to and including it.
+- **Regime gate.** Realized volatility of 1-min returns over the same window vs a
+  trailing high-vol threshold = rolling quantile (default 66th pct, 20-day
+  lookback) of *prior* sessions' window vol, `.shift(1)` so a session never sets
+  its own threshold (same trailing-quantile discipline as `market_regime`).
+- **Events.** Boolean `event_mim_long` / `event_mim_short` (gated to the high-vol
+  regime) plus ungated `event_mim_long_all` / `event_mim_short_all` baselines, so
+  the family flows through the same candidate / Hard-Gate-A pipeline — a new set
+  of candidates through the same gate, not a new gate.
+
+Strictly causal: forward returns are added separately as labels; nothing here
+looks forward. Research-only feature engineering — no trade signal/order/sizing.
+Exported from `signal_engine`. Tests:
+`tests/signal_engine/test_intraday_momentum_features.py` (7). Full suite: 875
+passed, 4 skipped. Pipeline + study wiring is M111.

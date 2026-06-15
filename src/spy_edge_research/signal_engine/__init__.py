@@ -77,9 +77,16 @@ from spy_edge_research.signal_engine.value_quality_momentum_features import (
     add_value_quality_momentum_features,
     add_value_score,
 )
+from spy_edge_research.signal_engine.intraday_momentum_features import (
+    MIM_EVENT_PREFIX,
+    add_intraday_momentum_features,
+    find_intraday_momentum_event_columns,
+)
 
 __all__ = [
+    "MIM_EVENT_PREFIX",
     "add_basic_event_primitives",
+    "add_intraday_momentum_features",
     "add_candle_body_features",
     "add_crossover_events",
     "add_cross_instrument_confirmation_features",
@@ -124,6 +131,7 @@ __all__ = [
     "encode_recent_event_sequence",
     "filter_directional_event_catalog",
     "find_event_sequences",
+    "find_intraday_momentum_event_columns",
     "find_named_event_columns",
     "infer_named_event_direction",
     "infer_named_event_family",
