@@ -1,20 +1,21 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M113 complete, M114 in progress; Build Master).
-> **Re-verify the live state before trusting any specific number here** — this repo
-> has had concurrent writers (see §1).
+> project. Last updated 2026-06-15 (M114 complete; Build Master). **Re-verify the
+> live state before trusting any specific number here** — this repo has had
+> concurrent writers (see §1).
 
 ## 0. Verified snapshot at handoff
 
 - **Branch:** `main`
-- **HEAD:** `fdcbd77` — `M113: Path-2 placebo controls (scrambled-gate + random-direction)`
-- **Current milestone:** **M113 complete; M114 (regime-aware cost model) in progress.**
+- **HEAD:** `9f7da18` — `M114: regime-aware cost model (binding economic control)`
+- **Current milestone:** **M114 complete.** Next: operational MIM Hard-Gate-A run on
+  real SPY data, and (separately) wiring the regime-aware cost into the economic gate.
 - **Working tree:** doc-only edits from a prior writer remain unstaged (README.md,
   docs/CHATGPT_TRADING_THEORY_HANDOFF.md) plus the untracked `Auto-Trader Build/`
   research dir; all milestone code/test/ledger changes are committed and pushed.
-- **Full suite:** `892 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
-- **Latest ledger milestone:** M113 (`PROJECT_MILESTONES.md`)
+- **Full suite:** `913 passed, 4 skipped` (`.venv/bin/python -m pytest -q` from project root; Python 3.11; the 4 skips need matplotlib). Re-verify per milestone.
+- **Latest ledger milestone:** M114 (`PROJECT_MILESTONES.md`)
 - **ruff** is installed in `.venv` (used for F401 import cleanup).
 
 ### Build 4 (M108–M111) — what changed this session
@@ -45,13 +46,14 @@ decision (see `Auto-Trader Build/`):
   scrambled-gate + random-direction falsification controls (the edge must vanish
   under both). Macro/pre-FOMC gate deliberately excluded (dead post-2015).
 
-- **M114 (in progress) — regime-aware cost model (binding economic control,
-  RESEARCH_C §4.5).** `simulation/cost_model.py`:
+- **M114 — regime-aware cost model (binding economic control, RESEARCH_C §4.5).**
+  `simulation/cost_model.py` `RegimeAwareCostModel`:
   `cost_bps(t) = half_spread(t) + k·σ_intraday(t) + impact_sqrt(Q/ADV)`, time-of-day
   + VIX-regime aware, charged at point-of-fill (entry/exit bar regime), so cost
   co-moves with the vol-gated edge. A flat low cost is prohibited. Integrated into
   `simulation/position_sim.py` behind an optional `cost_model` arg (default `None`
-  → unchanged flat behavior). **Hard Gate A unchanged.**
+  → unchanged flat behavior). **Hard Gate A unchanged** — this builds the control;
+  wiring it into the economic-significance evaluation is a separate later step.
 
 Deferred / tracked: SPA (Hansen, report-only per §4.3) and the operational MIM
 Hard-Gate-A run on real SPY data.
