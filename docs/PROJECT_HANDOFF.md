@@ -42,37 +42,37 @@ designed outcome.
 
 | Item | Status |
 |---|---|
-| **Hard Gate A** | **NEGATIVE.** 0 of 672 candidates eligible in M126 (full F1–F10 set). No validated edge. |
-| **`origin/main` HEAD** | `3a72087` — "docs: update HANDOFF and PROJECT_MILESTONES to M126" (i.e. main contains through **M126**). |
-| **M127 (MIM confirmatory replication)** | **`NULL_NON_REPLICATION`** — well-powered, preregistered, control-clean non-replication of canonical Market Intraday Momentum in SPY 2016–2026. On branch `milestone/M127` (and `origin/milestone/M127`); **not yet merged to main**. |
-| **M128 (cross-sectional HKS-2010)** | **In progress / scaffold only.** Interfaces + TODOs; all stubs raise `NotImplementedError`. On branch `milestone/M128`. **No experiments run.** Blocked on stock-universe intraday data. |
-| **Active branch / worktree** | M127→M128 work was done by Build Master in a private worktree on `milestone/M128` (HEAD `b71b000`, the M127 result commit). The shared main checkout sits on Codex's `codex/mim-iteration` (M117). |
+| **Hard Gate A** | **NEGATIVE.** 0 of 672 candidates eligible in M126 (full F1–F10 set). No validated edge. M127 and M128 add two more preregistered nulls; the gate stays NEGATIVE. |
+| **`origin/main` HEAD** | Contains through **M128** — `milestone/M127` and `milestone/M128` are merged via `--no-ff` (merge commits "merge: milestone/M127 …" and "merge: milestone/M128 …"). Tagged `v0.3-m128-complete`. |
+| **M127 (MIM confirmatory replication)** | **`NULL_NON_REPLICATION`** — well-powered, preregistered, control-clean non-replication of canonical Market Intraday Momentum in SPY 2016–2026. **Merged to `main`.** |
+| **M128 (cross-sectional HKS-2010)** | **`NULL_NON_REPLICATION` — EXPLORATORY.** Liquid US-stock cross-section, **334 symbols, 2023–2026**. **0/4 preregistered Fama-MacBeth lags pass** (L=1 t=1.05, L=5 t=1.22, L=10 t=0.57, L=22 t=−1.34; Bonferroni crit t=2.498). Negative controls clean; economics **cost-dominated** (~18 bps round-trip L/S vs 0.5–1.4 bps gross/bucket). Universe fidelity **Approximate → EXPLORATORY**. OOS 2025–2026 shows a positive, individually-significant slope (L=1 t=4.10, L=5 t=2.45) that is **sign-unstable** vs IS → hypothesis-generating only. **Merged to `main`.** |
+| **Active branch / worktree** | M127→M128 merges into `main` were completed in a private worktree (`--no-ff`). The shared main checkout sits on Codex's `codex/mim-iteration` (M117). |
 | **Broker / live execution** | **OFF and structurally inert.** Three independent gates (env flag + per-order human token + limits/kill-switch) all required; none satisfiable. |
-| **Test suite (last verified)** | ~`1042 passed, 4 skipped` at M125 (4 skips need matplotlib); re-verify per milestone with `.venv/bin/python -m pytest -q`. |
+| **Test suite (last verified)** | `1060 passed, 4 skipped` on merged `main` (4 skips need matplotlib); re-verify per milestone with `.venv/bin/python -m pytest -q`. |
 
 ### ⚠️ Documentation-vs-code gap (read this)
 
 The **mainline progress ledger lags the actual work.** Two of the repo's "ledger"
 documents — root `PROJECT_MILESTONES.md` and `docs/HANDOFF.md` — were last fully
 reconciled around M117, while the real experimental work has advanced to
-**M126/M127** (on `main`/milestone branches) and M128 (scaffold). Concretely:
+**M126/M127/M128**, all now merged to `main`. Concretely:
 
-- The committed `main` history goes **through M126**. `milestone/M127` and
-  `milestone/M128` carry M127's result and M128's scaffold on top of it.
-- The durable result records for the latest milestones live in **dedicated docs on
-  the milestone branches**, not in the root ledger:
+- The committed `main` history goes **through M128**: `milestone/M127` and
+  `milestone/M128` are merged (`--no-ff`), so M127's MIM result and M128's
+  cross-sectional HKS result both live on `main` and are tagged `v0.3-m128-complete`.
+- The durable result records for the latest milestones live in **dedicated docs**:
   `docs/RESULTS_M126_HARD_GATE_A.md`, `docs/m127/` (results JSON + reports),
-  `docs/m128/M128_SCAFFOLD.md`, `docs/preregistration/M127_PREREG.yaml`.
+  `docs/m128/m128_results.md` (the M128 artifact of record),
+  `docs/preregistration/M127_PREREG.yaml` and `M128_PREREG*.yaml`.
 - Earlier research memos (`docs/RESEARCH_J_Adversarial_Null_Challenge.md`) were
   written against an **M117 working copy** and reason about M126 numbers John
   supplied verbatim; they explicitly flag that the M126 run artifacts were not
   readable in that copy. Treat those memos as analysis, and the
   `RESULTS_M126_HARD_GATE_A.md` file as the artifact of record.
 
-**Action for a new agent:** to see M127/M128, `git fetch origin` then inspect
-`origin/milestone/M127` and `milestone/M128` (e.g.
-`git show milestone/M128:docs/RESULTS_M126_HARD_GATE_A.md`). Do not assume the root
-`PROJECT_MILESTONES.md` reflects current state — it is behind.
+**Action for a new agent:** `git fetch origin`; M126/M127/M128 are all on `main`
+(tag `v0.3-m128-complete`). Do not assume the root `PROJECT_MILESTONES.md` reflects
+current state — it is behind.
 
 ---
 
@@ -101,7 +101,7 @@ signal_engine/        causal events, named-event catalog, sequences, cross-instr
                         f5_fomc_calendar, vrp_features (F6), vol_managed_features (F7),
                         orb_features (F8), intraday_periodicity_features (F9),
                         fomc_cycle_features (F10), value_quality_momentum_features (VQM),
-                        cross_sectional_scaffold (M128 stubs)
+                        cross_sectional (M128 Fama-MacBeth estimator)
 market_regime/        volatility & directional regime classification + diagnostics
 instruments/          instrument / sector / macro / factor universe registries
 backtesting/          THE MEASUREMENT & GOVERNANCE CORE — forward labels, event studies,
@@ -520,32 +520,58 @@ this is the SPY ETF — a null here is *not* a rejection of the futures finding)
 A documented post-result driver fix corrected a loose `suspicious` heuristic to the
 frozen prereg criterion; the binding confirmatory verdict (0/4) was unchanged.
 
-### 9.6 M128 — cross-sectional HKS-2010 (IN PROGRESS, scaffold only)
+### 9.6 M128 — cross-sectional HKS-2010 (COMPLETE — EXPLORATORY NULL)
 
-Source of record: `docs/m128/M128_SCAFFOLD.md`; code
-`signal_engine/cross_sectional_scaffold.py` (all stubs raise `NotImplementedError`).
+Source of record: `docs/m128/m128_results.md` (+ `m128_results.json`); estimator
+`src/spy_edge_research/signal_engine/cross_sectional.py`; runner `scripts/run_m128.py`;
+preregistration `docs/preregistration/M128_PREREG.yaml` + `M128_PREREG_v2.yaml`
+(both committed before any result, `results_observed=false`).
 
 **Rationale:** the periodicity/continuation effect (Heston-Korajczyk-Sadka 2010,
 RESEARCH_I bucket 3) is **cross-sectional** — defined *across many stocks*, not
 within one diversified ETF. M127's SPY-ETF null is the *expected control outcome*
-for a cross-sectional effect, not a test of it. M128 would test it where it lives:
-the stock cross-section.
+for a cross-sectional effect, not a test of it. M128 tests it where it lives: the
+stock cross-section.
 
-**Planned design (to be frozen at M128 via the same Gate-0.5 discipline as M127):**
-stocks-first universe with point-in-time membership (no survivorship bias);
-same-clock-time (e.g. 30-min bucket) per-stock return continuation; **mandatory
-controls** — market/beta neutralization, a point-in-time liquidity screen, and
-ETFs (SPY/QQQ/…) as **negative controls** (a true cross-sectional effect should be
-weak/absent on a diversified ETF, anchored by the M127 SPY null). Same harness:
-preregistration freeze → power/MDE → fidelity ≥ Close → negative controls →
-auditable artifacts. Intended methods include **Fama-MacBeth** cross-sectional
-regressions on **Alpaca SIP** stock minute bars.
+**Design (frozen via the same Gate-0.5 discipline as M127):** liquid US-stock
+universe, **334 symbols with bars retained for delisted names** (survivorship-correct,
+relative demeaned estimator); same-half-hour per-stock return continuation;
+market-neutralized **Fama-MacBeth** with NW(12) HAC; k=4 preregistered lags {1,5,10,22},
+Bonferroni α/k → two-sided crit t = **2.498**. Test window **2023–2026** (per v2,
+reduced for data feasibility). Universe fidelity is **Approximate** (modern liquidity
+proxy, post-publication era) → the run is classified **EXPLORATORY**, not confirmatory.
 
-**Blockers (must resolve before any M128 experiment):** (1) stock-universe intraday
-data with survivorship-correct point-in-time membership + liquidity history — not in
-the repo (Alpaca can fetch individual stock minute bars, IEX-thin or SIP, but
-membership/liquidity must be sourced); (2) a cross-sectional power analysis
-(N = stocks × days). **Until then: scaffold only. No M128 experiments.**
+**Result — `NULL_NON_REPLICATION` (0/4 lags pass):**
+
+| Lag | Role | slope | HAC t | pass |
+|----:|------|------:|------:|:---:|
+| 1 | CO_PRIMARY | +0.00394 | **1.05** | no |
+| 5 | PRIMARY | +0.00432 | **1.22** | no |
+| 10 | SECONDARY | +0.00224 | **0.57** | no |
+| 22 | SECONDARY | −0.00427 | **−1.34** | no |
+
+No lag exceeds crit t=2.498. Per the prereg this is an *interpretable* null: not
+underpowered (synthetic MC power ≈1.0 at literature R²; MDE ρ≈0.004, ~8× below the
+literature lower bound), not contaminated (three seeded **negative controls clean**,
+|t|≤~1.0), preregistered (k=4 Bonferroni), survivorship-correct. **Economically
+cost-dominated:** decile L/S 30-min holding nets **−17 to −18 bps/bucket** (~18 bps
+round-trip vs 0.5–1.4 bps gross). Consistent with the M127 SPY MIM null and
+post-publication decay (McLean–Pontiff 2016).
+
+**Two honest caveats (do not change the verdict):**
+1. **OOS sign instability — flagged, not suppressed.** The full-sample primary arbiter
+   is null, but the IS/OOS split is sign-*inconsistent*: slope is negative in IS
+   2023–2024 (L=1 t=−1.32, L=5 t=−0.85) and **positive and individually significant in
+   OOS 2025–2026** (L=1 t=**4.10**, L=5 t=**2.45**, n=362). OOS is preregistered as
+   robustness, not the gate; a sign that flips between sub-periods argues *against* a
+   stable effect, and the recent window is a single short regime outside the k=4
+   Bonferroni family. **Hypothesis-generating only** — confirming it would need its own
+   preregistered OOS test on future data.
+2. **ETF auxiliary control is structurally void** (only 4 ETFs → n_days=0, below the
+   per-(date,bucket) minimum of 5), not informative. The binding controls are the three
+   seeded negative controls on the real stock universe, all clean.
+
+**Hard Gate A remains NEGATIVE** — M128 adds another preregistered null, not an edge.
 
 ### 9.7 RESEARCH_I & RESEARCH_J (the framing memos)
 
@@ -576,10 +602,9 @@ membership/liquidity must be sourced); (2) a cross-sectional power analysis
 
 ## 10. Open decisions (require John's input)
 
-1. **Merge `milestone/M127` to `main`?** The M127 NULL_NON_REPLICATION result is
-   clean and auditable (preregistered, control-clean, git-provable freeze). Whether
-   to merge it (and the M128 scaffold) into `main` is John's call. `main` currently
-   sits at M126.
+1. ~~**Merge `milestone/M127` to `main`?**~~ **Resolved — done.** Both
+   `milestone/M127` and `milestone/M128` are merged to `main` (`--no-ff`) and tagged
+   `v0.3-m128-complete`. `main` now sits at M128.
 2. **ES/MES futures for H_b?** The decisive remaining test for the Baltussen
    canonical instrument is a futures run — H_b is documented on futures, and the SPY
    ETF null is not a rejection of the futures finding. Requires **new paid data**
@@ -594,10 +619,11 @@ membership/liquidity must be sourced); (2) a cross-sectional power analysis
 
 ## 11. Next steps (priority order)
 
-1. **M128 (in progress)** — cross-sectional HKS-2010 continuation/reversal on
-   individual stocks via Alpaca SIP, with Fama-MacBeth and ETFs as negative
-   controls. Resolve the data/power blockers (§9.6), pass Gate 0.5, then freeze and
-   run. **No experiments until the blockers clear.**
+1. ~~**M128**~~ **Done — EXPLORATORY NULL** (§9.6). Cross-sectional HKS-2010 ran on
+   334 US stocks (2023–2026) via Fama-MacBeth with ETFs/seeded negatives as controls;
+   0/4 lags pass, cost-dominated. The one live thread is the **OOS 2025–2026
+   sign-unstable positive slope** (L=1 t=4.10, L=5 t=2.45) — hypothesis-generating
+   only; a fresh preregistered OOS test on future data could adjudicate it.
 2. **ES/MES futures for H_b** — the only remaining decisive test for the Baltussen
    canonical instrument. **Blocked on data** (paid: Databento/IQFeed).
 3. **F1 gamma-gated MIM** — highest-prior structural candidate, **data-blocked** on
@@ -671,12 +697,12 @@ term-structure.
 - This handoff was assembled on 2026-06-16 from: `README.md`, `docs/ARCHITECTURE.md`,
   `docs/HANDOFF.md` (main and `milestone/M128` versions), `PROJECT_MILESTONES.md`
   (through M117), and the milestone-branch result records
-  (`docs/RESULTS_M126_HARD_GATE_A.md`, `docs/m127/*`, `docs/m128/M128_SCAFFOLD.md`,
-  `docs/preregistration/M127_PREREG.yaml`), plus `RESEARCH_I`/`RESEARCH_J` and the
-  `PREREG_*` specs.
+  (`docs/RESULTS_M126_HARD_GATE_A.md`, `docs/m127/*`, `docs/m128/m128_results.md`,
+  `docs/preregistration/M127_PREREG.yaml` + `M128_PREREG*.yaml`), plus
+  `RESEARCH_I`/`RESEARCH_J` and the `PREREG_*` specs.
 - **Known uncertainty, stated rather than guessed:** the root `PROJECT_MILESTONES.md`
-  ledger and root `docs/HANDOFF.md` lag the milestone branches (§2). M127/M128 are on
-  `milestone/M127`/`milestone/M128` and **not yet merged to `main`** (M126). The 38
+  ledger and root `docs/HANDOFF.md` lag (§2). M126/M127/M128 are all **merged to
+  `main`** (tag `v0.3-m128-complete`). The 38
   Holm survivors' per-family Sharpe breakdown and the DSR σ_SR/T are referenced but
   were not re-derived here. Numbers from gitignored run dirs are quoted from the
   committed `RESULTS_*`/`m127` records, which are the artifacts of record. **Re-verify
