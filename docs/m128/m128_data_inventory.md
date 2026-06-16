@@ -1,5 +1,13 @@
 # M128 — Data Inventory (Gate 0.5, Step 1B)
 
+> **AMENDMENT (v2, 2026-06-16, pre-result):** the test sample was reduced to **2023-01..2026-06**
+> (fetch from 2022-11) per `docs/preregistration/M128_PREREG_v2.yaml`, because the Alpaca 30-min
+> bars endpoint is rate-limited (~200 req/min) and page-capped (~419 bars/page), making the full
+> 2016–2026 pull ~2 hours and operationally fragile. Power is unaffected (still >0.99). The
+> effective universe is the union of 2023+ monthly membership (**229 names**; ~169 needed fetching
+> beyond the prefix already pulled). Sections below describe the full construction; the test simply
+> uses the 2023+ slice.
+
 **Date:** 2026-06-16. Written BEFORE any cross-sectional result (execution-freeze honored).
 Universe construction and data inventory are explicitly pre-freeze deliverables (not a
 predictor→target result).

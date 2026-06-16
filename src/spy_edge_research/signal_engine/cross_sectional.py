@@ -161,6 +161,7 @@ def _slope_series_for_lag(
     lag: int,
     pair_dates: Mapping[pd.Timestamp, pd.Timestamp] | None = None,
     stock_permute_rng: np.random.Generator | None = None,
+    min_target: pd.Timestamp | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list]:
     """Per-date pooled FM slope gamma[d], pooling all 13 buckets.
 
@@ -176,6 +177,8 @@ def _slope_series_for_lag(
     gammas, corrs, npairs, out_dates = [], [], [], []
 
     for d in all_dates:
+        if min_target is not None and d < min_target:
+            continue
         if pair_dates is not None:
             d_lag = pair_dates.get(d)
             if d_lag is None:
@@ -227,14 +230,16 @@ def cross_sectional_continuation_test(
     lag: int,
     label: str | None = None,
     nw_lags: int = 12,
+    min_target: pd.Timestamp | None = None,
 ) -> FamaMacBethResult:
     """Primary M128 confirmatory test. Implements scaffold ``cross_sectional_continuation_test``.
 
     Market-neutralizes each bucket frame, builds the per-date pooled FM slope series at the
-    given lag, and applies NW(12) inference to its mean.
+    given lag, and applies NW(12) inference to its mean. ``min_target`` restricts the set of
+    TARGET dates (predictors may still reach earlier into the lookback).
     """
     neutralized = {b: market_neutralize(f, member_mask) for b, f in bucket_returns.items()}
-    gammas, corrs, npairs, dates = _slope_series_for_lag(neutralized, lag=lag)
+    gammas, corrs, npairs, dates = _slope_series_for_lag(neutralized, lag=lag, min_target=min_target)
     nw = newey_west_mean(gammas, lags=nw_lags)
     return FamaMacBethResult(
         label=label or f"H_cs L={lag}",
@@ -257,6 +262,7 @@ def negative_controls(
     seed: int = 42,
     nw_lags: int = 12,
     random_lag_choices: tuple[int, ...] = (3, 7, 9, 11, 13),
+    min_target: pd.Timestamp | None = None,
 ) -> dict[str, FamaMacBethResult]:
     """Three seeded cross-sectional negative controls (M128 Step 3).
 
@@ -275,7 +281,7 @@ def negative_controls(
     perm = rng.permutation(len(shuffled_src))
     pair_dates = {all_dates[i]: all_dates[perm[i]] for i in range(len(all_dates))
                   if all_dates[perm[i]] != all_dates[i]}
-    g, c, n, _ = _slope_series_for_lag(neutralized, lag=lag, pair_dates=pair_dates)
+    g, c, n, _ = _slope_series_for_lag(neutralized, lag=lag, pair_dates=pair_dates, min_target=min_target)
     nw = newey_west_mean(g, lags=nw_lags)
     out["date_shuffled"] = FamaMacBethResult(
         "control:date_shuffled", lag, int(nw["n"]), int(n.sum()) if n.size else 0,
@@ -285,7 +291,7 @@ def negative_controls(
 
     # stock_permuted
     rng2 = np.random.default_rng(seed + 1)
-    g, c, n, _ = _slope_series_for_lag(neutralized, lag=lag, stock_permute_rng=rng2)
+    g, c, n, _ = _slope_series_for_lag(neutralized, lag=lag, stock_permute_rng=rng2, min_target=min_target)
     nw = newey_west_mean(g, lags=nw_lags)
     out["stock_permuted"] = FamaMacBethResult(
         "control:stock_permuted", lag, int(nw["n"]), int(n.sum()) if n.size else 0,
@@ -296,7 +302,7 @@ def negative_controls(
     # lag_permuted: pick a random alternative lag != L
     choices = [l for l in random_lag_choices if l != lag] or [lag + 2]
     rlag = int(rng.choice(choices))
-    g, c, n, _ = _slope_series_for_lag(neutralized, lag=rlag)
+    g, c, n, _ = _slope_series_for_lag(neutralized, lag=rlag, min_target=min_target)
     nw = newey_west_mean(g, lags=nw_lags)
     out["lag_permuted"] = FamaMacBethResult(
         f"control:lag_permuted(L={rlag})", rlag, int(nw["n"]), int(n.sum()) if n.size else 0,
@@ -312,6 +318,7 @@ def decile_long_short_bucket_returns(
     *,
     lag: int,
     decile: float = 0.1,
+    min_target: pd.Timestamp | None = None,
 ) -> pd.Series:
     """Gross per-(date,bucket) return of a top-decile-long / bottom-decile-short book,
     sorted on the lagged same-bucket neutralized return. For the economic-significance
@@ -325,6 +332,8 @@ def decile_long_short_bucket_returns(
         dates = list(f.index)
         pos = {d: i for i, d in enumerate(dates)}
         for d in dates:
+            if min_target is not None and d < min_target:
+                continue
             i = pos[d]
             if i - lag < 0:
                 continue

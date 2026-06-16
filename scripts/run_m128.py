@@ -37,6 +37,11 @@ PRIMARY, CO_PRIMARY = 5, 1
 CRIT_T = 2.498
 CONTROL_ETFS = ["SPY", "QQQ", "IWM", "DIA"]
 TZ = "America/New_York"
+# Test sample per M128_PREREG_v2.yaml (2023-01..2026-06; predictors may reach into the 2022
+# lookback). Targets before TEST_START are excluded; OOS split below.
+TEST_START = pd.Timestamp("2023-01-01", tz=TZ)
+OOS_SPLITS = [("IS_2023_2024", "2023-01-01", "2024-12-31"),
+              ("OOS_2025_2026", "2025-01-01", "2026-12-31")]
 
 
 def load_membership():
@@ -72,7 +77,7 @@ def build_mask(frames, by_month):
 
 def cost_layer(bucket_returns, member_mask, lag):
     """Cost-adjusted economic significance for the decile L/S at one lag."""
-    ls = decile_long_short_bucket_returns(bucket_returns, member_mask, lag=lag)
+    ls = decile_long_short_bucket_returns(bucket_returns, member_mask, lag=lag, min_target=TEST_START)
     if ls.empty:
         return None
     gross_mean_bps = float(ls.mean() * 1e4)
@@ -106,17 +111,21 @@ def cost_layer(bucket_returns, member_mask, lag):
 
 
 def oos_split(bucket_returns, member_mask, lag):
-    """IS 2017-2021 vs OOS 2022-2026 FM slope sign consistency."""
+    """IS vs OOS FM slope sign consistency (windows per M128_PREREG_v2.yaml).
+
+    Each sub-window keeps ~1 month of pre-window lookback so the predictor at the window
+    start is available; min_target restricts the TARGET dates to the window.
+    """
     def sub(frames, lo, hi):
         return {b: f[(f.index >= lo) & (f.index <= hi)] for b, f in frames.items()}
     res = {}
-    for name, lo, hi in [("IS_2017_2021", "2017-01-01", "2021-12-31"),
-                         ("OOS_2022_2026", "2022-01-01", "2026-12-31")]:
+    for name, lo, hi in OOS_SPLITS:
         lo_ts = pd.Timestamp(lo, tz=TZ)
         hi_ts = pd.Timestamp(hi, tz=TZ)
-        sf = sub(bucket_returns, lo_ts, hi_ts)
-        sm = member_mask[(member_mask.index >= lo_ts) & (member_mask.index <= hi_ts)]
-        r = cross_sectional_continuation_test(sf, sm, lag=lag, label=name)
+        look = lo_ts - pd.Timedelta(days=45)   # keep predictor lookback for window-start targets
+        sf = sub(bucket_returns, look, hi_ts)
+        sm = member_mask[(member_mask.index >= look) & (member_mask.index <= hi_ts)]
+        r = cross_sectional_continuation_test(sf, sm, lag=lag, label=name, min_target=lo_ts)
         res[name] = r.as_dict()
     return res
 
@@ -134,7 +143,7 @@ def main() -> None:
     confirmatory = []
     for lag in LAGS:
         r = cross_sectional_continuation_test(frames, mask, lag=lag,
-                                              label=f"H_cs L={lag}")
+                                              label=f"H_cs L={lag}", min_target=TEST_START)
         d = r.as_dict()
         d["passed_confirmatory"] = bool(r.t_stat is not None and r.t_stat > CRIT_T)
         d["role"] = ("PRIMARY" if lag == PRIMARY else
@@ -147,7 +156,7 @@ def main() -> None:
     controls = {}
     suspicious = False
     for lag in (PRIMARY, CO_PRIMARY):
-        c = negative_controls(frames, mask, lag=lag, seed=42)
+        c = negative_controls(frames, mask, lag=lag, seed=42, min_target=TEST_START)
         controls[f"L={lag}"] = {k: v.as_dict() for k, v in c.items()}
         for k, v in c.items():
             if v.t_stat is not None and abs(v.t_stat) >= CRIT_T:
@@ -159,7 +168,7 @@ def main() -> None:
     etf_mask = pd.DataFrame(True, index=sorted(set().union(*[set(f.index) for f in etf_frames.values()])),
                             columns=CONTROL_ETFS)
     etf_ctrl = cross_sectional_continuation_test(etf_frames, etf_mask, lag=PRIMARY,
-                                                 label="ETF_cross_section").as_dict()
+                                                 label="ETF_cross_section", min_target=TEST_START).as_dict()
     etf_ctrl["caveat_small_N"] = f"only {len(etf_bars)} ETFs; cross-section too small for power"
 
     # OOS sign-consistency for primary + co-primary
@@ -181,6 +190,7 @@ def main() -> None:
     result = {
         "run_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "classification": "EXPLORATORY (universe fidelity Approximate; see m128_fidelity_report.md)",
+        "test_window": "2023-01..2026-06 (per M128_PREREG_v2.yaml)",
         "crit_t": CRIT_T,
         "k": len(LAGS),
         "n_universe_symbols_with_bars": len(bars),

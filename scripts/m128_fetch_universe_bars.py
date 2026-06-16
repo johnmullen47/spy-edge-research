@@ -26,9 +26,11 @@ from zoneinfo import ZoneInfo
 DATA_HOST = "https://data.alpaca.markets"
 EASTERN = ZoneInfo("America/New_York")
 CSV_COLUMNS = ("timestamp", "symbol", "open", "high", "low", "close", "volume")
-BATCH = 40
 PAGE_LIMIT = 10000
 CONTROL_ETFS = ["SPY", "QQQ", "IWM", "DIA"]
+# NOTE: the 30Min bars endpoint hard-caps pages at ~419 bars (the `limit` param is
+# ignored), and multi-symbol requests SHARE that page. So we fetch ONE symbol per
+# request (full page per symbol) and parallelize across symbols via --shard/--nshards.
 
 
 def load_credentials(secrets_path: Path) -> tuple[str, str]:
@@ -74,19 +76,24 @@ def fetch_batch(symbols, start, end, key, secret):
         if page_token:
             params["page_token"] = page_token
         req = urllib.request.Request(base + "?" + urllib.parse.urlencode(params), headers=headers)
-        for attempt in range(5):
+        payload = None
+        for attempt in range(12):
             try:
-                with urllib.request.urlopen(req, timeout=120) as resp:
+                with urllib.request.urlopen(req, timeout=90) as resp:
                     payload = json.loads(resp.read().decode("utf-8"))
                 break
             except urllib.error.HTTPError as e:
                 if e.code == 429:
-                    time.sleep(2.0 * (attempt + 1))
+                    ra = e.headers.get("Retry-After")
+                    time.sleep(float(ra) if ra and ra.isdigit() else min(2.0 * (attempt + 1), 20))
+                    continue
+                if e.code >= 500:
+                    time.sleep(min(2.0 * (attempt + 1), 20))
                     continue
                 raise SystemExit(f"HTTP {e.code}: {e.read().decode('utf-8','replace')[:200]}")
-            except urllib.error.URLError:
-                time.sleep(1.5 * (attempt + 1))
-        else:
+            except Exception:  # URLError, socket timeout, http.client errors, conn reset
+                time.sleep(min(1.5 * (attempt + 1), 20))
+        if payload is None:
             raise SystemExit("Repeated network failures.")
         for sym, bars in (payload.get("bars") or {}).items():
             for b in bars:
@@ -102,42 +109,61 @@ def fetch_batch(symbols, start, end, key, secret):
         page_token = payload.get("next_page_token")
         if not page_token:
             break
-        time.sleep(0.3)
     return out
 
 
+def _fetch_one(sym, start, end, key, secret, bars_dir):
+    data = fetch_batch([sym], start, end, key, secret)
+    rows = sorted(data.get(sym, []))
+    tmp = bars_dir / f".{sym}.csv.tmp"
+    with tmp.open("w", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(CSV_COLUMNS)
+        w.writerows(rows)
+    tmp.replace(bars_dir / f"{sym}.csv")   # atomic; partial files never look complete
+    return sym, len(rows)
+
+
 def main() -> None:
-    secrets = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("secrets/alpaca.env")
+    import argparse
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("secrets", nargs="?", default="secrets/alpaca.env")
+    ap.add_argument("--workers", type=int, default=8, help="concurrent fetch threads (one process)")
+    ap.add_argument("--start", default="2016-11-01T00:00:00Z",
+                    help="enough lookback for L=22 reach-back from early 2017")
+    ap.add_argument("--end", default="2026-06-13T23:59:59Z")
+    args = ap.parse_args()
+
     base = Path("data/raw/m128")
     bars_dir = base / "bars30"
     bars_dir.mkdir(parents=True, exist_ok=True)
-    key, secret = load_credentials(secrets)
+    key, secret = load_credentials(Path(args.secrets))
 
     import pandas as pd
 
     memb = pd.read_csv(base / "universe_membership.csv")
     symbols = sorted(set(memb["symbol"].tolist()) | set(CONTROL_ETFS))
     todo = [s for s in symbols if not (bars_dir / f"{s}.csv").exists()]
-    print(f"{len(symbols)} symbols total ({len(CONTROL_ETFS)} control ETFs); {len(todo)} to fetch.",
-          file=sys.stderr)
+    print(f"{len(symbols)} symbols; {len(todo)} to fetch; {args.workers} threads.",
+          file=sys.stderr, flush=True)
 
-    start, end = "2016-01-01T00:00:00Z", "2026-06-13T23:59:59Z"
-    batches = [todo[i : i + BATCH] for i in range(0, len(todo), BATCH)]
     t0 = time.time()
-    for bi, batch in enumerate(batches):
-        data = fetch_batch(batch, start, end, key, secret)
-        for sym in batch:
-            rows = sorted(data.get(sym, []))
-            path = bars_dir / f"{sym}.csv"
-            with path.open("w", encoding="utf-8", newline="") as fh:
-                w = csv.writer(fh)
-                w.writerow(CSV_COLUMNS)
-                w.writerows(rows)
-        el = time.time() - t0
-        print(f"[{bi+1}/{len(batches)}] {batch[0]}..{batch[-1]} "
-              f"({sum(len(data.get(s, [])) for s in batch)} bars) elapsed={el:.0f}s",
-              file=sys.stderr, flush=True)
-    print(f"DONE -> {bars_dir}", file=sys.stderr)
+    done = 0
+    with ThreadPoolExecutor(max_workers=args.workers) as ex:
+        futs = {ex.submit(_fetch_one, s, args.start, args.end, key, secret, bars_dir): s
+                for s in todo}
+        for fut in as_completed(futs):
+            sym, n = fut.result()
+            done += 1
+            if done % 10 == 0 or done == len(todo):
+                el = time.time() - t0
+                rate = done / el if el else 0
+                eta = (len(todo) - done) / rate if rate else 0
+                print(f"[{done}/{len(todo)}] {sym} ({n} bars) elapsed={el:.0f}s eta={eta:.0f}s",
+                      file=sys.stderr, flush=True)
+    print(f"DONE {done} symbols -> {bars_dir}", file=sys.stderr, flush=True)
 
 
 if __name__ == "__main__":

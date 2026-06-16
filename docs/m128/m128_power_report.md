@@ -1,5 +1,11 @@
 # M128 — Power Report & Cost Gate (Gate 0.5, Steps 1D–1F)
 
+> **AMENDMENT (v2, 2026-06-16, pre-result):** test sample reduced to **2023-01..2026-06**
+> (~875 trading days) per `M128_PREREG_v2.yaml` for data-acquisition feasibility. The MC below
+> uses N=2,350 days; at N≈875 (×13 pooled buckets → thousands of FM observations) power remains
+> **>0.99** at literature magnitude (MDE ρ≈0.004 is ~8× below the literature lower bound, with
+> ample margin even at the shorter N). The reduction does not threaten detection.
+
 **Date:** 2026-06-16. Written BEFORE any real-data cross-sectional result. All power numbers
 come from a SYNTHETIC Monte-Carlo (`scripts/m128_power_sim.py` → `m128_power_sim.json`); no real
 predictor→target relationship was touched.
