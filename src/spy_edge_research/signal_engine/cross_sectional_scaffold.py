@@ -38,17 +38,38 @@ class CrossSectionalConfig:
     market_neutralize: bool = True                  # beta control before continuation test
 
 
+# M128 IMPLEMENTED (milestone/M128). The interfaces below now delegate to the engine in
+# ``cross_sectional.py``. Implementation followed Gate 0.5 (data inventory, power report),
+# preregistration freeze (docs/preregistration/M128_PREREG.yaml), and a fidelity report —
+# all committed BEFORE any cross-sectional result was computed (execution-freeze honored).
+
+
 def build_same_clock_time_returns(*args, **kwargs):  # noqa: D401, ANN
-    """TODO(M128): per-stock, per-clock-bucket returns aligned across days. Causal."""
-    raise NotImplementedError("M128 scaffold — not implemented; do not run.")
+    """Per-stock, per-clock-bucket returns aligned across days. Causal.
+
+    Delegates to :func:`cross_sectional.build_bucket_returns`.
+    """
+    from .cross_sectional import build_bucket_returns
+
+    return build_bucket_returns(*args, **kwargs)
 
 
 def market_neutralize_returns(*args, **kwargs):  # noqa: ANN
-    """TODO(M128): remove the market/beta component cross-sectionally before testing."""
-    raise NotImplementedError("M128 scaffold — not implemented; do not run.")
+    """Remove the market component cross-sectionally before testing (demean per date-bucket).
+
+    Delegates to :func:`cross_sectional.market_neutralize`.
+    """
+    from .cross_sectional import market_neutralize
+
+    return market_neutralize(*args, **kwargs)
 
 
 def cross_sectional_continuation_test(*args, **kwargs):  # noqa: ANN
-    """TODO(M128): same-clock-bucket continuation across the stock cross-section, with
-    ETFs as negative controls and the full M127-style harness (prereg/power/fidelity)."""
-    raise NotImplementedError("M128 scaffold — not implemented; do not run.")
+    """Same-clock-bucket continuation across the stock cross-section (Fama-MacBeth + NW12).
+
+    Delegates to :func:`cross_sectional.cross_sectional_continuation_test`. ETFs are run
+    separately as negative controls; full harness (prereg/power/fidelity) per M127.
+    """
+    from .cross_sectional import cross_sectional_continuation_test as _impl
+
+    return _impl(*args, **kwargs)

@@ -1,0 +1,54 @@
+# M128 Preregistration v2 — AMENDMENT to M128_PREREG.yaml
+# Created 2026-06-16, BEFORE any cross-sectional predictor->target result was computed.
+
+amendment:
+  supersedes: "M128_PREREG.yaml (frozen 2026-06-16)"
+  created_utc: "2026-06-16"
+  results_observed_before_this_amendment: false   # CRITICAL: no FM/correlation result on real
+                                                   # stock data had been computed when v2 was made.
+                                                   # Only committed pre-freeze artifacts existed
+                                                   # (data inventory, universe, synthetic power MC,
+                                                   # fidelity). The 30-min bar pull was still in
+                                                   # progress and NO run_m128.py result existed.
+  what_changed:
+    - field: "data.test_sample"
+      from: "2017-01 .. 2026-06"
+      to:   "2023-01 .. 2026-06  (3.5 years)"
+    - field: "data.range (fetch)"
+      from: "2016-11-01 .. 2026-06-13"
+      to:   "2022-11-01 .. 2026-06-13 (L=22 lookback for early-2023 targets)"
+    - field: "universe (effective)"
+      note: >
+        Same construction rule (top-150 ADV, monthly, ETFs excluded). The EFFECTIVE symbol set is
+        the union of monthly membership over 2023-01..2026-06 = 229 distinct names (vs 341 for
+        2017-2026). Names that delisted before 2023 (e.g., CELG, ESRX, RHT, XLNX) are not in the
+        2023+ universe and are not fetched.
+    - field: "oos_procedure"
+      from: "IS 2017-2021 / OOS 2022-2026"
+      to:   "IS 2023-01..2024-12 (2y) / OOS 2025-01..2026-06 (1.5y)"
+  why: >
+    Acquisition feasibility, NOT a results-driven choice. The Alpaca market-data 30-min bars
+    endpoint hard-caps pages at ~419 bars (the `limit` param is ignored) and the account is
+    rate-limited to ~200 requests/min (~3 req/s); high concurrency only triggers HTTP 429 storms.
+    Pulling 30-min bars for the full 2016-2026 history of the ~341-name universe is ~35-40k paged
+    requests (~2 hours wall-clock at the rate cap) and proved operationally fragile. A 3.5-year
+    window cuts the pull to ~169 symbols x ~32 pages (~30 min) while remaining massively powered.
+  power_unaffected: >
+    The synthetic power MC (m128_power_sim.json) shows power = 1.000 at every literature effect
+    size for all four lags with N=2350 days; the MDE (rho~0.004) is ~8x below the literature
+    lower bound. At N~875 trading days (3.5y x 13 buckets pooled -> still thousands of FM
+    observations) power remains >0.99 at literature magnitude. The reduction does not threaten
+    detection of the HKS effect if present at published magnitude. (The realized N and realized
+    daily-slope std are reported in m128_results.json; if the realized std were implausibly large
+    the power claim is revisited there.)
+  unchanged:
+    - "Hypothesis H_cs, predictor/target definitions, 13-bucket clock-keyed construction"
+    - "Lag set {1,5,10,22}; L=5 primary, L=1 co-primary; all-buckets-pooled scope"
+    - "Estimator: Fama-MacBeth per-date pooled slope; Newey-West(12) HAC inference"
+    - "k=4, Bonferroni alpha/k=0.0125, two-sided crit t=2.498"
+    - "Market neutralization (cross-sectional demean per date-bucket)"
+    - "Negative controls (date_shuffled, stock_permuted, lag_permuted), seed=42, suspicious rule"
+    - "Cost gate / economic-significance layer; survivorship disclosure"
+    - "Fidelity classification: APPROXIMATE -> EXPLORATORY (the shorter modern window does not
+       change this; if anything it is a tighter 'modern era' test)"
+  pass_fail_criteria: "unchanged from M128_PREREG.yaml"
