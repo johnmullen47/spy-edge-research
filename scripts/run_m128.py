@@ -91,7 +91,7 @@ def cost_layer(bucket_returns, member_mask, lag):
                  for (h, m) in BUCKET_STARTS]
     oneway = np.mean([
         model.cost_bps(session_bucket=assign_intraday_session_bucket(ts),
-                       sigma_intraday_bps=sigma_bps, volatility_regime="normal")
+                       sigma_intraday_bps=sigma_bps, volatility_regime="normal_volatility")
         for ts in sample_ts
     ])
     oneway = float(oneway)
