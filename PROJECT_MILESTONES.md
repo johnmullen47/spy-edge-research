@@ -3612,3 +3612,39 @@ suite: **998 passed, 4 skipped** (was 970 at M121).
 full 600-candidate set with every pre-registered Family-1 variant now active and
 VIX-gated. A valid, robust null — recorded honestly; broker/live layers remain OFF.
 The result did not lower or bypass the gate; SPA/Hansen remains deferred.
+
+## Milestone 123 - RESEARCH_I + F6-F10 pre-registrations (specs only, no code)
+
+Commits six frozen, immutable research/pre-registration docs from the Cowork desk
+to `docs/` (**specifications only — no code, no new registry candidates**;
+authorizes nothing). `RESEARCH_I_Retail_Quant_Method_Sweep.md` is a permanent
+research record: a zoom-out across the retail-quant landscape that taxonomizes
+durable edges into five mechanism buckets (risk premia, behavioral, microstructure,
+structural forced-flow, macro/calendar), documents the claimed-vs-evidenced gap
+(>80% of day traders lose; technical rules fail data-snooping+costs; edges decay
+~58% post-publication), and notes the project is concentrated in bucket 2 while
+under-exploring the other four. F6–F10 deliberately spread across the unexplored
+buckets — **each a NEW family (3–7) under RESEARCH_H** that adds ~1 effective trial
+and *raises* the DSR bar (breadth paid for in deflation):
+
+- **`PREREG_F6.md`** — Variance Risk Premium timing (`VRP = scaled VIX² − realized
+  variance`); NEW Family 3; 12 cells; binding control = realized-vol-only placebo +
+  power report. Strong prior (Bollerslev-Tauchen-Zhou 2009).
+- **`PREREG_F7.md`** — Volatility-managed (inverse-vol) exposure; NEW Family 4; 12
+  cells; pre-registered as a **likely-fail adjudication** of a contested effect;
+  binding = OOS-vs-buy-hold + turnover-cost + constant-weight placebo.
+- **`PREREG_F8.md`** — Opening Range Breakout on un-leveraged SPY; NEW Family 5;
+  9–18 cells; honest caveat that the published edge uses leverage/stocks-in-play;
+  binding = half-spread cost test.
+- **`PREREG_F9.md`** — Intraday periodicity (same-half-hour-bucket continuation);
+  NEW Family 6; 12 cells; native effect is cross-sectional so SPY-only is degraded;
+  binding = bounce-only synthetic placebo + half-spread test.
+- **`PREREG_F10.md`** — FOMC-cycle even-week equity-premium timing; NEW Family 7; 12
+  cells; strongest prior (Cieslak-Morse-Vissing-Jorgensen 2019); binding =
+  independent-cycle-count power report + pre/post-2015 decay check. Distinct from F5
+  (pre-FOMC *eve* gate).
+
+Ranked recommendation (RESEARCH_I): F10 > F6 > F7 > F8 > F9; none high-probability.
+All runnable on existing SPY 1-min + the M122 VIX CSV + free Fed calendar — **none
+blocked on data**. No suite change (docs only); registry still 600. **Next: M124 —
+investigate/fix the ONC effective-N = 600 degenerate case before implementing F6–F10.**

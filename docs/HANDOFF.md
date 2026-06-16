@@ -1,7 +1,7 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M122 on branch `milestone/M122`; Build Master).
+> project. Last updated 2026-06-15 (M123 on branch `milestone/M123`; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
@@ -87,7 +87,19 @@
   confirmed) and no primary cleared at all, so none leans on the FOMC gate
   (RESEARCH_C §4.4). A valid, robust null; broker/live layers stay OFF. Suite: **998
   passed, 4 skipped** (+28 new). SPA/Hansen still deferred.
-- **Latest ledger milestone:** M122 (`PROJECT_MILESTONES.md`)
+- **M123 — RESEARCH_I + F6–F10 pre-registration drop (specs only, no code).** Six
+  immutable docs committed to `docs/`: `RESEARCH_I_Retail_Quant_Method_Sweep.md` (a
+  retail-quant landscape sweep — five mechanism buckets, claimed-vs-evidenced gap)
+  plus `PREREG_F6`–`PREREG_F10`. F6 = Variance Risk Premium timing (Family 3), F7 =
+  vol-managed inverse-vol exposure (Family 4, likely-fail adjudication), F8 = opening
+  range breakout on un-leveraged SPY (Family 5), F9 = intraday periodicity / same-
+  bucket continuation (Family 6), F10 = FOMC-cycle even-week timing (Family 7). These
+  are **NEW families 3–7** under RESEARCH_H — genuinely decorrelated, so each adds ~1
+  effective trial and *raises* the DSR bar. ~60 spec'd cells; all runnable on existing
+  SPY 1-min + the M122 VIX CSV + free Fed calendar (none blocked). Registry unchanged
+  at 600; suite unchanged (docs only). **Next: M124 — fix the ONC effective-N = 600
+  degenerate case; then M125 implement F6–F10; then M126 run the full Hard Gate A.**
+- **Latest ledger milestone:** M123 (`PROJECT_MILESTONES.md`)
 - **Research docs:** `RESEARCH_G` (F1 options-data sourcing) and `RESEARCH_H`
   (N-count correction / DSR methodology amendment) committed to `docs/`.
   **N-count correction implemented in M119** (effective-N via ONC clustering,
