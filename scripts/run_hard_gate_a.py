@@ -39,6 +39,11 @@ def main() -> None:
         include_f3_vix_gate=True,
         include_f4_overnight_gap=True,
         include_f5_fomc_calendar=True,
+        include_f6_vrp=True,
+        include_f7_vol_managed=True,
+        include_f8_orb=True,
+        include_f9_periodicity=True,
+        include_f10_fomc_cycle=True,
     )
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     result = run_pipeline(

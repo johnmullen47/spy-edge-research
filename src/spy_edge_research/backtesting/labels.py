@@ -276,6 +276,58 @@ def _direction_to_sign(value: object) -> float | None:
     return None
 
 
+def add_session_forward_return_labels(
+    df: pd.DataFrame,
+    sessions: tuple[int, ...] = (1, 5, 21),
+    price_col: str = "close",
+    timestamp_col: str = "timestamp",
+    timezone: str = "America/New_York",
+) -> pd.DataFrame:
+    """Add ``forward_return_{k}sess`` close-to-close labels over k trading sessions.
+
+    For the daily/weekly-horizon families (F6 VRP, F7 vol-managed, F10 FOMC cycle),
+    whose events fire on each session's **last bar**, the outcome is the return from
+    that session's close to the close k sessions later. Defined only on the last bar
+    of each date (NaN elsewhere) so it aligns with those families' decision bars.
+    Forward-looking evaluation label only — never an event input.
+    """
+    _require_columns(df, [price_col, timestamp_col])
+    result = df.copy()
+    dates = _local_trading_dates(result[timestamp_col], timezone)
+    per_date_last = result[price_col].groupby(dates).last()  # date-indexed
+    is_last_bar = dates.ne(dates.shift(-1))  # rows are timestamp-sorted
+    for k in sessions:
+        if not isinstance(k, int) or isinstance(k, bool) or k < 1:
+            raise ValueError("sessions must be positive integers")
+        fwd = per_date_last.shift(-k).div(per_date_last) - 1.0  # date-indexed
+        series = pd.Series(np.nan, index=result.index, dtype="float64")
+        series.loc[is_last_bar] = dates.loc[is_last_bar].map(fwd).to_numpy()
+        result[f"forward_return_{k}sess"] = series
+    return result
+
+
+def add_to_close_forward_return_label(
+    df: pd.DataFrame,
+    price_col: str = "close",
+    timestamp_col: str = "timestamp",
+    timezone: str = "America/New_York",
+    column: str = "forward_return_to_close",
+) -> pd.DataFrame:
+    """Add a per-bar forward return to that session's close (for ORB hold-to-close).
+
+    F8 (ORB) enters on a variable breakout bar and holds to 16:00; a fixed
+    minute-horizon label cannot express that, but the return from any bar to its own
+    session's last close can. On the session's last bar this is 0. Forward-looking
+    evaluation label only.
+    """
+    _require_columns(df, [price_col, timestamp_col])
+    result = df.copy()
+    dates = _local_trading_dates(result[timestamp_col], timezone)
+    day_last_close = result[price_col].groupby(dates).transform("last")
+    result[column] = day_last_close.div(result[price_col].replace(0, np.nan)) - 1.0
+    return result
+
+
 def _local_trading_dates(timestamps: pd.Series, timezone: str) -> pd.Series:
     parsed = pd.to_datetime(timestamps)
     if parsed.dt.tz is None:

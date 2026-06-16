@@ -1,7 +1,7 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M124 on branch `milestone/M124`; Build Master).
+> project. Last updated 2026-06-16 (M125 on branch `milestone/M125`; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
@@ -113,7 +113,23 @@
   clustered. 4 new regression tests; original 12 unchanged; suite **1002 passed**.
   Thresholds/gates untouched — only the N *estimate* is corrected (it had been stuck
   at the maximally-harsh ceiling). M126 will report the real effective-N.
-- **Latest ledger milestone:** M124 (`PROJECT_MILESTONES.md`)
+- **M125 — implemented the F6–F10 signal generators (NEW families 3–7).** Five new
+  causal feature modules flowing through the SAME Hard Gate A: `vrp_features.py` (F6
+  VRP timing, needs VIX), `vol_managed_features.py` (F7 inverse-vol full-exposure),
+  `orb_features.py` (F8 opening-range breakout, SPY-only), `intraday_periodicity_features.py`
+  (F9 same-bucket continuation), `fomc_cycle_features.py` (F10 even/odd cycle-week,
+  reuses F5's Fed calendar). The daily/weekly families (F6/F7/F10) needed **new
+  harness horizons**: `backtesting/labels.py` gained `forward_return_{1,5,21}sess`
+  (close-to-close, on each session's last bar) and `forward_return_to_close` (for F8's
+  variable-entry hold); a per-family scoping rule (`_event_label_allowed`) pairs each
+  family only with its own outcome horizon(s) so daily and intraday outcomes never
+  cross-expand. Shared `signal_engine/_daily.py` context fires daily events on the
+  last bar (via `duplicated`, keeping the no-backward-shift guard green). All enabled
+  in `run_hard_gate_a.py`. 60 new directional event columns (F6 6, F7 6, F8 18, F9 24,
+  F10 6). 36 new tests; full suite **1042 passed, 4 skipped**. Synthetic end-to-end
+  smoke: 214 event columns, scoping confirmed (no candidate explosion), effective-N
+  clustered. **Next: M126 — full F1–F10 Hard Gate A run + report.**
+- **Latest ledger milestone:** M125 (`PROJECT_MILESTONES.md`)
 - **Research docs:** `RESEARCH_G` (F1 options-data sourcing) and `RESEARCH_H`
   (N-count correction / DSR methodology amendment) committed to `docs/`.
   **N-count correction implemented in M119** (effective-N via ONC clustering,

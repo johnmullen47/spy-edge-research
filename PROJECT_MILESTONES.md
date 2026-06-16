@@ -3694,3 +3694,47 @@ pass unchanged (vectorized code is behavior-identical). Full suite: **1002 passe
 4 skipped** (was 998 at M122). The M126 full Hard Gate A run will report the real
 effective-N on the expanded set (no longer the degenerate ceiling). **Next: M125 —
 implement the F6–F10 signal generators.**
+
+## Milestone 125 - Implement F6-F10 signal generators (5 new families)
+
+Implements the five PREREG_F6-F10 families (NEW families 3-7 per RESEARCH_H), each
+emitting causal ``event_*`` columns flowing through the SAME Hard Gate A. They fill
+the mechanism buckets the project under-explored (risk-premia, risk-management,
+structural/intraday, microstructure, macro/calendar).
+
+**Harness extension for daily/weekly horizons.** F6/F7/F10 are multi-session
+strategies the intraday minute-horizon harness could not score. Added two label
+helpers in ``backtesting/labels.py``: ``add_session_forward_return_labels``
+(``forward_return_{1,5,21}sess``, close-to-close, on each session's last bar) and
+``add_to_close_forward_return_label`` (``forward_return_to_close``, any bar -> its
+session close, for ORB's variable-entry hold). A per-family scoping rule
+(``_event_label_allowed`` in the pipeline) pairs each family only with its own
+horizon(s) — daily families with their session labels, F8 with to-close, F9 with
+30m, all pre-existing intraday families with minute labels only — so the new labels
+never cross-expand the intraday candidates (and vice versa).
+
+**Generators** (causal; daily families fire on each session's last bar via the shared
+``signal_engine/_daily.py`` context; all behind their own pipeline flag, default off):
+- **F6 `vrp_features.py`** — ``VRP_z`` from ``(VIX/100)^2*(21/252) - RV_21``,
+  long/short at tau in {0,0.5,1.0} sigma; 6 columns x {5,21}-session = 12. Needs VIX.
+- **F7 `vol_managed_features.py`** — full-exposure long when ``sigma_hat <
+  sigma_target`` over 3 estimators (realized/VIX/GARCH) x 2 targets (trailing median /
+  10% annualized); 6 columns x {1,5}-session = 12.
+- **F8 `orb_features.py`** — opening-range breakout, first breakout/day, hold to
+  close; 3 OR windows x 3 trend filters (none/prior-close/VWAP) x {long,short} = 18
+  columns x to-close. Self-contained internal session VWAP.
+- **F9 `intraday_periodicity_features.py`** — same-half-hour-bucket continuation; 3
+  lags x 2 thresholds x 2 scopes = 12 cells -> 24 columns x 30m.
+- **F10 `fomc_cycle_features.py`** — even/odd FOMC-cycle-week timing (reusing F5's
+  embedded Fed calendar); 3 phase definitions x {even-long, odd-short} = 6 columns x
+  {1,5}-session = 12.
+
+All five enabled in ``scripts/run_hard_gate_a.py``. **Tests:** 36 new (>=6 per family
++ session/to-close label correctness + the per-family scoping unit test) — grid
+shape, no-lookahead truncation, fires-on-known-data, directional consistency,
+validation. The feature-module no-backward-shift guard stays green (last-bar
+detection uses ``duplicated``, not a negative shift). Full suite: **1042 passed, 4
+skipped** (was 1002 at M124). End-to-end synthetic pipeline smoke: 214 event columns,
+session + to-close labels present, per-family scoping confirmed (no candidate
+explosion), effective-N clustered (no degeneracy). **Next: M126 — run the full
+F1-F10 Hard Gate A.**

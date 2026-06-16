@@ -55,6 +55,17 @@ from spy_edge_research.signal_engine.f5_fomc_calendar_features import (
     add_f5_fomc_calendar_features,
 )
 from spy_edge_research.signal_engine._rest_of_day import CONFIG_A_HOLD_MINUTES
+from spy_edge_research.signal_engine.vrp_features import add_vrp_features
+from spy_edge_research.signal_engine.vol_managed_features import add_vol_managed_features
+from spy_edge_research.signal_engine.orb_features import add_orb_features
+from spy_edge_research.signal_engine.intraday_periodicity_features import (
+    add_intraday_periodicity_features,
+)
+from spy_edge_research.signal_engine.fomc_cycle_features import add_fomc_cycle_features
+from spy_edge_research.backtesting.labels import (
+    add_session_forward_return_labels,
+    add_to_close_forward_return_label,
+)
 from spy_edge_research.market_data.vix_loader import load_vix_daily, vix_level_series
 from spy_edge_research.signal_engine.event_catalog import build_named_event_catalog
 from spy_edge_research.backtesting.labels import add_forward_labels
@@ -122,6 +133,45 @@ _DIRECTION_MAP = {
 # left unprovided, so the gate reports them as insufficient evidence. Wiring the
 # full validation battery is a separate, larger step.
 _CONTROLS_NOT_RUN_CAVEAT = "control_batteries_not_run_in_basic_pipeline"
+
+# Trading-session forward horizons for the daily/weekly families (M125). The union
+# of F6 {5,21}, F7 {1,5}, F10 {1,5}; each family is scoped to its own subset below.
+_F_SESSION_HORIZONS: tuple[int, ...] = (1, 5, 21)
+# Per-family allowed session horizons (PREREG grids). A daily-family event column
+# pairs only with these ``forward_return_{k}sess`` labels in the registry.
+_F_FAMILY_SESSIONS: dict[str, frozenset[int]] = {
+    "event_f6_": frozenset({5, 21}),
+    "event_f7_": frozenset({1, 5}),
+    "event_f10_": frozenset({1, 5}),
+}
+
+
+def _event_label_allowed(event_col: str, label_col: str) -> bool:
+    """Per-family horizon scoping (M125).
+
+    Keeps the daily/weekly families (F6/F7/F10, session horizons), F8 (to-close) and
+    F9 (30m bucket hold) from cross-pairing with each other's or the intraday minute
+    families' outcomes — otherwise every intraday candidate would also be (spuriously)
+    evaluated at multi-session horizons and vice versa.
+    """
+    is_sess = label_col.endswith("sess")
+    is_to_close = label_col == "forward_return_to_close"
+    for prefix, sessions in _F_FAMILY_SESSIONS.items():
+        if event_col.startswith(prefix):
+            if not is_sess:
+                return False
+            try:
+                k = int(label_col.removeprefix("forward_return_").removesuffix("sess"))
+            except ValueError:
+                return False
+            return k in sessions
+    if event_col.startswith("event_f8_"):
+        return is_to_close
+    if event_col.startswith("event_f9_"):
+        return label_col == "forward_return_30m"
+    # All other (intraday minute) families: only the minute labels, never the daily
+    # / to-close targets added for F6-F10.
+    return not is_sess and not is_to_close
 
 
 @dataclass(frozen=True)
@@ -194,6 +244,19 @@ class PipelineConfig:
     include_f4_overnight_gap: bool = False
     include_f5_fomc_calendar: bool = False
     f_regime_lookback_days: int = 60
+    # F6-F10 (M125, PREREG_F6-F10): NEW families 3-7 in the un-explored mechanism
+    # buckets. F6 VRP timing and F7 vol-managed need vix_csv; F8 ORB and F9
+    # periodicity are SPY-only intraday; F10 FOMC cycle uses the embedded Fed
+    # calendar. The daily families (F6/F7/F10) fire once per session and resolve on
+    # the appended ``forward_return_{k}sess`` labels; F8 resolves on
+    # ``forward_return_to_close``; F9 on ``forward_return_30m``. Per-family horizon
+    # scoping in the registry keeps daily and intraday outcomes from cross-pairing.
+    # All default off so existing runs are byte-for-byte unchanged.
+    include_f6_vrp: bool = False
+    include_f7_vol_managed: bool = False
+    include_f8_orb: bool = False
+    include_f9_periodicity: bool = False
+    include_f10_fomc_cycle: bool = False
 
 
 @dataclass
@@ -316,6 +379,23 @@ def run_pipeline(
             session_open=cfg.mimb_session_open,
             session_close=cfg.mimb_session_close,
         )
+    if cfg.include_f6_vrp:
+        df = add_vrp_features(
+            df, vix_frame=vix_frame, timezone=cfg.timezone,
+            zscore_lookback_days=cfg.f_regime_lookback_days,
+        )
+    if cfg.include_f7_vol_managed:
+        df = add_vol_managed_features(
+            df, vix_frame=vix_frame, timezone=cfg.timezone,
+            target_lookback_days=cfg.f_regime_lookback_days,
+            garch_burnin_days=cfg.mimb_garch_burnin_days,
+        )
+    if cfg.include_f8_orb:
+        df = add_orb_features(df, timezone=cfg.timezone)
+    if cfg.include_f9_periodicity:
+        df = add_intraday_periodicity_features(df, timezone=cfg.timezone)
+    if cfg.include_f10_fomc_cycle:
+        df = add_fomc_cycle_features(df, timezone=cfg.timezone)
     event_columns = [c for c in df.columns if c.startswith("event_")]
     record("events", "ok", event_column_count=len(event_columns))
 
@@ -340,6 +420,16 @@ def run_pipeline(
         horizons = horizons + (CONFIG_A_HOLD_MINUTES,)
     df = add_forward_labels(df, horizons_minutes=horizons, timezone=cfg.timezone)
     label_columns = [f"forward_return_{h}m" for h in horizons]
+    # Daily/weekly families (F6/F7/F10) resolve over k trading sessions; F8 (ORB)
+    # resolves at the session close. These extra labels are evaluation targets only
+    # and are scoped per-family in the registry so they never cross-pair with the
+    # intraday minute families (and vice versa).
+    if cfg.include_f6_vrp or cfg.include_f7_vol_managed or cfg.include_f10_fomc_cycle:
+        df = add_session_forward_return_labels(df, sessions=_F_SESSION_HORIZONS, timezone=cfg.timezone)
+        label_columns += [f"forward_return_{k}sess" for k in _F_SESSION_HORIZONS]
+    if cfg.include_f8_orb:
+        df = add_to_close_forward_return_label(df, timezone=cfg.timezone)
+        label_columns.append("forward_return_to_close")
     record("labels", "ok", label_columns=label_columns)
 
     # Stage 5: event-study workflow
@@ -511,6 +601,12 @@ def _study_to_candidate_registry(
     rows = rows[rows["label_mean_on_event"].notna()]
     records = []
     for r in rows.itertuples(index=False):
+        # Per-family horizon scoping (M125): a daily-family event only pairs with its
+        # session label, F8 only with to-close, F9 only with 30m, intraday families
+        # only with minute labels. Prevents the multi-session/to-close labels from
+        # spuriously expanding every candidate across mismatched outcome horizons.
+        if not _event_label_allowed(str(r.event_column), str(r.label_column)):
+            continue
         horizon = _horizon_from_label(r.label_column)
         records.append(
             create_candidate_edge(
