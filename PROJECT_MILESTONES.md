@@ -3460,3 +3460,34 @@ candidates are eligible.** The null is robust to the N-count correction: the
 candidates fail on grounds other than DSR trial-count inflation. This did not
 lower or bypass the gate (the amendment changes one input, derivable from the
 DSR's own definition); broker/live layers remain OFF. SPA/Hansen still deferred.
+
+## Milestone 120 - Pre-registration drop: MIM-Baltussen + F3/F4/F5 (specs only)
+
+Commits four frozen, immutable pre-registration docs from the Cowork research desk
+to `docs/` (specifications only — **no code, no new registry candidates yet**;
+authorizes nothing; strongest obtainable verdict remains
+`eligible_for_paper_consideration`). All are **Family-1 (Intraday Momentum)
+variants** under RESEARCH_H, so they enter ONC clustering with the existing MIM/F2
+candidates rather than counting as independent DSR trials.
+
+- **`PREREG_MIM_BALTUSSEN.md`** — rest-of-day predictor (prior close→15:30) →
+  15:30–16:00 momentum, high-vol-gated; the *live* Baltussen (2021 JFE) formulation
+  that replaces the dead Gao first-30-min predictor (existing Gao candidates kept
+  as-is). **32 frozen variants** (4 τ × 4 regime × 2 configs); magnitude-scaled
+  sizing deferred.
+- **`PREREG_F3.md`** — VIX-level / term-structure gate swap on the Baltussen base;
+  **12 cells**; binding test = incremental value over the realized-vol gate.
+- **`PREREG_F4.md`** — overnight-gap conditioning (magnitude gate / sign-agreement)
+  on the Baltussen base; **12 cells**; binding test = info beyond the undecomposed
+  predictor (which already embeds the gap).
+- **`PREREG_F5.md`** — pre-FOMC calendar **placebo / decay monitor** (NOT an edge
+  candidate); **8 cells**; dual role = post-2015 decay check + negative-control
+  guard that kills any primary clearing only with FOMC-eve days (RESEARCH_C §4.4).
+
+Spec'd candidate count across the four (when implemented): **64** (32+12+12+8), all
+runnable on existing SPY 1-min + free VIX / Fed-calendar data — **none blocked on
+data**. Three carry an **open base-predictor question** (F3/F4/F5 default to gating
+the live Baltussen MIM, not the dead Gao base) flagged for confirmation before
+implementation. No suite change (docs only); registry still 100.
+**Next: M121 — implement the MIM-Baltussen predictor family and wire it through the
+effective-N Hard Gate A.**

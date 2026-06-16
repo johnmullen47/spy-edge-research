@@ -1,7 +1,7 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M119 merged to main; Build Master).
+> project. Last updated 2026-06-15 (M120 merged to main; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
@@ -37,7 +37,20 @@
   families; clipped to the floor), Holm survivors 1/2, PBO 0.3303, verdicts
   `{not_ready: 100}` → **0 eligible**. N fell from 100 to its principled floor of 2
   and **still 0/100 eligible** — the null is robust to the N-count correction.
-- **Latest ledger milestone:** M119 (`PROJECT_MILESTONES.md`)
+- **M120 — pre-registration drop (specs only, no code):** four frozen, immutable
+  pre-regs committed to `docs/` — `PREREG_MIM_BALTUSSEN.md` (rest-of-day predictor
+  prev close→15:30 → 15:30–16:00 momentum; the *live* Baltussen formulation
+  replacing the dead Gao MIM; 32 variants), `PREREG_F3.md` (VIX-level/term-structure
+  gate swap; 12), `PREREG_F4.md` (overnight-gap conditioning; 12), `PREREG_F5.md`
+  (pre-FOMC calendar **placebo/decay monitor**, not an edge candidate; 8). All are
+  **Family-1 (Intraday Momentum) variants** under RESEARCH_H → they cluster with
+  the existing MIM/F2 candidates (effective-N, not 64 independent trials). 64 total
+  spec'd candidates, **none blocked on data** (existing SPY 1-min + free
+  VIX/Fed-calendar). Open question on three: F3/F4/F5 default to gating the live
+  Baltussen base (not the dead Gao base) — confirm before implementing. Registry
+  unchanged at 100; suite unchanged (docs only). **Next: M121 — implement the
+  MIM-Baltussen predictor family and run it through the effective-N Hard Gate A.**
+- **Latest ledger milestone:** M120 (`PROJECT_MILESTONES.md`)
 - **Research docs:** `RESEARCH_G` (F1 options-data sourcing) and `RESEARCH_H`
   (N-count correction / DSR methodology amendment) committed to `docs/`.
   **N-count correction implementation pending** (Option 1 / effective-N via ONC
