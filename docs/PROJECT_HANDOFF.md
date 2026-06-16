@@ -166,6 +166,11 @@ auditable history.
 and committed by Build Master, and are then **immutable** — revisions ship as
 amendment files (e.g. `RESEARCH_E_AMENDMENT_1.md`), never by editing the original.
 
+**Retrospective:** A lessons-learned document covering M100–M128 (research
+strategy, project architecture, engineering pitfalls, testing gaps, and
+multi-agent coordination failures) is in `docs/RETROSPECTIVE_v0.3.md`. Future
+workers should read it before starting implementation work on a new milestone.
+
 ---
 
 ## 4. How to run
