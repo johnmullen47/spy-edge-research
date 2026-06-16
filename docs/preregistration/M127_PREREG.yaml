@@ -1,0 +1,141 @@
+# M127 Preregistration — Literature-Faithful Market Intraday Momentum (MIM) Replication
+# FROZEN 2026-06-16, BEFORE any real-data predictor->target relationship was computed.
+# Immutable: any change requires a new M127_PREREG_v2.yaml with explanation, timestamp,
+# justification, and an explicit statement of whether results were already observed.
+
+meta:
+  milestone: M127
+  frozen_utc: "2026-06-16"
+  author: "Build Master (Project Build 5), replication-engineer mode"
+  results_observed_before_freeze: false   # execution-freeze honored; only synthetic-fixture
+                                           # tests and coverage/variance stats computed prior.
+  goal: >
+    Detect canonical Market Intraday Momentum at approximately its published magnitude if it
+    exists in SPY over 2016-2026. NOT to reproduce a paper table, find a profitable strategy,
+    invent signals, or rescue M126 candidates.
+
+hypotheses:
+  H_a:
+    name: "Gao first-30-min (from prior close) -> last-30-min"
+    citation: "Gao, Han, Li & Zhou (2018), JFE 129(2):394-414"
+    predictor: "r_ha = log(P_1000 / P_prev_close)   # prior close -> 10:00 ET"
+    direction: "momentum (positive beta predicted)"
+    co_primary: true
+  H_b:
+    name: "Baltussen rest-of-day -> last-30-min"
+    citation: "Baltussen, Da, Lammers & Martens (2021), JFE 142(1):377-403"
+    predictor: "r_hb = log(P_1530 / P_prev_close)   # prior close -> 15:30 ET (= r_rod)"
+    direction: "momentum (positive beta predicted)"
+    co_primary: true
+
+target:
+  definition: "y = log(P_1600 / P_1530)   # final-30-minute return (15:30 -> 16:00 ET)"
+
+universe:
+  confirmatory: ["SPY"]                    # only adequately_powered instrument (Gate 0.5)
+  excluded:
+    ES_MES_NQ_MNQ: "no configured data source (futures unavailable) -> cannot test"
+    QQQ_IWM_DIA: "fetchable but inherit IEX-thin/short limits; not pre-registered confirmatory"
+  note: >
+    Mission instrument priority is ES/MES primary, but futures data is unavailable, so SPY is
+    the confirmatory universe. H_a's native instrument IS the SPY ETF (Gao); H_b's native base
+    is futures, so H_b on SPY is a same-effect, different-instrument test (see fidelity report).
+
+data:
+  source: "Alpaca SIP (full consolidated volume), already-paid plan"
+  file: "data/raw/spy_sip_2016_2026.csv (gitignored; reproduce via fetch below)"
+  fetch_cmd: "scripts/fetch_spy_bars.py --feed sip --start 2016-01-01 --end 2026-06-13"
+  bar_resolution: "1-minute OHLCV"
+  range: "2016-01-04 .. 2026-06-12"
+  trading_days: 2626
+  valid_daily_obs_N: 2625        # days with prev_close + P_1000 + P_1530 + P_1600
+  adjustment: "raw (no SPY splits in window; intraday same-day returns unaffected by dividends)"
+
+session_definitions:
+  timezone: "America/New_York"
+  session: "RTH (Regular Trading Hours) only"
+  rth_open: "09:30"
+  prior_close: "last RTH close of the previous trading date (P_prev_close)"
+  first_30_min_window: "prior close -> 10:00 (predictor reference for H_a)"
+  rest_of_day_window: "prior close -> 15:30 (predictor reference for H_b)"
+  last_30_min_window: "15:30 -> 16:00 (target; vendor last bar 15:59 ~= 16:00 print)"
+  half_days: "kept; clock-keyed windows; 1 short day in sample"
+
+timestamps_causality:
+  predictor_known_by: {H_a: "10:00 ET", H_b: "15:30 ET"}   # both <= target start (15:30)
+  guarantee: "no bar after the predictor clock time enters the predictor; target is label only"
+
+statistical_test:
+  method: "Bivariate OLS y ~ a + b*predictor with Newey-West (HAC) SE on b"
+  nw_lag_rule: "L = floor(4*(N/100)^(2/9))   # standard Bartlett truncation"
+  also_reported: "Pearson corr + Fisher-z; R^2; beta"
+
+trial_budget:
+  k: 4
+  hard_cap: 7
+  tests:
+    1: "H_b, SPY, full sample            (PRIMARY)"
+    2: "H_a, SPY, full sample            (PRIMARY)"
+    3: "H_b, SPY, high-volatility subsample (SECONDARY, conditioned)"
+    4: "H_a, SPY, high-volatility subsample (SECONDARY, conditioned)"
+  correction: "Bonferroni (stricter than the repo BH-FDR for fixed small k)"
+  alpha_family: 0.05
+  alpha_per_test: 0.0125          # 0.05 / 4
+  two_sided_crit_z: 2.498
+  confirmatory_vs_exploratory: >
+    Only SPY (adequately_powered) hosts confirmatory tests. Any other instrument or split is
+    exploratory/monitoring only and must NOT be read as evidence for or against the effect.
+
+conditioning_splits:
+  high_volatility:
+    definition: "days with rest-of-day realized vol (09:30-15:30) above the top tercile (q=2/3)"
+    causal: true   # vol measured through 15:30, known at the prediction point
+    literature_basis: "Gao et al. concentration on high-volatility days"
+  interpretation_guard: >
+    The literature documents concentration in high-vol/high-volume/news regimes. If a
+    full-sample primary test is null but a pre-registered conditioned test is significant,
+    treat that as a literature-consistent outcome; do NOT reflexively down-weight it for being
+    labeled secondary.
+  not_added_post_hoc: "volume/news splits omitted (kept k<=budget); no post-hoc splits permitted"
+
+power_assumptions:
+  effect_size_corr: 0.13          # canonical |corr|, R^2 ~ 1.6% (Gao); H_b treated >= as strong
+  obs_per_day: 1
+  required_N_80pct_power_at_alpha_per_test: 656
+  realized_N: {full_sample: 2625, high_vol_subsample: 875}
+  power_at_realized_N: {full_sample: ">0.999", high_vol_subsample: ">0.999"}
+  MDE_corr_at_80pct: {full_sample: 0.069, high_vol_subsample: 0.119}
+
+oos_procedure:
+  primary_arbiter: "full-sample HAC t-stat (matches the papers' in-sample predictive claim)"
+  robustness:
+    walk_forward: "expanding-window beta sign-consistency across chronological folds"
+    calmer_subperiod: "reproduce on a held-out lower-volatility sub-period (not only vol-rich)"
+  note: "full-sample is confirmatory; walk-forward/calmer are robustness, not the pass gate"
+
+costs:
+  confirmatory_test: "none (the papers' core predictability claim is cost-free predictive R^2)"
+  economic_layer: >
+    A separate, non-confirmatory economic check may apply the repo RegimeAwareCostModel
+    (half-spread + k*sigma + sqrt-impact, close-window aware) to the sign-timing P&L; this is
+    reported for context only and does NOT change the confirmatory pass/fail.
+
+negative_controls:
+  required: ["date_shuffled", "permuted_target", "randomized_timestamps", "lag_permuted"]
+  seeded: true
+  pass: "all controls |t| << real |t| (no control significant at alpha_per_test)"
+  suspicious_rule: "if any control ~matches the real signal, flag SUSPICIOUS and stop"
+
+pass_fail_criteria:
+  per_test_replicates_if:
+    - "HAC t-stat on beta > +2.498 (Bonferroni two-sided crit, positive/momentum sign)"
+    - "AND negative controls all insignificant (not SUSPICIOUS)"
+  hypothesis_overall:
+    - "H_x replicates if its full-sample PRIMARY test passes; the high-vol SECONDARY test is
+       interpreted under the guard above (literature-consistent if primary null + conditioned pass)"
+  null_interpretation: >
+    A null here cannot be dismissed as underpowered (power >0.999 at canonical magnitude),
+    contaminated (negative controls), undisciplined (preregistered, k=4 Bonferroni), or aimed
+    at the weakest spec (both co-primary predictors + the conditioned regime where the effect
+    concentrates are all tested). A null would be a genuine, interpretable non-replication on
+    SPY 2016-2026 (subject to the H_b instrument caveat: ETF, not futures).

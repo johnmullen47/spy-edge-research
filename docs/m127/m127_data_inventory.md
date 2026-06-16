@@ -52,3 +52,25 @@ ES, MES, NQ, MNQ (futures) — **absent**; QQQ, IWM, DIA (ETFs) — **absent**.
   clean, adequately-powered, literature-faithful series. Documented and rejected, not used.
 
 → Proceed to `m127_power_report.md` for the formal power classification.
+
+---
+
+## FINAL (M127 run, 2026-06-16) — confirmed fetched dataset
+
+The SPY-primary path was actioned: the deeper SIP history was fetched (no new spend, paid
+Alpaca plan) via `scripts/fetch_spy_bars.py --feed sip --start 2016-01-01 --end 2026-06-13`.
+
+| File | Instrument | Feed | Range | Trading days | Valid daily MIM obs (N) | Bars/day | Quality |
+|---|---|---|---|---|---|---|---|
+| `data/raw/spy_sip_2016_2026.csv` | SPY ETF | **SIP (full volume)** | **2016-01-04 → 2026-06-12** | **2,626** | **2,625** | median 390 | clean; 1 short (half-)day; raw adj (no splits) |
+
+- **Session/window definitions (confirmed):** RTH 09:30–16:00 ET; prior close = prior RTH last
+  close; first-30-min reference = prior close → 10:00; rest-of-day = prior close → 15:30;
+  last-30-min target = 15:30 → 16:00 (vendor last bar 15:59 ≈ 16:00 print).
+- **High-volatility subsample** (top tercile of causal rest-of-day realized vol): **875 days**.
+- Marginal return std (context only — NOT the predictor→target relationship, which stays frozen
+  until the gate artifacts are committed): r_ha 0.0076, r_hb 0.0107, target 0.0030.
+- **Corporate actions / roll:** SPY raw, no splits in window; futures roll N/A (no futures).
+
+This is the confirmatory universe for M127. See the power report FINAL section for go/no-go and
+`docs/preregistration/M127_PREREG.yaml` for the frozen design.

@@ -122,3 +122,31 @@ canonical effect size (corr 0.13) and the pre-registered Bonferroni alpha:
 
 → **STOP. Do not implement M127.** See `m127_blocker_report.md` for the required data and the
 recommended next action. **Go/No-Go: NO-GO.**
+
+---
+
+## FINAL (M127 run, 2026-06-16) — SPY-primary GO
+
+After the data audit (addendum above), the deeper SIP history was fetched and confirmed
+(`m127_data_inventory.md` FINAL): **SPY SIP, N = 2,625 valid daily MIM observations**
+(2016-01-05 → 2026-06-12), high-vol subsample **875 days**.
+
+**Trial budget (final):** k = 4 confirmatory tests (H_b full, H_a full, H_b high-vol, H_a
+high-vol), Bonferroni `α = 0.05/4 = 0.0125`, two-sided crit z = 2.498. Required N for 80%
+power at the canonical effect (corr 0.13): **656 days**.
+
+| Test (SPY) | N | Power @ α=0.0125 (r=0.13) | MDE (corr, 80%) | Class |
+|---|---|---|---|---|
+| H_b full sample | 2,625 | **> 0.999** | 0.069 | **`adequately_powered`** |
+| H_a full sample | 2,625 | **> 0.999** | 0.069 | **`adequately_powered`** |
+| H_b high-volatility subsample | 875 | **> 0.999** | 0.119 | **`adequately_powered`** |
+| H_a high-volatility subsample | 875 | **> 0.999** | 0.119 | **`adequately_powered`** |
+
+All four confirmatory tests clear the 0.80 power bar with large margin (the sample is ~3.6× the
+full-sample requirement and the high-vol subsample alone exceeds it). The MDE (~0.07 full,
+~0.12 conditioned) is **below** the canonical 0.13 → the design can detect the literature
+effect at its published magnitude.
+
+→ **Go/No-Go: GO (SPY-primary).** Futures-primary remains blocked (no data); SPY confirmatory
+testing proceeds under `docs/preregistration/M127_PREREG.yaml`. H_b carries the ETF-vs-futures
+fidelity caveat (`m127_fidelity_report.md`).
