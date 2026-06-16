@@ -41,6 +41,10 @@ from spy_edge_research.signal_engine.intraday_momentum_features import (
     add_intraday_momentum_parameter_iteration_features,
     add_intraday_momentum_features,
 )
+from spy_edge_research.signal_engine.mim_baltussen_features import (
+    add_mim_baltussen_features,
+    mim_baltussen_to_close_horizons,
+)
 from spy_edge_research.signal_engine.event_catalog import build_named_event_catalog
 from spy_edge_research.backtesting.labels import add_forward_labels
 from spy_edge_research.backtesting.candidate_edges import (
@@ -153,6 +157,20 @@ class PipelineConfig:
     eod_vol_lookback_days: int = 20
     eod_conviction_z: float = 1.0
     eod_hold_minutes: int = 60
+    # When True the MIM-Baltussen rest-of-day momentum family (M121,
+    # PREREG_MIM_BALTUSSEN) is added as additional causal ``event_mimb_*``
+    # candidates flowing through the SAME gate. The frozen 4-threshold x 4-gate x
+    # 2-config grid is emitted as long/short event columns; the per-config to-close
+    # forward horizons (29m / 59m, resolving at the 16:00 print) are appended so the
+    # outcome resolves at the close. The two VIX gates are inactive unless a daily
+    # VIX series is supplied (none in the SPY-only pipeline). Default off so
+    # existing runs are byte-for-byte unchanged.
+    include_mim_baltussen: bool = False
+    mimb_session_open: str = "09:30"
+    mimb_session_close: str = "16:00"
+    mimb_vix_threshold: float = 20.0
+    mimb_regime_lookback_days: int = 60
+    mimb_garch_burnin_days: int = 60
 
 
 @dataclass
@@ -235,6 +253,16 @@ def run_pipeline(
             vol_lookback_days=cfg.eod_vol_lookback_days,
             conviction_z=cfg.eod_conviction_z,
         )
+    if cfg.include_mim_baltussen:
+        df = add_mim_baltussen_features(
+            df,
+            timezone=cfg.timezone,
+            session_open=cfg.mimb_session_open,
+            session_close=cfg.mimb_session_close,
+            vix_threshold=cfg.mimb_vix_threshold,
+            regime_lookback_days=cfg.mimb_regime_lookback_days,
+            garch_burnin_days=cfg.mimb_garch_burnin_days,
+        )
     event_columns = [c for c in df.columns if c.startswith("event_")]
     record("events", "ok", event_column_count=len(event_columns))
 
@@ -244,6 +272,12 @@ def run_pipeline(
     horizons = tuple(cfg.horizons_minutes)
     if cfg.include_end_of_day_reversal and cfg.eod_hold_minutes not in horizons:
         horizons = horizons + (cfg.eod_hold_minutes,)
+    if cfg.include_mim_baltussen:
+        # Append each config's to-close horizon (29m / 59m) so the rest-of-day
+        # momentum outcome resolves at the 16:00 print, not an intraday proxy.
+        for h in mim_baltussen_to_close_horizons():
+            if h not in horizons:
+                horizons = horizons + (h,)
     df = add_forward_labels(df, horizons_minutes=horizons, timezone=cfg.timezone)
     label_columns = [f"forward_return_{h}m" for h in horizons]
     record("labels", "ok", label_columns=label_columns)
