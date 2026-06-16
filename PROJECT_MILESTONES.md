@@ -3738,3 +3738,30 @@ skipped** (was 1002 at M124). End-to-end synthetic pipeline smoke: 214 event col
 session + to-close labels present, per-family scoping confirmed (no candidate
 explosion), effective-N clustered (no degeneracy). **Next: M126 — run the full
 F1-F10 Hard Gate A.**
+
+## Milestone 126 - Hard Gate A on the full F1-F10 candidate set
+
+Default IEX real-data run (`run_20260616T040858Z`, 189,663 bars + CBOE VIX) with every
+pre-registered family enabled (MIM, F2, MIM-Baltussen, F3, F4, F5, F6, F7, F8, F9, F10)
+and the M124 effective-N fix. Durable record: `docs/RESULTS_M126_HARD_GATE_A.md`
+(reports/ is gitignored).
+
+- Event columns **214**; candidate registry **672** (600 at M122 + **72** from F6-F10).
+- **Effective-N = 318** (clusters) — the M124 fix **confirmed on real data**: meaningful
+  clustering, neither the degenerate ceiling (the spurious 600=total at M122) nor the
+  floor. Within-cluster Holm survivors 38. Portfolio PBO **0.0959**.
+- Readiness verdicts: **{not_ready: 672} -> 0 eligible.**
+- Per-family (all not_ready): mimb 256, chart 84, F4 72, F3 72, mim 48, F5 48, F9 20,
+  F2 20, F8 18, F10 12, F6 12, F7 10. The 72 new F6-F10 candidates entered at exactly
+  their scoped outcome horizons (F6/F10 session, F8 to-close, F9 30m) — the per-family
+  scoping held on real data with **no candidate explosion**.
+
+**Conclusion.** The directional-edge search now spans all five durable mechanism buckets
+(RESEARCH_I) under the full anti-snooping harness with a corrected effective-N, and finds
+**no validated intraday/daily edge in SPY** — 0/672 eligible, including the stronger-prior
+F10 (FOMC cycle) and F6 (VRP). Consistent with the honest pre-registered base rates
+(none high-probability; F7/F8/F9 were likely-fail adjudications; ~2yr is power-limited for
+the daily/weekly families). The gate was not lowered or bypassed; thresholds unchanged;
+SPA/Hansen still deferred. Broker/live layers remain OFF — the designed, desirable
+outcome. This completes the M123->M126 commission (RESEARCH_I + F6-F10 pre-regs -> ONC
+fix -> implementation -> full run).

@@ -1,7 +1,7 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-16 (M125 on branch `milestone/M125`; Build Master).
+> project. Last updated 2026-06-16 (M126 on branch `milestone/M126`; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
@@ -129,7 +129,19 @@
   F10 6). 36 new tests; full suite **1042 passed, 4 skipped**. Synthetic end-to-end
   smoke: 214 event columns, scoping confirmed (no candidate explosion), effective-N
   clustered. **Next: M126 — full F1–F10 Hard Gate A run + report.**
-- **Latest ledger milestone:** M125 (`PROJECT_MILESTONES.md`)
+- **M126 — full F1–F10 Hard Gate A run.** Default IEX run (`run_20260616T040858Z`,
+  189,663 bars + CBOE VIX) with every family enabled and the M124 fix: **214 event
+  columns, 672 candidates** (600 + 72 from F6–F10), **effective-N 318** (clusters),
+  Holm survivors 38, portfolio PBO **0.0959**, **{not_ready: 672} → 0 eligible**. Per
+  family (all not_ready): mimb 256, chart 84, F4 72, F3 72, mim 48, F5 48, F9 20, F2
+  20, F8 18, F10 12, F6 12, F7 10. **The M124 effective-N fix is confirmed on real
+  data** — 318 is meaningful clustering, not the degenerate 600=total of M122. F6–F10
+  entered at exactly their scoped horizons (no candidate explosion). Every mechanism
+  bucket is null on this ~2yr sample, including the stronger-prior F10/F6 — consistent
+  with the honest pre-registered base rates and the power limits of the daily/weekly
+  families. No validated edge; broker/live layers stay OFF. Durable record in
+  `docs/RESULTS_M126_HARD_GATE_A.md`. This completes the M123→M126 commission.
+- **Latest ledger milestone:** M126 (`PROJECT_MILESTONES.md`)
 - **Research docs:** `RESEARCH_G` (F1 options-data sourcing) and `RESEARCH_H`
   (N-count correction / DSR methodology amendment) committed to `docs/`.
   **N-count correction implemented in M119** (effective-N via ONC clustering,
