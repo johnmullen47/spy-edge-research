@@ -28,14 +28,22 @@ and thesis context behind this repo, see
 That document explains the project "why"; use the live handoff, milestones, and
 code for current implementation state.
 
-Current verified state:
+Current verified state (v0.3, 2026-06-16):
 
-- Completed through Milestone 107.
-- Latest full suite: `844 passed, 4 skipped`.
-- Hard Gate A ran on real SPY 1-minute data and found `0 of 42` candidates
-  eligible after M105-M107 hardening.
-- Broker/live layers remain off; there is no validated intraday edge in the
-  current candidate set.
+- Completed through Milestone 128.
+- Latest full suite: `1,060 passed, 4 skipped`.
+- Hard Gate A ran on real Alpaca SIP data and found `0 of 672` candidates
+  eligible after M126 hardening (F1–F10 across all mechanism buckets).
+- M127 (MIM replication, HAC regression on SPY 2016–2026): NULL_NON_REPLICATION.
+  Well-powered null (N=2,625, power >0.999). Post-publication decay consistent
+  with McLean-Pontiff 2016.
+- M128 (Fama-MacBeth cross-sectional HKS intraday periodicity, 334 stocks,
+  2023–2026): EXPLORATORY NULL. 0/4 lags pass (crit t=2.498). Economics
+  cost-dominated (~18 bps RT vs 0.5–1.4 bps gross).
+- Broker/live layers remain off; Hard Gate A is NEGATIVE. There is no validated
+  intraday edge in the current candidate set.
+- For full project state, architecture, and next-step recommendations see
+  `docs/PROJECT_HANDOFF.md` and `docs/RESEARCH_K_Future_Research_Directions.md`.
 
 Milestone 1 implements the local data foundation: loading, validating,
 session classification, and causal OHLCV resampling.
@@ -335,6 +343,26 @@ causal cross-instrument confirmation/divergence features, and descriptive
 event outcome studies conditioned on multi-instrument context. The module does
 not download data, create trading signals, simulate P/L, route orders, or
 claim edge.
+
+## Milestone Progression Summary (M62–M128)
+
+Detailed per-milestone documentation lives in `docs/PROJECT_MILESTONES.md` and
+the `docs/` tree. High-level summary:
+
+- **M62–M100 (signal engine build-out):** Factor family F1–F5 implementation,
+  Alpaca SIP live data integration, DSR/PBO/IS-Sharpe Hard Gate A framework,
+  negative-control and multiple-testing infrastructure, cross-sectional signal
+  engine scaffolding.
+- **M121 (Hard Gate A baseline):** 280 candidates across F1–F5; 0 eligible.
+- **M122 (F6–F10 addition, ONC bug):** 600 candidates; degenerate ONC (bug).
+- **M126 (Hard Gate A with ONC fix):** 672 candidates across all 5 mechanism
+  buckets; 0 eligible. Hard Gate A remains NEGATIVE.
+- **M127 (Confirmatory MIM replication):** Preregistered HAC regression
+  replication of Gao 2018 and Baltussen 2021 MIM on SPY SIP 2016–2026.
+  Result: NULL_NON_REPLICATION. 0/4 confirmatory regressions pass.
+- **M128 (Fama-MacBeth cross-sectional HKS):** Preregistered cross-sectional
+  intraday periodicity test on 334-stock universe, 2023–2026, Fama-MacBeth +
+  Newey-West(12). Result: EXPLORATORY NULL. 0/4 lags pass.
 
 ## Current Scope
 
