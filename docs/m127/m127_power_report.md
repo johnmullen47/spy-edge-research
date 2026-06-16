@@ -1,8 +1,50 @@
 # m127_power_report
 
-**Milestone:** M127 · **Steps 1B + 1C + 1D** · **Date:** 2026-06-16
-**Verdict: NO-GO (BLOCKED).** All available instruments are `underpowered` at the canonical
-effect size and the pre-registered corrected alpha. Per Step 1D, do not implement.
+**Milestone:** M127 · **Steps 1B + 1C + 1D** · **Date:** 2026-06-16 (original)
+**Original verdict: NO-GO (BLOCKED)** — based on the intraday data *on disk* (~502-day SPY
+CSVs). **SUPERSEDED in part by the 2026-06-16 data-availability audit — see the addendum
+below.**
+
+---
+
+## ⚑ ADDENDUM (2026-06-16) — Alpaca SIP unblocks the SPY-primary path
+
+A read-only audit of the *already-configured, already-paid* data subscriptions (no new
+spend) found that the original blocker was an artifact of only a partial CSV being on disk —
+**not** a subscription limit:
+
+- **Alpaca SIP is active and full-history on the current plan:** SPY 1-minute, **2016-01-01 →
+  real-time** (a live bar at 2026-06-16 11:53Z was confirmed; the old "free-tier SIP blocks
+  the recent ~15 months" note is stale for this account). That is **≈ 2,620 full-volume
+  trading days** — **~3.5× the 733-day requirement** for 80% power at the Bonferroni alpha.
+- Earliest Alpaca **IEX** SPY minute = 2020-07-27 (≈1,490 days, but thin single-venue volume).
+- **Polygon** REST is free/limited (~2 years SPY only; `NOT_AUTHORIZED` deeper) and **does not
+  serve futures** — redundant here.
+- **yfinance** caps at ~30 days of 1-min — unusable.
+- **No configured source serves futures (ES/MES/NQ/MNQ).**
+
+**Revised classification:**
+
+| Path | Instrument / series | N (days) | Power @ Bonferroni (r=0.13) | Class | Cost |
+|---|---|---|---|---|---|
+| **SPY-primary (recommended)** | **SPY SIP 2016→now (Alpaca, full volume)** | **~2,620** | **>0.999** | **`adequately_powered`** | **$0 (already paid)** |
+| SPY robustness | SPY IEX 2020→now (thin) | ~1,490 | >0.99 (but volume-distorted) | exploratory (fidelity ⚠) | $0 |
+| Futures-primary (mission's intended) | ES/MES (H_b native base) | 0 (no source) | — | **still BLOCKED** | new vendor (paid) |
+
+**Revised verdict:**
+- **SPY-primary M127 (H_a + H_b on Alpaca SIP 2016→now): GO is now possible — adequately
+  powered, $0 new spend.** The required action is simply to fetch the deeper SIP history
+  (`fetch_spy_bars.py --feed sip --start 2016-01-01`), which the tooling already supports.
+  Fidelity caveat: this tests the SPY **ETF**, not futures, so H_b is evaluated off its native
+  (futures) instrument → score "Close, different instrument," not "Exact" (record in the
+  Step 1.6 fidelity report when M127 is re-commissioned).
+- **Futures-primary M127 (ES/MES, as originally specified): remains BLOCKED** — no configured
+  source provides futures; this is the only genuine new-spend item.
+
+Everything below is the original Step 1B–1D analysis (unchanged; it correctly described the
+*on-disk* data but understated what the *subscriptions* can fetch).
+
+---
 
 ## 1B — Trial budget & multiple-testing
 

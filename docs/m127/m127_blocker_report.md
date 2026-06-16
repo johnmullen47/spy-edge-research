@@ -1,12 +1,34 @@
 # m127_blocker_report
 
-**Milestone:** M127 · **Step 1D output** · **Date:** 2026-06-16
-**Status: BLOCKED.** M127 cannot currently be run as a statistically powered,
-literature-faithful MIM replication. Implementation halted at Gate 0.5 per the mission's
-blocking rule. No pre-registration, fidelity report, implementation, controls, or M128
-scaffold were produced (all gated behind Gate 0.5 passing).
+**Milestone:** M127 · **Step 1D output** · **Date:** 2026-06-16 (original)
+**Original status: BLOCKED.** **PARTIALLY SUPERSEDED by the 2026-06-16 data-availability
+audit — see the addendum below.**
 
-## The exact blocker
+---
+
+## ⚑ ADDENDUM (2026-06-16) — the SPY-primary path is no longer blocked
+
+The original blocker assumed the only intraday data was the ~502-day SPY CSVs on disk. A
+read-only audit of the *already-paid* subscriptions (no new spend) shows the **Alpaca plan
+has full SIP**: SPY 1-minute **2016-01-01 → real-time** (confirmed live), ≈ **2,620
+full-volume trading days** — comfortably past the 733-day power requirement. So:
+
+- **Blocker #2 (all instruments underpowered) is RESOLVED for SPY.** A SPY-primary M127
+  (H_a + H_b) on Alpaca SIP 2016→now is **adequately powered at $0 new spend**. Action:
+  `fetch_spy_bars.py --feed sip --start 2016-01-01` (tooling already supports it).
+- **Blocker #1 (no primary futures instrument) STANDS.** No configured source serves ES/MES/
+  NQ/MNQ (Alpaca = equities-only; Polygon futures not entitled; Polygon REST ~2yr stocks
+  only; yfinance ~30-day cap). A *futures-primary* run (H_b's native evidence base) still
+  needs a new futures vendor (paid).
+
+**Net:** M127 is unblockable **now, for free, as a SPY-primary replication**; it remains
+blocked only for the *futures-primary* variant. The recommended re-commission is SPY-primary
+on Alpaca SIP, with H_b scored "Close (different instrument: ETF vs futures)" in the Step 1.6
+fidelity report. The original blocker analysis below is retained for the futures-primary case.
+
+---
+
+## The exact blocker (original — applies fully only to the futures-primary design)
 
 **Data adequacy fails on two independent grounds, either of which is sufficient to block:**
 
