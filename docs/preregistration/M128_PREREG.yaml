@@ -1,0 +1,163 @@
+# M128 Preregistration — Cross-Sectional Intraday Periodicity (Heston-Korajczyk-Sadka 2010)
+# FROZEN 2026-06-16, BEFORE any real-data cross-sectional predictor->target relationship
+# was computed. Immutable: any change requires a new M128_PREREG_v2.yaml with explanation,
+# timestamp, justification, and an explicit statement of whether results were already observed.
+
+meta:
+  milestone: M128
+  frozen_utc: "2026-06-16"
+  author: "Build Master, replication-engineer mode"
+  results_observed_before_freeze: false   # execution-freeze honored. Pre-freeze, only:
+                                           # (a) Alpaca data-adequacy probe, (b) no-lookahead
+                                           # universe construction (data inventory, not a
+                                           # predictor->target result), (c) SYNTHETIC power MC.
+  goal: >
+    Detect the cross-sectional same-half-hour continuation effect (HKS 2010) at approximately
+    its published magnitude if it exists in the liquid US-stock cross-section over 2017-2026.
+    NOT to reproduce a paper table, find a profitable strategy, invent signals, optimize, or
+    rescue prior milestones. This is the cross-sectional counterpart to M127's single-instrument
+    (SPY) MIM null: a diversified ETF cannot host a cross-sectional effect, so M128 tests it
+    where it lives -- the stock cross-section.
+
+hypothesis:
+  H_cs:
+    name: "Cross-sectional same-half-hour continuation at lag L"
+    citation: "Heston, Korajczyk & Sadka (2010), Journal of Finance 65(4):1369-1407"
+    statement: >
+      Within a given RTH half-hour bucket, a stock's market-neutralized return in that bucket
+      L trading days ago positively predicts its market-neutralized return in the same bucket
+      today, cross-sectionally across the universe.
+    direction: "continuation (positive Fama-MacBeth slope predicted)"
+
+predictor:
+  definition: >
+    x[i,d,b] = market-neutralized log return of stock i in RTH half-hour bucket b on the
+    trading day L days before d. Neutralization = cross-sectional demean within (date, bucket)
+    over universe members on that date.
+  bucket_return: >
+    13 clock-keyed RTH half-hour buckets (09:30->10:00, ..., 15:30->16:00). Within-day mark
+    path = [open of first bar, then each bucket's close]; bucket return = log(mark_b/mark_{b-1}).
+    All intraday (no overnight). Causal: uses only same-day prices through that bucket's close.
+
+target:
+  definition: "y[i,d,b] = market-neutralized log return of stock i in bucket b on day d."
+
+lag_set:
+  unit: "trading days"
+  lags: [1, 5, 10, 22]
+  primary: 5            # prompt-designated primary (1 week)
+  co_primary: 1         # HKS's strongest documented horizon (daily periodicity); best-chance spec
+  secondary: [10, 22]   # biweekly, monthly
+  note: >
+    L=1 is included so the design is not aimed at the weakest specification: HKS's headline is
+    daily (lag-1) periodicity. All four lags are pre-registered confirmatory trials.
+
+bucket_scope:
+  choice: "ALL_13_BUCKETS_POOLED"      # LOCKED. Not per-bucket cherry-picking.
+  pooling: >
+    For each date d, pool the demeaned (stock, bucket) pairs across all 13 buckets into one
+    cross-sectional slope gamma[d] (OLS through the origin on demeaned data). One slope per day.
+
+universe:
+  source: "Alpaca SIP, asset roster = active UNION inactive us_equity (survivorship-controlled)"
+  roster_filter: "mechanical common-stock symbol regex ^[A-Z]{1,5}$ or ^[A-Z]{1,4}\\.[A-Z]$"
+  etf_exclusion: >
+    ETFs/ETNs/funds removed (mechanical name-token filter + explicit high-volume ETF symbol set);
+    ETFs are M128 NEGATIVE CONTROLS, not stock-universe members.
+  liquidity_rule: "top 150 by trailing-12-month average daily DOLLAR volume (close*volume)"
+  rebalance: "monthly; membership for month r uses ONLY data from months r-12..r-1 (no lookahead)"
+  min_history: "require >= 200 trading days in the trailing 12-month window"
+  membership_csv: "data/raw/m128/universe_membership.csv (dated, one row per month per stock)"
+  negative_control_etfs: ["SPY", "QQQ", "IWM", "DIA"]
+
+market_neutralization:
+  method: "cross-sectional demean within (date, bucket) over members; tests RELATIVE continuation"
+  rationale: "without it, a positive slope could be market autocorrelation, not a cross-sectional anomaly"
+
+session_definitions:
+  timezone: "America/New_York"
+  session: "RTH only, 09:30-16:00 ET -> 13 half-hour buckets"
+  half_days: "clock-keyed buckets; incomplete days contribute only their present buckets"
+  bar_resolution: "30Min (timeframe='30Min'), SIP feed, raw adjustment"
+
+data:
+  range: "2016-01-01 .. 2026-06-13 (2016 = ADV burn-in)"
+  test_sample: "2017-01 .. 2026-06 (universe defined from 2017-01)"
+  fetch: "scripts/m128_fetch_universe_bars.py (multi-symbol SIP 30Min)"
+
+statistical_test:
+  estimator: "Fama-MacBeth: per-date pooled cross-sectional slope gamma[d]"
+  inference: "Newey-West (Bartlett) HAC SE on the time-series mean of gamma[d], 12 lags"
+  also_reported: "mean per-date cross-sectional Pearson corr (effect size), n_days, n_obs"
+
+trial_budget:
+  k: 4
+  hard_cap: 7
+  tests:
+    1: "H_cs, L=1,  all-buckets-pooled, full sample  (CO-PRIMARY)"
+    2: "H_cs, L=5,  all-buckets-pooled, full sample  (PRIMARY)"
+    3: "H_cs, L=10, all-buckets-pooled, full sample  (SECONDARY)"
+    4: "H_cs, L=22, all-buckets-pooled, full sample  (SECONDARY)"
+  correction: "Bonferroni (stricter than repo BH-FDR for fixed small k)"
+  alpha_family: 0.05
+  alpha_per_test: 0.0125
+  two_sided_crit_t: 2.498
+
+power_assumptions:
+  effect_size: "HKS cross-sectional R^2 ~ 0.1-0.3% per half-hour bucket -> rho ~ 0.032-0.055"
+  method: "synthetic Monte-Carlo (scripts/m128_power_sim.py -> docs/m128/m128_power_sim.json)"
+  panel: {n_stocks: 150, n_buckets: 13, n_days: 2350, nw_lags: 12, reps: 400}
+  classify_adequate_if: "empirical power >= 0.80 at the literature R^2 lower bound (0.1%)"
+  underpowered_handling: "any lag with power < 0.80 at R^2=0.1% is logged underpowered (exploratory)"
+
+cost_gate:   # PRE-RESULT (Step 1E). Economic viability only; does NOT gate the confirmatory test.
+  model: "RegimeAwareCostModel (half-spread*tod*regime + k*sigma_bps + impact*sqrt(Q/ADV))"
+  strategy_costed: "decile long/short on lagged same-bucket neutralized return, 30-min holding"
+  computation: "gross decile spread at literature R^2 minus round-trip cost per bucket"
+  classify_cost_dominated_if: "net edge per round-trip <= 0 at the literature effect size"
+  interpretation: >
+    A cost-dominated effect is NOT evidence against the mechanism; the confirmatory test is a
+    cost-free predictive-R^2 claim (per M127 precedent). Cost-dominated -> economic layer flagged
+    NOT_ECONOMICALLY_VIABLE; the scientific replication still proceeds.
+
+survivorship_disclosure:
+  bars_for_delisted: "RETAINED by Alpaca (verified: TWTR/ATVI/XLNX/CELG/WORK/DISCA bars fetchable)"
+  residual_gap: >
+    Alpaca's inactive-asset roster is incomplete (a few purged tickers, e.g. TWTR/ATVI/DISCA,
+    have fetchable bars but are absent from the asset registry, so they are NOT in the roster).
+    Quantified in m128_data_inventory.md and m128_fidelity_report.md.
+  bias_direction: >
+    The test statistic is a within-cross-section RELATIVE slope (demeaned), far less sensitive to
+    survivorship than a long-only mean-return study. Residual roster gaps are expected to bias the
+    slope estimate negligibly; disclosed, not hidden.
+
+oos_procedure:
+  primary_arbiter: "full-sample FM HAC t-stat (matches HKS in-sample predictive claim)"
+  robustness: "IS 2017-2021 vs OOS 2022-2026 sign-consistency of the FM slope (reported, not the gate)"
+
+negative_controls:
+  required: ["date_shuffled", "stock_permuted", "lag_permuted"]
+  seed: 42
+  pass: "all controls |t| << real |t| and none significant at alpha_per_test"
+  suspicious_rule: "if any control reaches |t| >= 2.498, flag SUSPICIOUS_STOP and do not continue"
+
+pass_fail_criteria:
+  per_lag_replicates_if:
+    - "FM HAC t-stat on the mean slope > +2.498 (positive/continuation sign)"
+    - "AND negative controls all insignificant (not SUSPICIOUS)"
+  hypothesis_overall:
+    - "H_cs replicates if the L=5 PRIMARY test passes; L=1 CO-PRIMARY is interpreted alongside
+       (a literature-consistent outcome if L=1 passes even when L=5 is null, since HKS's strongest
+       horizon is daily)."
+  economic_viability: "separate; reported via the cost gate, never overriding the statistical verdict"
+  null_interpretation: >
+    A null cannot be dismissed as underpowered (power verified >=0.80 at literature R^2),
+    contaminated (negative controls), undisciplined (preregistered, k=4 Bonferroni), survivorship-
+    inflated (delisted bars retained; relative estimator), or aimed at the weakest spec (L=1, the
+    strongest documented horizon, is co-primary). It would be a genuine, interpretable non-
+    replication in the liquid US-stock cross-section 2017-2026, subject to the universe-fidelity
+    caveat (liquidity proxy vs point-in-time constituents; see m128_fidelity_report.md).
+
+fidelity_self_classification:
+  expected: "Approximate on the universe axis (liquidity proxy, not point-in-time constituents)"
+  consequence: "if overall fidelity < Close, M128 is EXPLORATORY, not confirmatory (see fidelity report)"
