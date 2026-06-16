@@ -3489,5 +3489,68 @@ runnable on existing SPY 1-min + free VIX / Fed-calendar data — **none blocked
 data**. Three carry an **open base-predictor question** (F3/F4/F5 default to gating
 the live Baltussen MIM, not the dead Gao base) flagged for confirmation before
 implementation. No suite change (docs only); registry still 100.
-**Next: M121 — implement the MIM-Baltussen predictor family and wire it through the
-effective-N Hard Gate A.**
+
+## Milestone 121 - MIM-Baltussen rest-of-day momentum family + Hard Gate A
+
+Implements the frozen `docs/PREREG_MIM_BALTUSSEN.md` grid (committed `e9fd892`,
+immutable) as a new causal signal family flowing through the SAME Hard Gate A
+pipeline — a new set of candidates through the same gate, not a new gate. Lineage:
+RESEARCH_H **Family 1 (Intraday Momentum), variant** — same mechanism, the *live*
+Baltussen (2021 JFE) rest-of-day predictor replacing the dead Gao formulation.
+
+**New module `signal_engine/mim_baltussen_features.py`** (strictly causal /
+no-lookahead, mirroring the MIM and F2 constructions):
+- Predictor `r_rod` = cumulative SPY log return from the **prior session's close to
+  the cutoff**, measured at the decision bar (first regular bar at/after the
+  cutoff); both terms have timestamp <= cutoff. No bar after the cutoff enters it.
+- Position (momentum): `long if r_rod > +tau ; short if r_rod < -tau ; flat
+  otherwise`, held into the 16:00 close. Magnitude-scaled sizing is DEFERRED per the
+  pre-registration and not emitted.
+- Regime gate (measured at the prior-session close, so pre-trade-known): one of
+  `unconditional`, `VIX > 20`, `VIX > trailing rolling median`, `GARCH(1,1)
+  conditional vol > trailing median`. The GARCH gate is a pure-numpy, causal,
+  frozen-parameter (burn-in variance-targeted MLE) GARCH(1,1) on the SPY daily
+  closes. The two **VIX gates require a daily VIX series; none is on hand** in the
+  SPY-only pipeline, so those gates are inactive (their event columns never fire).
+- Frozen grid: 4 thresholds {0, 0.10%, 0.25%, 0.50%} x 4 gates x 2 configs (A:
+  predictor→15:30, trade 15:30→16:00; B: predictor→15:00, trade 15:00→16:00) = **32
+  strategy cells**, encoded as **64 directional `event_mimb_*` columns** (each cell
+  is a long/short pair, the harness's directional event-mask convention).
+
+**Pipeline wiring** (`cli/pipeline.py`, behind `include_mim_baltussen`, default
+off; mirrors F2): emits the family in Stage 3 and **appends the per-config to-close
+forward horizons 29m / 59m** (15:30→15:59 and 15:00→15:59; the vendor's last
+intraday bar is 15:59 ~ the 16:00 print, so a 30m/60m label from the cutoff would be
+NaN under `prevent_cross_day`). Enabled in `scripts/run_hard_gate_a.py` alongside MIM
+and F2. Effective-N (M119) is unchanged and handles the cross-trial DSR N.
+
+**Tests:** `tests/signal_engine/test_mim_baltussen_features.py` (17) — decision-bar
+timing per config; `r_rod` = prev-close→cutoff return; momentum direction; threshold
+gating; events fire only on the decision bar; VIX gates inactive without VIX data
+and active when a prior-close VIX series clears the level; 64-column grid; no-
+lookahead truncation stability; to-close horizons; GARCH gate present; argument
+validation. Full suite: **970 passed, 4 skipped** (was 953 at M119; +17 new tests
+and the parametrized event-study tests that auto-expand over source files).
+
+**Hard Gate A (IEX, MIM + F2 + MIM-Baltussen; `run_20260616T011445Z`,
+189,663 bars):**
+- Event columns: **90** (was 26; +64 MIM-Baltussen). Of the 64, **32 fire** (16
+  unconditional + 16 GARCH); the 32 VIX-gated columns never fire (no VIX series) and
+  drop from the registry.
+- Forward horizons: 5/15/30/60 + **29/59** (the two to-close horizons also expand
+  the pre-existing families' candidates).
+- Candidate registry: **280** (was 100). The "+180" — not "+32" — is the harness's
+  directional × horizon expansion plus the two new to-close horizons inflating every
+  family; the PREREG "32" is the strategy-cell grid, faithfully represented.
+- Effective-N (clusters): **143** (was 2); within-cluster Holm survivors **12**.
+- Portfolio PBO: **0.0971** (was 0.3303).
+- Readiness verdicts: **{"not_ready": 280} → 0 eligible.**
+
+**Conclusion:** No candidate reached `eligible_for_paper_consideration`. A valid
+null result, recorded honestly — broker/live layers remain OFF. Candidates fail on
+multiple independent grounds (economic edge < 1 bp, negative control, FDR, DSR).
+Notably the 32 Baltussen cells did **not** collapse into one within-family cluster:
+effective-N rose to 143 (the sparse, decorrelated rest-of-day candidate return
+streams cluster apart), which makes the gate *harder*, reinforcing the negative.
+This did not lower or bypass the gate; SPA/Hansen remains deferred. The two VIX
+gates remain implemented but unexercised pending a daily VIX series.

@@ -1,7 +1,7 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M120 merged to main; Build Master).
+> project. Last updated 2026-06-15 (M121 on branch `milestone/M121`; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
@@ -48,13 +48,31 @@
   spec'd candidates, **none blocked on data** (existing SPY 1-min + free
   VIX/Fed-calendar). Open question on three: F3/F4/F5 default to gating the live
   Baltussen base (not the dead Gao base) — confirm before implementing. Registry
-  unchanged at 100; suite unchanged (docs only). **Next: M121 — implement the
-  MIM-Baltussen predictor family and run it through the effective-N Hard Gate A.**
-- **Latest ledger milestone:** M120 (`PROJECT_MILESTONES.md`)
+  unchanged at 100; suite unchanged (docs only).
+- **M121 — MIM-Baltussen rest-of-day momentum family implemented + Hard Gate A
+  re-run.** New `signal_engine/mim_baltussen_features.py`: causal `r_rod` (prior
+  close→cutoff log return) momentum, `long if r_rod>+tau / short if r_rod<-tau`, 4
+  thresholds × 4 regime gates (unconditional, VIX>20, VIX>trailing median, causal
+  pure-numpy GARCH(1,1)>trailing median) × 2 configs (A 15:30, B 15:00) = **32
+  strategy cells → 64 directional `event_mimb_*` columns**. Wired behind
+  `include_mim_baltussen` (default off), appending per-config to-close horizons
+  **29m/59m** (vendor's last bar is 15:59 ~ the 16:00 print, so a 30m/60m label from
+  the cutoff is NaN); enabled in `scripts/run_hard_gate_a.py`. **No VIX series is on
+  hand**, so the two VIX gates are inactive (32 of the 64 columns never fire and drop
+  from the registry); the unconditional + GARCH gates fire (32 active columns).
+  Default IEX run (`run_20260616T011445Z`, 189,663 bars): **90 event columns, 280
+  candidates, effective-N 143, portfolio PBO 0.0971, `{not_ready: 280}` → 0
+  eligible.** Registry grew 100→280 (directional × horizon expansion + the two new
+  to-close horizons inflate every family — the PREREG "32" is the strategy-cell
+  grid). Effective-N rose 2→143 (the sparse rest-of-day streams cluster apart, *not*
+  into one within-family cluster — making the gate harder). A valid null, recorded
+  honestly; broker/live layers stay OFF. Suite: **970 passed, 4 skipped** (+17 new).
+  The two VIX gates are implemented but unexercised pending a daily VIX series.
+- **Latest ledger milestone:** M121 (`PROJECT_MILESTONES.md`)
 - **Research docs:** `RESEARCH_G` (F1 options-data sourcing) and `RESEARCH_H`
   (N-count correction / DSR methodology amendment) committed to `docs/`.
-  **N-count correction implementation pending** (Option 1 / effective-N via ONC
-  clustering) — to be commissioned as a separate milestone; not yet started.
+  **N-count correction implemented in M119** (effective-N via ONC clustering,
+  `backtesting/effective_n.py`); wired into the DSR and exercised by M121's run.
 - **F1 data-construction amendment:** `RESEARCH_G_AMENDMENT_1_Data_Construction_Decisions.md`
   committed (`41e29a1`). Locks: SPX-based GEX primary (4→2 trial cells), exclude
   0DTE (≥1DTE only), **gamma = Polygon-provided Greeks** (primary), data source
