@@ -21,6 +21,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", default="data/raw/spy_1min.csv")
     parser.add_argument("--output", default="reports")
+    parser.add_argument("--vix", default="data/raw/vix_daily.csv",
+                        help="daily VIX term-structure CSV (scripts/fetch_vix.py)")
     parser.add_argument("--train", type=int, default=30000, help="OOS initial train bars")
     parser.add_argument("--test", type=int, default=7500, help="OOS test bars per fold")
     args = parser.parse_args()
@@ -33,6 +35,10 @@ def main() -> None:
         include_intraday_momentum=True,
         include_end_of_day_reversal=True,
         include_mim_baltussen=True,
+        vix_csv=args.vix,
+        include_f3_vix_gate=True,
+        include_f4_overnight_gap=True,
+        include_f5_fomc_calendar=True,
     )
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     result = run_pipeline(

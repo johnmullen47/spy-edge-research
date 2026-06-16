@@ -45,6 +45,17 @@ from spy_edge_research.signal_engine.mim_baltussen_features import (
     add_mim_baltussen_features,
     mim_baltussen_to_close_horizons,
 )
+from spy_edge_research.signal_engine.f3_vix_gated_features import (
+    add_f3_vix_gated_features,
+)
+from spy_edge_research.signal_engine.f4_overnight_gap_features import (
+    add_f4_overnight_gap_features,
+)
+from spy_edge_research.signal_engine.f5_fomc_calendar_features import (
+    add_f5_fomc_calendar_features,
+)
+from spy_edge_research.signal_engine._rest_of_day import CONFIG_A_HOLD_MINUTES
+from spy_edge_research.market_data.vix_loader import load_vix_daily, vix_level_series
 from spy_edge_research.signal_engine.event_catalog import build_named_event_catalog
 from spy_edge_research.backtesting.labels import add_forward_labels
 from spy_edge_research.backtesting.candidate_edges import (
@@ -171,6 +182,18 @@ class PipelineConfig:
     mimb_vix_threshold: float = 20.0
     mimb_regime_lookback_days: int = 60
     mimb_garch_burnin_days: int = 60
+    # Optional daily VIX term-structure CSV (data/raw/vix_daily.csv from
+    # scripts/fetch_vix.py): columns date, vix, vix9d, vix3m. When provided it
+    # activates the MIM-Baltussen VIX regime gates and is required by F3. Default
+    # None (VIX gates inactive), so SPY-only runs are unchanged. (M122)
+    vix_csv: str | Path | None = None
+    # F3/F4/F5 (M122, PREREG_F3/F4/F5): conditioners on the Baltussen Config-A
+    # predictor flowing through the SAME gate. F3 needs vix_csv; F4 is SPY-only; F5
+    # is a pre-FOMC placebo. All default off so existing runs are unchanged.
+    include_f3_vix_gate: bool = False
+    include_f4_overnight_gap: bool = False
+    include_f5_fomc_calendar: bool = False
+    f_regime_lookback_days: int = 60
 
 
 @dataclass
@@ -253,15 +276,45 @@ def run_pipeline(
             vol_lookback_days=cfg.eod_vol_lookback_days,
             conviction_z=cfg.eod_conviction_z,
         )
+    # Daily VIX term-structure frame (M122). Loaded once and shared by the
+    # MIM-Baltussen VIX gates and F3. None when no CSV is configured.
+    vix_frame = load_vix_daily(cfg.vix_csv) if cfg.vix_csv is not None else None
+    vix_daily = vix_level_series(vix_frame) if vix_frame is not None else None
     if cfg.include_mim_baltussen:
         df = add_mim_baltussen_features(
             df,
+            vix_daily=vix_daily,
             timezone=cfg.timezone,
             session_open=cfg.mimb_session_open,
             session_close=cfg.mimb_session_close,
             vix_threshold=cfg.mimb_vix_threshold,
             regime_lookback_days=cfg.mimb_regime_lookback_days,
             garch_burnin_days=cfg.mimb_garch_burnin_days,
+        )
+    if cfg.include_f3_vix_gate:
+        df = add_f3_vix_gated_features(
+            df,
+            vix_frame=vix_frame,
+            timezone=cfg.timezone,
+            session_open=cfg.mimb_session_open,
+            session_close=cfg.mimb_session_close,
+            vix_threshold=cfg.mimb_vix_threshold,
+            regime_lookback_days=cfg.f_regime_lookback_days,
+        )
+    if cfg.include_f4_overnight_gap:
+        df = add_f4_overnight_gap_features(
+            df,
+            timezone=cfg.timezone,
+            session_open=cfg.mimb_session_open,
+            session_close=cfg.mimb_session_close,
+            gap_lookback_days=cfg.f_regime_lookback_days,
+        )
+    if cfg.include_f5_fomc_calendar:
+        df = add_f5_fomc_calendar_features(
+            df,
+            timezone=cfg.timezone,
+            session_open=cfg.mimb_session_open,
+            session_close=cfg.mimb_session_close,
         )
     event_columns = [c for c in df.columns if c.startswith("event_")]
     record("events", "ok", event_column_count=len(event_columns))
@@ -278,6 +331,13 @@ def run_pipeline(
         for h in mim_baltussen_to_close_horizons():
             if h not in horizons:
                 horizons = horizons + (h,)
+    if (
+        cfg.include_f3_vix_gate
+        or cfg.include_f4_overnight_gap
+        or cfg.include_f5_fomc_calendar
+    ) and CONFIG_A_HOLD_MINUTES not in horizons:
+        # F3/F4/F5 all trade the Config-A window (15:30→16:00); resolve at the close.
+        horizons = horizons + (CONFIG_A_HOLD_MINUTES,)
     df = add_forward_labels(df, horizons_minutes=horizons, timezone=cfg.timezone)
     label_columns = [f"forward_return_{h}m" for h in horizons]
     record("labels", "ok", label_columns=label_columns)
