@@ -1,7 +1,7 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M121 on branch `milestone/M121`; Build Master).
+> project. Last updated 2026-06-15 (M122 on branch `milestone/M122`; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
@@ -68,7 +68,26 @@
   into one within-family cluster — making the gate harder). A valid null, recorded
   honestly; broker/live layers stay OFF. Suite: **970 passed, 4 skipped** (+17 new).
   The two VIX gates are implemented but unexercised pending a daily VIX series.
-- **Latest ledger milestone:** M121 (`PROJECT_MILESTONES.md`)
+- **M122 — VIX data pipeline + F3/F4/F5 families + Hard Gate A.** (1) **VIX
+  acquired**: Polygon free tier is not entitled to `I:VIX`, so `scripts/fetch_vix.py`
+  pulls the **CBOE free daily CSVs** (VIX/VIX9D/VIX3M) → `data/raw/vix_daily.csv`
+  (gitignored; reproducible). `market_data/vix_loader.py` + `PipelineConfig.vix_csv`
+  wire it in. **The MIM-Baltussen VIX gates now activate** (VIX>20 fires 848,
+  VIX>median 1380 — both 0 at M121). (2) **F3/F4/F5 implemented** (shared causal
+  `signal_engine/_rest_of_day.py` Config-A predictor; flags `include_f3_vix_gate`,
+  `include_f4_overnight_gap`, `include_f5_fomc_calendar`): F3 = VIX-level/term-
+  structure gate (vix20/vixmed/tslope; needs VIX), F4 = overnight-gap conditioner
+  (g1 magnitude / g2 sign-agreement / g3 combined; SPY-only), F5 = pre-FOMC **placebo**
+  (c1 restrict / c2 exclude, embedded 2024–2026 Fed calendar). All enabled in the
+  Hard Gate A driver. Full IEX run (`run_20260616T015511Z`): **154 event columns, 600
+  candidates** (mimb 256, F3 72, F4 72, F5 48, mim 48, F2 20, chart 84), **effective-N
+  600 = ceiling** (all candidates cluster alone → maximally conservative DSR), Holm
+  survivors 31, **portfolio PBO 0.1016**, **{not_ready: 600} → 0 eligible**. **F5
+  negative-control guard satisfied**: F5 itself null (post-2015 pre-FOMC decay
+  confirmed) and no primary cleared at all, so none leans on the FOMC gate
+  (RESEARCH_C §4.4). A valid, robust null; broker/live layers stay OFF. Suite: **998
+  passed, 4 skipped** (+28 new). SPA/Hansen still deferred.
+- **Latest ledger milestone:** M122 (`PROJECT_MILESTONES.md`)
 - **Research docs:** `RESEARCH_G` (F1 options-data sourcing) and `RESEARCH_H`
   (N-count correction / DSR methodology amendment) committed to `docs/`.
   **N-count correction implemented in M119** (effective-N via ONC clustering,

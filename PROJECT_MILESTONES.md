@@ -3554,3 +3554,61 @@ effective-N rose to 143 (the sparse, decorrelated rest-of-day candidate return
 streams cluster apart), which makes the gate *harder*, reinforcing the negative.
 This did not lower or bypass the gate; SPA/Hansen remains deferred. The two VIX
 gates remain implemented but unexercised pending a daily VIX series.
+
+## Milestone 122 - VIX data pipeline + F3/F4/F5 families + Hard Gate A
+
+Two workstreams: (1) acquire VIX history and activate the dormant VIX regime
+gates; (2) implement the three remaining pre-registered families F3/F4/F5. All are
+RESEARCH_H Family-1 variants conditioning the **same** Baltussen Config-A predictor
+(`r_rod` prev close→15:30, trade 15:30→16:00, τ∈{0,0.10%,0.25%,0.50%}); they flow
+through the SAME Hard Gate A — new candidates, not a new gate.
+
+**Step 1 — VIX data (`scripts/fetch_vix.py`, `market_data/vix_loader.py`).**
+Polygon's free tier is **not entitled** to index (`I:VIX`) data (verified:
+`NOT_AUTHORIZED`), so the source is the **CBOE free daily CSVs** (VIX back to 1990,
+plus the term-structure sub-indices VIX9D / VIX3M). `fetch_vix.py` downloads and
+normalizes them to `data/raw/vix_daily.csv` (`date, vix, vix9d, vix3m`; gitignored,
+local-only, reproducible from the committed script). `PipelineConfig.vix_csv` loads
+it once and shares it with the MIM-Baltussen VIX gates and F3. **The two
+MIM-Baltussen VIX gates now activate** (VIX>20 fires 848, VIX>median 1380 — both
+were 0 at M121).
+
+**Step 2 — F3/F4/F5 signal generators** (shared causal `signal_engine/_rest_of_day.py`
+Config-A predictor helper; each behind its own pipeline flag, default off):
+- **F3** (`f3_vix_gated_features.py`, PREREG_F3): VIX-level / term-structure gate —
+  variants `vix20`, `vixmed` (VIX > trailing median), `tslope` (term-structure
+  slope VIX3M−VIX9D in the bottom trailing quartile = flat/inverted stress). 3
+  variants × 4 τ = 12 cells → 24 directional `event_f3_*` columns. Binding test
+  (incremental value over the realized-vol gate) recorded for downstream eval.
+- **F4** (`f4_overnight_gap_features.py`, PREREG_F4): overnight-gap conditioner on
+  `gap = log(open_t/close_{t-1})` (causal, known 09:30) — `g1` magnitude gate (top
+  trailing tercile), `g2` sign-agreement (`sign(gap)==sign(r_rod)`), `g3` combined.
+  12 cells → 24 `event_f4_*` columns. SPY-only.
+- **F5** (`f5_fomc_calendar_features.py`, PREREG_F5): **pre-FOMC placebo / decay
+  monitor** — `c1` restrict / `c2` exclude FOMC-eve days, off an embedded 2024–2026
+  scheduled-FOMC announcement calendar (federalreserve.gov; verified against the
+  Fed page). 8 cells → 16 `event_f5_*` columns. Expected null.
+
+**Tests:** 28 new (`test_f3/f4/f5_*`) — grid counts, gate semantics (prior-close
+VIX, gap sign-agreement, magnitude tercile, term-structure stress, FOMC-eve =
+session-before-announcement, C1/C2 complementarity), events-fire-only-on-decision-
+bar, no-lookahead truncation, embedded-calendar well-formedness, validation. Full
+suite: **998 passed, 4 skipped** (was 970 at M121).
+
+**Hard Gate A (IEX, all six families + VIX; `run_20260616T015511Z`, 189,663 bars):**
+- Event columns: **154** (was 90; +24 F3 +24 F4 +16 F5). Candidate registry: **600**
+  (was 280 — VIX gates now populate the MIM-Baltussen columns, plus F3/F4/F5).
+- Per-family (all `not_ready`): mimb 256, F3 72, F4 72, F5 48, mim 48, F2 20, chart 84.
+- Effective-N (clusters): **600 = total/ceiling** — the sparse, decorrelated rest-of-
+  day candidate streams each cluster alone, so the DSR deflation is **maximally
+  conservative**. Within-cluster Holm survivors: 31. Portfolio PBO: **0.1016**.
+- Readiness verdicts: **{"not_ready": 600} → 0 eligible.**
+- **F5 negative-control guard: satisfied (clean null).** F5 is 0/48 eligible
+  (confirms the post-2015 pre-FOMC-drift decay on our data); and since **zero**
+  primaries (MIM-Baltussen/F3/F4) cleared at all, none depends on the FOMC gate —
+  nothing to kill per RESEARCH_C §4.4.
+
+**Conclusion:** No candidate reached `eligible_for_paper_consideration` across the
+full 600-candidate set with every pre-registered Family-1 variant now active and
+VIX-gated. A valid, robust null — recorded honestly; broker/live layers remain OFF.
+The result did not lower or bypass the gate; SPA/Hansen remains deferred.
