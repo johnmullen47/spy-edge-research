@@ -1,0 +1,187 @@
+{
+  "run_utc": "2026-06-16T12:25:54Z",
+  "input": "/Users/johnmullen/Documents/Codex/Auto-Trader SPY/data/raw/spy_sip_2016_2026.csv",
+  "N_full": 2625,
+  "N_highvol": 875,
+  "crit_t": 2.498,
+  "confirmatory": [
+    {
+      "label": "H_b full sample",
+      "predictor": "r_hb",
+      "n": 2625,
+      "beta": 0.01779083477119646,
+      "hac_se": 0.014425684467965912,
+      "t_stat": 1.2332749139705153,
+      "r_squared": 0.003973754761641746,
+      "corr": 0.06303772490851475,
+      "fisher_z": 3.232162053777652,
+      "nw_lags": 8,
+      "caveat": "research_diagnostic_not_trade_authorization",
+      "passed_confirmatory": false
+    },
+    {
+      "label": "H_a full sample",
+      "predictor": "r_ha",
+      "n": 2625,
+      "beta": 0.018152906650355207,
+      "hac_se": 0.024883837957623292,
+      "t_stat": 0.729505901833522,
+      "r_squared": 0.002063432929658271,
+      "corr": 0.04542502536772216,
+      "fisher_z": 2.327611542315198,
+      "nw_lags": 8,
+      "caveat": "research_diagnostic_not_trade_authorization",
+      "passed_confirmatory": false
+    },
+    {
+      "label": "H_b high-volatility subsample",
+      "predictor": "r_hb",
+      "n": 875,
+      "beta": 0.020994917492649815,
+      "hac_se": 0.02144833026972583,
+      "t_stat": 0.978860229613491,
+      "r_squared": 0.004934605453001062,
+      "corr": 0.07024674692112796,
+      "fisher_z": 2.07778376770226,
+      "nw_lags": 6,
+      "caveat": "research_diagnostic_not_trade_authorization",
+      "passed_confirmatory": false
+    },
+    {
+      "label": "H_a high-volatility subsample",
+      "predictor": "r_ha",
+      "n": 875,
+      "beta": 0.02507965270590912,
+      "hac_se": 0.03421928917385587,
+      "t_stat": 0.732909809391085,
+      "r_squared": 0.0035202124275693913,
+      "corr": 0.0593313781027321,
+      "fisher_z": 1.7540947970239829,
+      "nw_lags": 6,
+      "caveat": "research_diagnostic_not_trade_authorization",
+      "passed_confirmatory": false
+    }
+  ],
+  "negative_controls": {
+    "r_hb": {
+      "real_t": 1.2332749139705153,
+      "controls": {
+        "date_shuffled": {
+          "label": "control:date_shuffled",
+          "predictor": "r_hb",
+          "n": 2625,
+          "beta": -0.0038131798427912013,
+          "hac_se": 0.004545939835863625,
+          "t_stat": -0.8388100107943429,
+          "r_squared": 0.00018255048283044584,
+          "corr": -0.013511124410290952,
+          "fisher_z": -0.6918855582201078,
+          "nw_lags": 8,
+          "caveat": "research_diagnostic_not_trade_authorization"
+        },
+        "permuted_target": {
+          "label": "control:permuted_target",
+          "predictor": "r_hb",
+          "n": 2625,
+          "beta": -0.005610928718977717,
+          "hac_se": 0.004847669098031236,
+          "t_stat": -1.1574487873473998,
+          "r_squared": 0.00039525549076879773,
+          "corr": -0.01988103344317751,
+          "fisher_z": -1.0181517883898752,
+          "nw_lags": 8,
+          "caveat": "research_diagnostic_not_trade_authorization"
+        },
+        "randomized_timestamps": {
+          "label": "control:randomized_timestamps",
+          "predictor": "r_hb",
+          "n": 2625,
+          "beta": 0.010478199038377779,
+          "hac_se": 0.005394565364822316,
+          "t_stat": 1.9423620495370355,
+          "r_squared": 0.001448728641360142,
+          "corr": 0.03806216811165855,
+          "fisher_z": 1.9499331540781653,
+          "nw_lags": 8,
+          "caveat": "research_diagnostic_not_trade_authorization"
+        },
+        "lag_permuted": {
+          "label": "control:lag_permuted",
+          "predictor": "r_hb",
+          "n": 2625,
+          "beta": 0.003938160214468977,
+          "hac_se": 0.005727186175467225,
+          "t_stat": 0.6876256670925668,
+          "r_squared": 0.00019471309926311076,
+          "corr": 0.013953963568211896,
+          "fisher_z": 0.7145656221930652,
+          "nw_lags": 8,
+          "caveat": "research_diagnostic_not_trade_authorization"
+        }
+      }
+    },
+    "r_ha": {
+      "real_t": 0.729505901833522,
+      "controls": {
+        "date_shuffled": {
+          "label": "control:date_shuffled",
+          "predictor": "r_ha",
+          "n": 2625,
+          "beta": -0.008579691069807553,
+          "hac_se": 0.0053770296472524,
+          "t_stat": -1.5956190745929166,
+          "r_squared": 0.000460936722250449,
+          "corr": -0.021469436933704508,
+          "fisher_z": -1.0995215331064256,
+          "nw_lags": 8,
+          "caveat": "research_diagnostic_not_trade_authorization"
+        },
+        "permuted_target": {
+          "label": "control:permuted_target",
+          "predictor": "r_ha",
+          "n": 2625,
+          "beta": -0.0005521865263984546,
+          "hac_se": 0.006723744375992897,
+          "t_stat": -0.08212485417649643,
+          "r_squared": 1.9092799822262307e-06,
+          "corr": -0.001381766978285714,
+          "fisher_z": -0.0707540704526712,
+          "nw_lags": 8,
+          "caveat": "research_diagnostic_not_trade_authorization"
+        },
+        "randomized_timestamps": {
+          "label": "control:randomized_timestamps",
+          "predictor": "r_ha",
+          "n": 2625,
+          "beta": 0.014836854715400956,
+          "hac_se": 0.007638562913097141,
+          "t_stat": 1.942362049537036,
+          "r_squared": 0.001448728641360142,
+          "corr": 0.03806216811165855,
+          "fisher_z": 1.9499331540781653,
+          "nw_lags": 8,
+          "caveat": "research_diagnostic_not_trade_authorization"
+        },
+        "lag_permuted": {
+          "label": "control:lag_permuted",
+          "predictor": "r_ha",
+          "n": 2625,
+          "beta": -0.008601969601526052,
+          "hac_se": 0.010968403361302266,
+          "t_stat": -0.7842499330280602,
+          "r_squared": 0.000463333621122497,
+          "corr": -0.021525185739554805,
+          "fisher_z": -1.102377496665694,
+          "nw_lags": 8,
+          "caveat": "research_diagnostic_not_trade_authorization"
+        }
+      }
+    }
+  },
+  "suspicious": false,
+  "summary": {
+    "confirmatory_passed": 0,
+    "confirmatory_total": 4,
+    "verdict": "NULL_NON_REPLICATION"
+  }
+}
