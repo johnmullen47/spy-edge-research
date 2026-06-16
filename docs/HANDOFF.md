@@ -1,7 +1,7 @@
 # Session Handoff — SPY Directional Edge Research
 
 > For the next agent (Codex or another Claude Code session) picking up this
-> project. Last updated 2026-06-15 (M123 on branch `milestone/M123`; Build Master).
+> project. Last updated 2026-06-15 (M124 on branch `milestone/M124`; Build Master).
 > **Re-verify the live state before trusting any specific number here** — this repo
 > has had concurrent writers (see §1).
 
@@ -97,9 +97,23 @@
   are **NEW families 3–7** under RESEARCH_H — genuinely decorrelated, so each adds ~1
   effective trial and *raises* the DSR bar. ~60 spec'd cells; all runnable on existing
   SPY 1-min + the M122 VIX CSV + free Fed calendar (none blocked). Registry unchanged
-  at 600; suite unchanged (docs only). **Next: M124 — fix the ONC effective-N = 600
-  degenerate case; then M125 implement F6–F10; then M126 run the full Hard Gate A.**
-- **Latest ledger milestone:** M123 (`PROJECT_MILESTONES.md`)
+  at 600; suite unchanged (docs only).
+- **M124 — fixed the ONC degenerate effective-N (blocking; before any F6–F10 code).**
+  Root cause was **not** silhouette/step-size — it was `build_candidate_return_matrix`
+  using `dropna(axis=1, how="any")`, so a single sparse candidate (F5 placebo ~15
+  fires; rare high-τ variants) dropped a whole split for everyone; at 600 candidates
+  every split had ≥1 non-firer → panel `(600,0)` → "too small to cluster" fallback →
+  `n_eff = total = 600` (tell: `clusters == total` exactly). Fix: keep NaN gaps (drop
+  only all-NaN splits) + new `pairwise_complete_correlation` (correlate each pair on
+  splits where both fired; insufficient overlap → uncorrelated). Avoids both the
+  panel-collapse (too harsh) and zero-fill (too lenient) failure modes; aligns with
+  RESEARCH_H §4.1. Also vectorized the agglomeration (`np.argmin`) and silhouette
+  (BLAS `dist @ onehot`) — behavior-identical but **N=600 now runs in ~18 s** (was
+  >3.5 min and degenerate). Synthetic 600-candidate 7-family panel → `n_eff = 36`,
+  clustered. 4 new regression tests; original 12 unchanged; suite **1002 passed**.
+  Thresholds/gates untouched — only the N *estimate* is corrected (it had been stuck
+  at the maximally-harsh ceiling). M126 will report the real effective-N.
+- **Latest ledger milestone:** M124 (`PROJECT_MILESTONES.md`)
 - **Research docs:** `RESEARCH_G` (F1 options-data sourcing) and `RESEARCH_H`
   (N-count correction / DSR methodology amendment) committed to `docs/`.
   **N-count correction implemented in M119** (effective-N via ONC clustering,

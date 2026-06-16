@@ -156,3 +156,70 @@ def test_effective_n_metadata_json_safe():
     assert set(meta["cluster_assignments"]) == set(res.labels)
     import json
     json.dumps(meta)  # must be JSON-serializable
+
+
+# --- M124: sparse-panel degeneracy regression -------------------------------
+
+
+def _sparse_oos(n_dense=12, n_sparse=200, n_splits=24, seed=1):
+    """Panel mixing a few dense candidates with many sparse ones (fire in 3-5
+    splits). Pre-M124 ``dropna(how='any')`` collapsed this to 0 columns -> the
+    effective-N = total degeneracy. The fix keeps NaN gaps + pairwise correlation.
+    """
+    rng = np.random.default_rng(seed)
+    rows = []
+    latent = rng.normal(0, 1.0, n_splits)
+    for c in range(n_dense):
+        series = latent + rng.normal(0, 0.05, n_splits)  # dense, correlated cluster
+        for s in range(n_splits):
+            rows.append({"candidate_id": f"dense{c}", "split_number": s,
+                         "oos_expectancy_difference": float(series[s])})
+    for c in range(n_sparse):
+        present = rng.choice(n_splits, size=int(rng.integers(3, 6)), replace=False)
+        for s in present:
+            rows.append({"candidate_id": f"sparse{c}", "split_number": int(s),
+                         "oos_expectancy_difference": float(rng.normal(0, 1e-4))})
+    return pd.DataFrame(rows)
+
+
+def test_build_matrix_keeps_nan_gaps_not_drop_all_sparse_splits():
+    from spy_edge_research.backtesting.effective_n import build_candidate_return_matrix
+    m = build_candidate_return_matrix(_sparse_oos(n_dense=5, n_sparse=50, n_splits=20))
+    # The dense candidates span all 20 splits, so no split is fully empty: the
+    # panel retains all columns (the old how="any" would have dropped most).
+    assert m.shape[1] == 20
+    assert m.isna().to_numpy().any()  # sparse gaps are kept as NaN, not dropped
+
+
+def test_sparse_panel_does_not_degenerate_to_total():
+    # The core M124 fix: a panel dominated by sparse candidates must still cluster
+    # (not fall back to effective_n == total with every candidate its own cluster).
+    res = compute_effective_n(_sparse_oos(), family_floor=2)
+    assert res.clustered is True
+    assert res.n_eff < res.total_candidates  # was == total before the fix
+    assert 2 <= res.n_eff <= res.total_candidates
+
+
+def test_pairwise_complete_correlation_overlap_and_disjoint():
+    from spy_edge_research.backtesting.effective_n import pairwise_complete_correlation
+    # rows: 0 & 1 overlap on all splits and are perfectly correlated; row 2 is
+    # disjoint from both (no common observed split) -> NaN (treated as uncorrelated).
+    nan = np.nan
+    X = np.array([
+        [1.0, 2.0, 3.0, 4.0, nan, nan],
+        [2.0, 4.0, 6.0, 8.0, nan, nan],
+        [nan, nan, nan, nan, 1.0, 2.0],
+    ])
+    corr = pairwise_complete_correlation(X)
+    assert np.isclose(corr[0, 1], 1.0)
+    assert np.isnan(corr[0, 2]) and np.isnan(corr[1, 2])
+    assert corr[0, 0] == 1.0
+
+
+def test_vectorized_clustering_matches_known_structure():
+    # 4 tight clusters of 5 dense variants each -> effective_n recovers ~4 (small),
+    # confirming the vectorized agglomeration + silhouette still finds real structure.
+    res = compute_effective_n(_clustered_oos(n_clusters=4, per_cluster=5, n_splits=18),
+                              family_floor=2)
+    assert res.clustered is True
+    assert res.n_eff <= 8  # near the true cluster count, well below total (20)

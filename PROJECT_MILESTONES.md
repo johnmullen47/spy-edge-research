@@ -3648,3 +3648,49 @@ Ranked recommendation (RESEARCH_I): F10 > F6 > F7 > F8 > F9; none high-probabili
 All runnable on existing SPY 1-min + the M122 VIX CSV + free Fed calendar — **none
 blocked on data**. No suite change (docs only); registry still 600. **Next: M124 —
 investigate/fix the ONC effective-N = 600 degenerate case before implementing F6–F10.**
+
+## Milestone 124 - Fix ONC degenerate effective-N at large N (blocking)
+
+**Root cause (confirmed, not the hypothesized silhouette/step-size bug).** The
+M122 `effective_n = 600 = total` was **not** a silhouette local optimum — it was the
+`build_candidate_return_matrix` panel collapsing. The matrix used
+`dropna(axis=1, how="any")`, which drops every walk-forward split where **any**
+candidate has a NaN OOS value. With many sparse candidates (the F5 FOMC-eve placebo
+fires ~15 days; high-threshold MIM-Baltussen/F3 variants fire rarely), essentially
+every split contains ≥1 non-firing candidate, so **all** split columns were dropped
+→ panel shape `(600, 0)` → `compute_effective_n` hit its "panel too small to
+cluster" fallback → `n_eff = total`, every candidate its own cluster. The tell was
+`effective_n_clusters == total` exactly (the silhouette path caps at `n-1`).
+Reproduced deterministically: a synthetic 120-candidate panel with 70% sparse
+collapses to `(120, 0)` and returns `n_eff = 120, clustered = False` pre-fix.
+
+**Fix (RESEARCH_H §4.1-aligned, neither over-harsh nor over-lenient).**
+- `build_candidate_return_matrix` now drops only **all-NaN** splits (`how="all"`)
+  and keeps per-candidate gaps as NaN.
+- New `pairwise_complete_correlation`: each pair is correlated over only the splits
+  where **both** candidates fired; pairs with <2 common observations (or zero
+  dispersion) are left NaN → `correlation_distance` treats them as uncorrelated
+  (the conservative "independent trial" distance). This avoids **both** failure
+  modes: the `how="any"` panel collapse (effective-N = total, too harsh) **and**
+  zero-filling (sparse candidates sharing idle splits look spuriously correlated,
+  effective-N too lenient). `compute_effective_n` uses it in place of `np.corrcoef`.
+
+**Performance (the fix makes clustering actually run, so it had to scale).** The
+degenerate fallback was *fast* only because it skipped clustering; with real
+clustering at N=600 the pure-Python O(N^3)/O(N^4) hotspots were untenable (>3.5 min,
+unfinished). Vectorized both, behavior-identical:
+- agglomerative closest-pair search → single `np.argmin` over the masked distance
+  matrix (ties still broken by lowest-index pair);
+- silhouette → BLAS matmul `dist @ onehot` (per-cluster distance sums), O(n^2 K) per
+  K instead of Python nested loops.
+Result: **N=600 effective-N now computes in ~18 s** (synthetic 7-family panel →
+`n_eff = 36`, clustered, well below 600).
+
+**Tests:** 4 new regression tests in `test_effective_n.py` — panel keeps NaN gaps
+(not `how="any"`-collapsed); sparse-dominated panel no longer degenerates to total;
+pairwise-complete correlation (overlap correlates, disjoint → NaN); vectorized
+clustering still recovers known cluster structure. The original 12 effective-N tests
+pass unchanged (vectorized code is behavior-identical). Full suite: **1002 passed,
+4 skipped** (was 998 at M122). The M126 full Hard Gate A run will report the real
+effective-N on the expanded set (no longer the degenerate ceiling). **Next: M125 —
+implement the F6–F10 signal generators.**

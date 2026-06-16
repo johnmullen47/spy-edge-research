@@ -99,11 +99,16 @@ def build_candidate_return_matrix(
     split_column: str = "split_number",
     value_column: str = "oos_expectancy_difference",
 ) -> pd.DataFrame:
-    """Dense (candidate x split) return matrix from the OOS per-split panel.
+    """(candidate x split) return matrix from the OOS per-split panel, NaN-gapped.
 
-    Splits not observed for *every* surviving candidate are dropped so the
-    correlation matrix is computed on a fully-aligned panel (no leakage; this is
-    strategy-return structure only, never a strategy-vs-label correlation).
+    Splits with **no** firing candidate at all carry no information and are dropped
+    (``how="all"``). Per-candidate gaps (a candidate that took no position in a
+    split) are **kept as NaN** and handled downstream by pairwise-complete
+    correlation — never by ``how="any"`` column-dropping, which let a single sparse
+    candidate (e.g. an FOMC-eve placebo firing ~15 days, or a high-threshold
+    variant) collapse an entire split for *every* candidate and forced the
+    effective-N = total degeneracy (M124 root cause). This is strategy-return
+    structure only — never a strategy-vs-label correlation.
     """
     for required in (candidate_column, split_column, value_column):
         if required not in oos_results.columns:
@@ -114,8 +119,41 @@ def build_candidate_return_matrix(
         values=value_column,
         aggfunc="mean",
     ).sort_index()
-    # Keep only splits present for all candidates so corr is on a dense panel.
-    return wide.dropna(axis=1, how="any")
+    # Drop only splits where NO candidate fired (all-NaN); keep per-candidate gaps.
+    return wide.dropna(axis=1, how="all")
+
+
+def pairwise_complete_correlation(matrix: np.ndarray, *, min_overlap: int = 2) -> np.ndarray:
+    """Correlation matrix using, per pair, only the splits where BOTH candidates fired.
+
+    The NaN-gapped panel cannot go through ``np.corrcoef`` (any NaN poisons the
+    whole row). For each pair (i, j) we correlate over the splits finite in both;
+    pairs with fewer than ``min_overlap`` common observations, or with zero
+    dispersion in either leg, are left NaN — :func:`correlation_distance` then
+    treats them as uncorrelated (rho=0, the conservative "independent trial"
+    distance). This avoids both failure modes: the ``how="any"`` panel collapse
+    (effective-N = total, too harsh) and zero-filling (sparse candidates sharing
+    idle splits look spuriously correlated, effective-N too lenient).
+    """
+    X = np.asarray(matrix, dtype=float)
+    n = X.shape[0]
+    finite = np.isfinite(X)
+    corr = np.full((n, n), np.nan, dtype=float)
+    for i in range(n):
+        np.fill_diagonal(corr, 1.0)
+        for j in range(i + 1, n):
+            mask = finite[i] & finite[j]
+            if int(mask.sum()) < min_overlap:
+                continue
+            a = X[i, mask]
+            b = X[j, mask]
+            sa = a.std()
+            sb = b.std()
+            if sa == 0.0 or sb == 0.0 or not (np.isfinite(sa) and np.isfinite(sb)):
+                continue
+            rho = float(np.corrcoef(a, b)[0, 1])
+            corr[i, j] = corr[j, i] = rho
+    return corr
 
 
 def correlation_distance(corr: np.ndarray) -> np.ndarray:
@@ -183,7 +221,7 @@ def compute_effective_n(
             notes="panel_too_small_to_cluster",
         )
 
-    corr = np.corrcoef(matrix.to_numpy(dtype=float))
+    corr = pairwise_complete_correlation(matrix.to_numpy(dtype=float))
     dist = correlation_distance(np.atleast_2d(corr))
     labels_by_k = _agglomerative_labels_by_k(dist)
     best_k, best_sil = _optimal_k(dist, labels_by_k)
@@ -310,31 +348,24 @@ def _agglomerative_labels_by_k(dist: np.ndarray) -> dict[int, np.ndarray]:
     D = np.array(dist, dtype=float, copy=True)
     np.fill_diagonal(D, np.inf)
     sizes = np.ones(n, dtype=float)
-    active = list(range(n))
     # root[p] = current active cluster index owning point p
     root = np.arange(n)
     labels_by_k: dict[int, np.ndarray] = {n: _contiguous(root)}
 
     for k in range(n, 1, -1):
-        # find closest active pair
-        best = None
-        best_d = np.inf
-        for ai in range(len(active)):
-            i = active[ai]
-            for aj in range(ai + 1, len(active)):
-                j = active[aj]
-                if D[i, j] < best_d:
-                    best_d = D[i, j]
-                    best = (i, j)
-        i, j = best  # type: ignore[misc]
-        # merge j into i (UPGMA)
-        for x in active:
-            if x == i or x == j:
-                continue
-            D[i, x] = (sizes[i] * D[i, x] + sizes[j] * D[j, x]) / (sizes[i] + sizes[j])
-            D[x, i] = D[i, x]
+        # Closest active pair via a single vectorized argmin (merged rows/cols are
+        # inf, so they are never selected). np.argmin returns the first (row-major)
+        # occurrence -> ties broken by lowest index pair, matching the prior loop.
+        flat = int(np.argmin(D))
+        i, j = divmod(flat, n)
+        if i > j:
+            i, j = j, i
+        # merge j into i (UPGMA, vectorized Lance-Williams average linkage)
+        merged = (sizes[i] * D[i, :] + sizes[j] * D[j, :]) / (sizes[i] + sizes[j])
+        D[i, :] = merged
+        D[:, i] = merged
+        D[i, i] = np.inf
         sizes[i] += sizes[j]
-        active.remove(j)
         D[j, :] = np.inf
         D[:, j] = np.inf
         root[root == j] = i
@@ -371,28 +402,36 @@ def _optimal_k(dist: np.ndarray, labels_by_k: dict[int, np.ndarray]) -> tuple[in
 
 
 def _mean_silhouette(dist: np.ndarray, labels: np.ndarray) -> float:
-    """Mean silhouette score on a precomputed distance matrix."""
+    """Mean silhouette on a precomputed distance matrix (vectorized, BLAS).
+
+    For contiguous labels 0..K-1: ``S = dist @ onehot`` gives, per point, the sum
+    of distances to each cluster (one BLAS matmul, O(n^2 K)); ``a`` is the mean
+    intra-cluster distance (self excluded via size-1; diagonal is 0), ``b`` the
+    min mean distance to any other cluster. Mathematically identical to the prior
+    nested-loop version but ~2 orders of magnitude faster at large n, which the
+    K in [2, n-1] sweep needs.
+    """
     n = len(labels)
-    unique = np.unique(labels)
-    if unique.size < 2 or unique.size >= n:
+    lab = np.asarray(labels, dtype=np.intp)
+    k = int(lab.max()) + 1 if n else 0
+    if k < 2 or k >= n:
         return float("nan")
-    scores = np.zeros(n, dtype=float)
-    for i in range(n):
-        same = labels == labels[i]
-        same[i] = False
-        if not same.any():
-            scores[i] = 0.0  # singleton cluster
-            continue
-        a = dist[i, same].mean()
-        b = np.inf
-        for cl in unique:
-            if cl == labels[i]:
-                continue
-            other = labels == cl
-            if other.any():
-                b = min(b, dist[i, other].mean())
-        denom = max(a, b)
-        scores[i] = 0.0 if denom == 0 else (b - a) / denom
+    onehot = np.zeros((n, k), dtype=float)
+    onehot[np.arange(n), lab] = 1.0
+    sizes = onehot.sum(axis=0)  # (k,)
+    cluster_dist_sum = dist @ onehot  # (n, k): sum of dists to each cluster
+    own = lab
+    own_size = sizes[own]
+    a_sum = cluster_dist_sum[np.arange(n), own]
+    a = np.where(own_size > 1.0, a_sum / np.maximum(own_size - 1.0, 1.0), 0.0)
+    mean_to_cluster = cluster_dist_sum / np.maximum(sizes, 1.0)[None, :]
+    mean_to_cluster[np.arange(n), own] = np.inf  # exclude own cluster from b
+    b = mean_to_cluster.min(axis=1)
+    denom = np.maximum(a, b)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        scores = np.where(denom > 0.0, (b - a) / denom, 0.0)
+    # Singletons (own_size == 1) get score 0 by convention.
+    scores = np.where(own_size > 1.0, scores, 0.0)
     return float(scores.mean())
 
 
